@@ -25,7 +25,7 @@ export default async function HomePage() {
             <span className="block text-[var(--accent)]">just get the job done</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-[var(--muted)]">
-            PDFs, images, developer utilities, network tools, text helpers and more — fast, private, and built for real workflows.
+            PDFs, AI helpers, images, developer utilities, network tools and more — fast, private, and built for real workflows.
           </p>
 
           <form action="/tools" className="mx-auto mt-10 flex max-w-xl flex-col gap-3 sm:flex-row">
@@ -33,7 +33,7 @@ export default async function HomePage() {
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
               <input
                 name="q"
-                placeholder="Search tools — merge pdf, dns lookup, json format…"
+                placeholder="Search tools — summarize text, merge pdf, dns lookup…"
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] py-3.5 pl-11 pr-4 text-sm outline-none transition-colors focus:border-[var(--accent)]"
               />
             </div>

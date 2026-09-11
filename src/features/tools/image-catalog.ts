@@ -1,0 +1,182 @@
+import type { ToolMeta } from "@/features/tools/client-processors";
+
+export const IMAGE_TOOL_SLUGS = new Set([
+  "image-converter",
+  "jpg-to-png",
+  "png-to-jpg",
+  "webp-converter",
+  "compress-image",
+  "resize-image",
+  "crop-image",
+  "rotate-image",
+  "flip-image",
+]);
+
+const privacyFaq = {
+  question: "Is my image uploaded to a server?",
+  answer: "No. Image tools run entirely in your browser. Files never leave your device.",
+};
+
+export const IMAGE_TOOLS: ToolMeta[] = [
+  {
+    id: "image-converter",
+    slug: "image-converter",
+    name: "Image Converter",
+    category_slug: "image",
+    processing_type: "client",
+    short_description: "Convert images between JPG, PNG and WebP.",
+    long_description: "Upload a JPG, PNG, WebP, GIF or BMP and convert it to another format in your browser.",
+    how_to_use: [
+      "Drop an image or click to upload",
+      "Choose the output format",
+      "Adjust quality for JPG or WebP if you want",
+      "Click Process and download the result",
+    ],
+    features: ["JPG, PNG and WebP output", "Quality control for lossy formats", "Private — processed locally"],
+    faq: [privacyFaq, { question: "Is Image Converter free?", answer: "Yes, this tool is free to use." }],
+    related_tools: ["jpg-to-png", "png-to-jpg", "webp-converter"],
+    seo_title: "Image Converter — JPG, PNG and WebP",
+    meta_description: "Convert images between JPG, PNG and WebP in your browser. Free, private, no upload required.",
+    accepted_formats: ["jpg", "jpeg", "png", "webp", "gif", "bmp"],
+  },
+  {
+    id: "jpg-to-png",
+    slug: "jpg-to-png",
+    name: "JPG to PNG",
+    category_slug: "image",
+    processing_type: "client",
+    short_description: "Convert JPG images to PNG format.",
+    how_to_use: ["Upload a JPG image", "Click Process", "Download the PNG"],
+    features: ["Lossless PNG output", "Private — processed locally"],
+    faq: [privacyFaq],
+    related_tools: ["png-to-jpg", "image-converter"],
+    seo_title: "JPG to PNG — Convert JPG Images Online",
+    meta_description: "Convert JPG images to PNG in your browser. Free and private.",
+    accepted_formats: ["jpg", "jpeg"],
+  },
+  {
+    id: "png-to-jpg",
+    slug: "png-to-jpg",
+    name: "PNG to JPG",
+    category_slug: "image",
+    processing_type: "client",
+    short_description: "Convert PNG images to JPG format.",
+    how_to_use: ["Upload a PNG image", "Set quality if you want", "Click Process and download the JPG"],
+    features: ["Quality control", "White background for transparency", "Private — processed locally"],
+    faq: [privacyFaq],
+    related_tools: ["jpg-to-png", "compress-image"],
+    seo_title: "PNG to JPG — Convert PNG Images Online",
+    meta_description: "Convert PNG images to JPG in your browser. Free and private.",
+    accepted_formats: ["png"],
+  },
+  {
+    id: "webp-converter",
+    slug: "webp-converter",
+    name: "WebP Converter",
+    category_slug: "image",
+    processing_type: "client",
+    short_description: "Convert images to and from WebP format.",
+    how_to_use: ["Upload a JPG, PNG or WebP image", "Choose the output format", "Click Process"],
+    features: ["To and from WebP", "Quality control", "Private — processed locally"],
+    faq: [privacyFaq],
+    related_tools: ["image-converter", "jpg-to-png"],
+    seo_title: "WebP Converter — Convert to and from WebP",
+    meta_description: "Convert images to and from WebP in your browser. Free and private.",
+    accepted_formats: ["webp", "jpg", "jpeg", "png"],
+  },
+  {
+    id: "compress-image",
+    slug: "compress-image",
+    name: "Compress Image",
+    category_slug: "image",
+    processing_type: "client",
+    short_description: "Compress JPG, PNG and WebP images online.",
+    how_to_use: ["Upload an image", "Adjust quality", "Click Process and download the smaller file"],
+    features: ["Quality slider", "JPG, PNG and WebP", "Private — processed locally"],
+    faq: [privacyFaq],
+    related_tools: ["resize-image", "image-converter"],
+    seo_title: "Compress Image — Reduce Image File Size",
+    meta_description: "Compress JPG, PNG and WebP images in your browser. Free and private.",
+    accepted_formats: ["jpg", "jpeg", "png", "webp"],
+  },
+  {
+    id: "resize-image",
+    slug: "resize-image",
+    name: "Resize Image",
+    category_slug: "image",
+    processing_type: "client",
+    short_description: "Resize images to exact dimensions.",
+    how_to_use: ["Upload an image", "Set the target width (height stays proportional)", "Click Process"],
+    features: ["Keeps aspect ratio", "JPG, PNG and WebP", "Private — processed locally"],
+    faq: [privacyFaq],
+    related_tools: ["compress-image", "crop-image"],
+    seo_title: "Resize Image — Change Image Dimensions",
+    meta_description: "Resize images in your browser while keeping aspect ratio. Free and private.",
+    accepted_formats: ["jpg", "jpeg", "png", "webp"],
+  },
+  {
+    id: "crop-image",
+    slug: "crop-image",
+    name: "Crop Image",
+    category_slug: "image",
+    processing_type: "client",
+    short_description: "Crop images to a selected aspect ratio.",
+    how_to_use: ["Upload an image", "Choose an aspect ratio", "Click Process to center-crop"],
+    features: ["1:1, 4:3, 16:9 and 3:2", "Center crop", "Private — processed locally"],
+    faq: [privacyFaq],
+    related_tools: ["resize-image", "compress-image"],
+    seo_title: "Crop Image — Crop to Aspect Ratio",
+    meta_description: "Crop images to common aspect ratios in your browser. Free and private.",
+    accepted_formats: ["jpg", "jpeg", "png", "webp"],
+  },
+  {
+    id: "rotate-image",
+    slug: "rotate-image",
+    name: "Rotate Image",
+    category_slug: "image",
+    processing_type: "client",
+    short_description: "Rotate images 90°, 180° or 270°.",
+    how_to_use: ["Upload an image", "Choose a rotation", "Click Process"],
+    features: ["90°, 180° and 270°", "Private — processed locally"],
+    faq: [privacyFaq],
+    related_tools: ["flip-image", "crop-image"],
+    seo_title: "Rotate Image — Rotate 90, 180 or 270 Degrees",
+    meta_description: "Rotate images in your browser. Free and private.",
+    accepted_formats: ["jpg", "jpeg", "png", "webp"],
+  },
+  {
+    id: "flip-image",
+    slug: "flip-image",
+    name: "Flip Image",
+    category_slug: "image",
+    processing_type: "client",
+    short_description: "Flip images horizontally or vertically.",
+    how_to_use: ["Upload an image", "Choose horizontal or vertical", "Click Process"],
+    features: ["Horizontal and vertical flip", "Private — processed locally"],
+    faq: [privacyFaq],
+    related_tools: ["rotate-image", "crop-image"],
+    seo_title: "Flip Image — Mirror Horizontally or Vertically",
+    meta_description: "Flip images horizontally or vertically in your browser. Free and private.",
+    accepted_formats: ["jpg", "jpeg", "png", "webp"],
+  },
+];
+
+export const IMAGE_CATEGORY = {
+  slug: "image",
+  name: "Image Tools",
+  description: "Convert, compress, resize, crop, rotate and flip images in your browser. Files never leave your device.",
+  icon: "image",
+  tools: IMAGE_TOOLS,
+};
+
+export function getImageTool(category: string, slug: string): ToolMeta | null {
+  if (category !== "image") return null;
+  return IMAGE_TOOLS.find((t) => t.slug === slug) ?? null;
+}
+
+export function localImageTools(params?: { category?: string; popular?: boolean }): ToolMeta[] {
+  if (params?.category && params.category !== "image") return [];
+  const popular = new Set(["image-converter", "jpg-to-png", "compress-image"]);
+  if (params?.popular) return IMAGE_TOOLS.filter((t) => popular.has(t.slug));
+  return IMAGE_TOOLS;
+}

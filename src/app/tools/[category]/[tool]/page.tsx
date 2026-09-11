@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { fetchTool, fetchTools, SITE_URL } from "@/lib/api";
@@ -36,6 +35,17 @@ export default async function ToolPage({ params }: Props) {
     applicationCategory: "UtilityApplication",
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
   };
+
+  const isPdfEditor = slug === "pdf-editor";
+
+  if (isPdfEditor) {
+    return (
+      <main className="h-[calc(100vh-4.25rem)] overflow-hidden bg-[#e8eaed]">
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        <ToolEngine tool={tool as ToolMeta} />
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10 md:py-14">

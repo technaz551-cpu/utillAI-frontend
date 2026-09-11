@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { fetchCategory } from "@/lib/api";
 import { card, categoryAccent } from "@/lib/utils";
 
 type Props = { params: Promise<{ category: string }> };
@@ -13,7 +13,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function CategoryPage({ params }: Props) {
   const { category } = await params;
-  const data = await apiFetch<{ slug: string; name: string; description: string; tools: Array<{ slug: string; name: string; short_description: string; category_slug: string }> }>(`/categories/${category}`).catch(() => null);
+  const data = await fetchCategory(category) as {
+    slug: string;
+    name: string;
+    description: string;
+    tools: Array<{ slug: string; name: string; short_description: string; category_slug: string }>;
+  } | null;
   if (!data) notFound();
 
   const accent = categoryAccent(data.slug);

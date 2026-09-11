@@ -1,3 +1,5 @@
+import { INTERNET_PROCESSORS } from "@/features/tools/internet-processors";
+
 export interface ToolMeta {
   id: string;
   slug: string;
@@ -15,7 +17,251 @@ export interface ToolMeta {
   accepted_formats?: string[];
 }
 
-export type ToolProcessor = (input: string, options?: Record<string, unknown>) => { output: string; error?: string } | Promise<{ output: string; error?: string }>;
+export type ToolStat = { label: string; value: string };
+
+export type ToolSection = { id: string; title: string; text: string };
+
+export type ToolMeter = { label: string; value: number };
+
+export type ToolResult = {
+  output: string;
+  error?: string;
+  stats?: ToolStat[];
+  sections?: ToolSection[];
+  meter?: ToolMeter;
+};
+
+export type ToolProcessor = (input: string, options?: Record<string, unknown>) => ToolResult | Promise<ToolResult>;
+
+function countWords(text: string) {
+  return text.trim() ? text.trim().split(/\s+/).length : 0;
+}
+
+function splitSentences(text: string) {
+  return text.split(/(?<=[.!?])\s+/).filter((s) => s.trim());
+}
+
+function specialSymbolStats(text: string) {
+  const symbols = [...text].filter((ch) => {
+    if (!ch.trim()) return false;
+    return !/[\p{L}\p{N}]/u.test(ch);
+  });
+  const unique = [...new Set(symbols)].sort((a, b) => a.localeCompare(b));
+  return {
+    types: unique.length,
+    count: symbols.length,
+    list: unique,
+  };
+}
+
+function summarizeText(text: string, sentenceCount: number) {
+  const sentences = splitSentences(text);
+  if (sentences.length <= sentenceCount) return text;
+  const stop = new Set(["the", "is", "a", "an", "and", "or", "of", "to", "in", "on", "for", "with", "that", "this", "are", "was", "were", "as", "by"]);
+  const words = (text.toLowerCase().match(/\b[a-zA-Z]+\b/g) || []).filter((w) => !stop.has(w));
+  const freq = new Map<string, number>();
+  for (const w of words) freq.set(w, (freq.get(w) || 0) + 1);
+  const ranked = [...sentences]
+    .map((sentence) => {
+      const sw = sentence.toLowerCase().match(/\b[a-zA-Z]+\b/g) || [];
+      return { sentence, score: sw.reduce((n, w) => n + (freq.get(w) || 0), 0) };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, sentenceCount)
+    .map((x) => x.sentence);
+  const important = new Set(ranked);
+  return sentences.filter((s) => important.has(s)).join(" ");
+}
+
+const AI_PHRASES = [
+  "in today's world",
+  "in the modern era",
+  "it is important to note",
+  "it is worth noting",
+  "furthermore",
+  "moreover",
+  "in conclusion",
+  "ultimately",
+  "plays a crucial role",
+  "plays an important role",
+  "has become increasingly",
+  "rapidly evolving",
+  "multifaceted",
+  "delve into",
+  "landscape",
+  "transformative",
+  "comprehensive",
+  "significant",
+  "potential benefits",
+  "potential challenges",
+];
+
+const FORMAL_WORDS = new Set([
+  "furthermore", "moreover", "consequently", "therefore", "additionally", "nevertheless", "ultimately",
+]);
+
+const HUMANIZE_REPLACEMENTS: Array<[string, string]> = [
+  ["in today's world", "today"],
+  ["in the modern era", "today"],
+  ["it is important to note that", "importantly"],
+  ["it is worth noting that", "notably"],
+  ["a significant number of", "many"],
+  ["a large number of", "many"],
+  ["due to the fact that", "because"],
+  ["in order to", "to"],
+  ["at this point in time", "now"],
+  ["has the ability to", "can"],
+  ["is able to", "can"],
+  ["are able to", "can"],
+  ["plays a crucial role in", "helps"],
+  ["plays an important role in", "helps"],
+  ["in the process of", "while"],
+  ["with regard to", "about"],
+  ["with respect to", "about"],
+  ["for the purpose of", "to"],
+  ["in addition to", "besides"],
+  ["a wide range of", "many"],
+  ["a variety of", "many"],
+  ["it should be noted that", ""],
+  ["it is important to understand that", ""],
+  ["furthermore", "Also"],
+  ["moreover", "Also"],
+  ["consequently", "So"],
+  ["therefore", "So"],
+  ["utilize", "use"],
+  ["utilization", "use"],
+  ["approximately", "about"],
+  ["numerous", "many"],
+  ["individuals", "people"],
+  ["facilitate", "help"],
+  ["demonstrate", "show"],
+  ["commence", "start"],
+  ["terminate", "end"],
+  ["obtain", "get"],
+  ["require assistance", "need help"],
+  ["subsequently", "later"],
+  ["prior to", "before"],
+  ["in conclusion", "Overall"],
+];
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function detectAiLikelihood(text: string) {
+  const original = text.trim();
+  const words = original.toLowerCase().match(/\b[a-zA-Z]+\b/g) || [];
+  const sentences = splitSentences(original);
+  if (!words.length) return { likelihood: "Low", score: 0 };
+  let score = 0;
+  const lower = original.toLowerCase();
+  for (const phrase of AI_PHRASES) {
+    if (lower.includes(phrase)) score += 8;
+  }
+  if (sentences.length) {
+    const average = words.length / sentences.length;
+    if (average > 25) score += 15;
+    else if (average > 20) score += 8;
+  }
+  const freq = new Map<string, number>();
+  for (const w of words) freq.set(w, (freq.get(w) || 0) + 1);
+  const repeated = [...freq.entries()].filter(([word, n]) => n >= 4 && word.length > 4).length;
+  if (repeated >= 3) score += 10;
+  else if (repeated >= 1) score += 5;
+  const formalCount = words.filter((w) => FORMAL_WORDS.has(w)).length;
+  score += Math.min(formalCount * 4, 16);
+  score = Math.min(score, 100);
+  const likelihood = score >= 60 ? "High" : score >= 30 ? "Medium" : "Low";
+  return { likelihood, score };
+}
+
+function humanizeText(text: string) {
+  let result = text.trim();
+  for (const [old, next] of HUMANIZE_REPLACEMENTS) {
+    result = result.replace(new RegExp(`\\b${escapeRegExp(old)}\\b`, "gi"), next);
+  }
+  result = result.replace(/\s+/g, " ").trim();
+  result = result.replace(/\s+([,.!?;:])/g, "$1");
+  result = result.replace(/([.!?]){2,}/g, "$1");
+  return result;
+}
+
+function summarizeStats(original: string, summary: string): ToolStat[] {
+  const originalWords = countWords(original);
+  const summaryWords = countWords(summary);
+  const originalSentences = splitSentences(original).length;
+  const summarySentences = splitSentences(summary).length;
+  const reduction = originalWords
+    ? Math.max(0, Math.round((1 - summaryWords / originalWords) * 1000) / 10)
+    : 0;
+  return [
+    { label: "Reduced by", value: `${reduction}%` },
+    { label: "Words", value: `${originalWords} → ${summaryWords}` },
+    { label: "Sentences", value: `${originalSentences} → ${summarySentences}` },
+    { label: "Characters", value: `${original.length} → ${summary.length}` },
+  ];
+}
+
+function humanizeDetectSummarize(input: string, opts?: Record<string, unknown>): ToolResult {
+  const sentenceCount = Math.max(1, Number(opts?.sentenceCount || 3));
+  const text = input.trim();
+  if (!text) return { output: "", error: "Please provide some text." };
+  const detection = detectAiLikelihood(text);
+  const humanized = humanizeText(text);
+  const summary = summarizeText(humanized, sentenceCount);
+  return {
+    output: [
+      `AI likelihood: ${detection.likelihood} (${detection.score})`,
+      "",
+      "Humanized text:",
+      humanized,
+      "",
+      "Summary:",
+      summary,
+    ].join("\n"),
+    meter: { label: detection.likelihood, value: detection.score },
+    sections: [
+      { id: "humanized", title: "Humanized text", text: humanized },
+      { id: "summary", title: "Summary", text: summary },
+    ],
+    stats: summarizeStats(text, summary),
+  };
+}
+
+function sentimentAndKeywords(input: string, opts?: Record<string, unknown>): ToolResult {
+  if (!input.trim()) return { output: "", error: "Please provide text." };
+  const count = Math.max(1, Number(opts?.count || 10));
+  const positive = new Set(["good", "great", "excellent", "amazing", "awesome", "happy", "love", "best", "wonderful", "perfect", "nice"]);
+  const negative = new Set(["bad", "terrible", "worst", "hate", "sad", "poor", "awful", "horrible", "problem", "angry", "disappointed"]);
+  const words = input.toLowerCase().match(/\b[a-zA-Z]+\b/g) || [];
+  const positiveScore = words.filter((w) => positive.has(w)).length;
+  const negativeScore = words.filter((w) => negative.has(w)).length;
+  const sentiment = positiveScore > negativeScore ? "Positive" : negativeScore > positiveScore ? "Negative" : "Neutral";
+  const stop = new Set(["the", "is", "a", "an", "and", "or", "of", "to", "in", "on", "for", "with", "that", "this", "are", "was", "were", "as", "by", "from", "it", "be", "has", "have", "at"]);
+  const keywordWords = (input.toLowerCase().match(/\b[a-zA-Z]{3,}\b/g) || []).filter((w) => !stop.has(w));
+  const freq = new Map<string, number>();
+  for (const w of keywordWords) freq.set(w, (freq.get(w) || 0) + 1);
+  const keywords = [...freq.entries()].sort((a, b) => b[1] - a[1]).slice(0, count);
+  const keywordLines = keywords.length
+    ? keywords.map(([word, n], i) => `${i + 1}. ${word} (${n})`).join("\n")
+    : "None";
+  return {
+    output: [
+      `Sentiment: ${sentiment}`,
+      `Positive score: ${positiveScore}`,
+      `Negative score: ${negativeScore}`,
+      "",
+      "Keywords:",
+      keywordLines,
+    ].join("\n"),
+    stats: [
+      { label: "Sentiment", value: sentiment },
+      { label: "Positive", value: String(positiveScore) },
+      { label: "Negative", value: String(negativeScore) },
+      { label: "Keywords", value: String(keywords.length) },
+    ],
+  };
+}
 
 export const CLIENT_PROCESSORS: Record<string, ToolProcessor> = {
   "json-formatter": (input) => {
@@ -100,8 +346,10 @@ export const CLIENT_PROCESSORS: Record<string, ToolProcessor> = {
     output: input.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-"),
   }),
   "password-generator": (_, opts) => {
-    const len = Number(opts?.length || 16);
-    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    const len = Math.min(128, Math.max(4, Number(opts?.length || 16)));
+    let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    if (opts?.includeNumbers !== false) chars += "0123456789";
+    if (opts?.includeSymbols !== false) chars += "!@#$%^&*";
     let pwd = "";
     const arr = new Uint32Array(len);
     crypto.getRandomValues(arr);
@@ -436,6 +684,57 @@ export const CLIENT_PROCESSORS: Record<string, ToolProcessor> = {
     const result = (val * units[from]) / units[to];
     return { output: `${val} ${from} = ${result.toFixed(4)} ${to}` };
   },
+  "text-summarizer": (input, opts) => {
+    const sentenceCount = Math.max(1, Number(opts?.sentenceCount || 3));
+    const text = input.trim();
+    if (!text) return { output: "", error: "Please provide some text." };
+    const summary = summarizeText(text, sentenceCount);
+    return { output: summary, stats: summarizeStats(text, summary) };
+  },
+  "human-summarizer": humanizeDetectSummarize,
+  "ai-likelihood-detector": humanizeDetectSummarize,
+  "humanize-text": humanizeDetectSummarize,
+  "text-analyzer": (input) => {
+    if (!input.trim()) return { output: "", error: "Please provide text." };
+    const words = input.trim() ? input.trim().split(/\s+/) : [];
+    const sentences = input.split(/[.!?]+/).filter((s) => s.trim());
+    const symbols = specialSymbolStats(input);
+    const symbolList = symbols.list.length ? symbols.list.join(" ") : "None";
+    return {
+      output: [
+        `Words: ${words.length}`,
+        `Characters: ${input.length}`,
+        `Characters without spaces: ${input.replace(/\s/g, "").length}`,
+        `Sentences: ${sentences.length}`,
+        `Special symbol types: ${symbols.types}`,
+        `Special symbols used: ${symbolList}`,
+        `Special symbol count: ${symbols.count}`,
+      ].join("\n"),
+    };
+  },
+  "keyword-extractor": sentimentAndKeywords,
+  "sentiment-analyzer": sentimentAndKeywords,
+  "text-case-converter": (input, opts) => {
+    if (!input) return { output: "", error: "Please provide text." };
+    const mode = String(opts?.case || "upper");
+    const map: Record<string, string> = {
+      upper: input.toUpperCase(),
+      lower: input.toLowerCase(),
+      title: input.replace(/\w\S*/g, (t) => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()),
+      capitalize: input.charAt(0).toUpperCase() + input.slice(1).toLowerCase(),
+    };
+    if (!(mode in map)) return { output: "", error: "Invalid case." };
+    return { output: map[mode] };
+  },
+  "random-text-generator": (_, opts) => {
+    const len = Math.min(5000, Math.max(1, Number(opts?.length || 100)));
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ";
+    const arr = new Uint32Array(len);
+    crypto.getRandomValues(arr);
+    let text = "";
+    for (let i = 0; i < len; i++) text += chars[arr[i] % chars.length];
+    return { output: text };
+  },
   "currency-converter": (_, opts) => {
     const rates: Record<string, number> = { USD: 1, EUR: 0.92, GBP: 0.79, INR: 83.5, AUD: 1.53 };
     const val = Number(opts?.value || 0);
@@ -445,6 +744,7 @@ export const CLIENT_PROCESSORS: Record<string, ToolProcessor> = {
     const result = (val / rates[from]) * rates[to];
     return { output: `${val} ${from} = ${result.toFixed(2)} ${to}` };
   },
+  ...INTERNET_PROCESSORS,
 };
 
 export const CALCULATOR_TOOLS = new Set([
@@ -457,17 +757,21 @@ export const SEO_FORM_TOOLS = new Set([
 ]);
 
 export const INTERNET_FORM_TOOLS = new Set([
-  "dns-lookup", "mac-address-formatter",
+  "dns-lookup",
+  "mac-address-formatter",
+  "query-builder",
+  "generate-random-email",
+  "generate-otp",
+  "verify-otp",
 ]);
 
 export const NO_INPUT_TOOLS = new Set([
-  "uuid-generator", "password-generator", "what-is-my-ip",
+  "uuid-generator", "password-generator", "what-is-my-ip", "random-text-generator",
+  "generate-random-email", "generate-otp", "verify-otp", "query-builder",
 ]);
 
 export const FILE_CLIENT_TOOLS = new Set([
-  "resize-image", "crop-image", "jpg-to-png", "png-to-jpg", "webp-converter", "rotate-image", "flip-image",
+  "image-converter", "resize-image", "crop-image", "jpg-to-png", "png-to-jpg", "webp-converter", "rotate-image", "flip-image",
 ]);
 
-export const SERVER_TOOLS = new Set([
-  "merge-pdf", "split-pdf", "compress-pdf", "jpg-to-pdf", "pdf-to-jpg", "compress-image",
-]);
+export const SERVER_TOOLS = new Set<string>([]);

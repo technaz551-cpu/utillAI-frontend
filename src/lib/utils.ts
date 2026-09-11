@@ -23,6 +23,7 @@ export function card(className?: string) {
 
 export const CATEGORY_ACCENTS: Record<string, { badge: string; text: string; ring: string }> = {
   pdf: { badge: "bg-rose-500/10 text-rose-300", text: "text-rose-300", ring: "hover:border-rose-500/40" },
+  ai: { badge: "bg-indigo-500/10 text-indigo-300", text: "text-indigo-300", ring: "hover:border-indigo-500/40" },
   image: { badge: "bg-sky-500/10 text-sky-300", text: "text-sky-300", ring: "hover:border-sky-500/40" },
   developer: { badge: "bg-violet-500/10 text-violet-300", text: "text-violet-300", ring: "hover:border-violet-500/40" },
   text: { badge: "bg-amber-500/10 text-amber-300", text: "text-amber-300", ring: "hover:border-amber-500/40" },

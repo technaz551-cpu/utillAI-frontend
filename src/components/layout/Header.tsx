@@ -3,6 +3,7 @@ import { btn } from "@/lib/utils";
 
 const NAV_CATEGORIES = [
   { slug: "pdf", label: "PDF" },
+  { slug: "ai", label: "AI" },
   { slug: "image", label: "Image" },
   { slug: "developer", label: "Developer" },
   { slug: "internet", label: "Internet" },

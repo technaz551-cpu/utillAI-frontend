@@ -1,9 +1,15 @@
 import { MetadataRoute } from "next";
 import { SITE_URL, apiFetch } from "@/lib/api";
+import { PDF_CATEGORY, PDF_TOOLS } from "@/features/tools/pdf-catalog";
+import { AI_CATEGORY, AI_TOOLS } from "@/features/tools/ai-catalog";
+import { IMAGE_CATEGORY, IMAGE_TOOLS } from "@/features/tools/image-catalog";
+import { INTERNET_CATEGORY, INTERNET_TOOLS } from "@/features/tools/internet-catalog";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const tools = await apiFetch<Array<{ slug: string; category_slug: string }>>("/tools").catch(() => []);
-  const categories = await apiFetch<Array<{ slug: string }>>("/categories").catch(() => []);
+  const fallbackTools = [...PDF_TOOLS, ...AI_TOOLS, ...IMAGE_TOOLS, ...INTERNET_TOOLS];
+  const fallbackCategories = [PDF_CATEGORY, AI_CATEGORY, IMAGE_CATEGORY, INTERNET_CATEGORY];
+  const tools = await apiFetch<Array<{ slug: string; category_slug: string }>>("/tools").catch(() => fallbackTools);
+  const categories = await apiFetch<Array<{ slug: string }>>("/categories").catch(() => fallbackCategories);
 
   const entries: MetadataRoute.Sitemap = [
     { url: SITE_URL, changeFrequency: "daily", priority: 1 },

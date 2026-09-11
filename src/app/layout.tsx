@@ -9,7 +9,7 @@ const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variabl
 
 export const metadata: Metadata = {
   title: { default: "ToolForge — Free Online Tools", template: "%s | ToolForge" },
-  description: "Free online PDF, image, developer, internet, SEO, text and calculator tools.",
+  description: "Free online PDF, AI, image, developer, internet, SEO, text and calculator tools.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

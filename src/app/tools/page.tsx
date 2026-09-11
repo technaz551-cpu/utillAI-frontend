@@ -8,7 +8,7 @@ export default async function AllToolsPage() {
   return (
     <main className="mx-auto max-w-7xl px-4 py-12 md:py-16">
       <h1 className="text-3xl font-semibold md:text-4xl">All tools</h1>
-      <p className="mt-3 max-w-2xl text-[var(--muted)]">Browse the full collection — PDF, image, developer, internet, text, SEO and more.</p>
+      <p className="mt-3 max-w-2xl text-[var(--muted)]">Browse the full collection — PDF, AI, image, developer, internet, text, SEO and more.</p>
       <div className="mt-12 space-y-14">
         {(categories as Array<{ slug: string; name: string; tools: Array<{ slug: string; name: string; short_description: string; category_slug: string }> }>).map((cat) => {
           const accent = categoryAccent(cat.slug);

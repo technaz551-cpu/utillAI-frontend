@@ -28,6 +28,14 @@ body {
   background-size: 100% 100%, 48px 48px, 48px 48px;
 }
 
+body.pdf-editor-open {
+  overflow: hidden;
+}
+
+body.pdf-editor-open footer {
+  display: none;
+}
+
 ::selection {
   background: rgba(79, 140, 255, 0.35);
 }
