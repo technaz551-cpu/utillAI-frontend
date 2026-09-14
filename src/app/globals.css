@@ -1,31 +1,60 @@
 @import "tailwindcss";
 
 :root {
-  --background: #090d14;
-  --foreground: #eef2f8;
-  --surface: #111827;
-  --surface-raised: #1a2332;
-  --border: #2a3548;
-  --muted: #8b9cb8;
-  --accent: #4f8cff;
-  --accent-soft: rgba(79, 140, 255, 0.12);
+  --background: #f3f6f4;
+  --foreground: #182b2b;
+  --surface: #ffffff;
+  --surface-raised: #f7faf8;
+  --surface-alt: #edf5f1;
+  --surface-strong: #e3f2ea;
+  --header-bg: rgba(255, 255, 255, 0.82);
+  --border: rgba(27, 48, 40, 0.12);
+  --muted: #5d6f6a;
+  --brand-primary: #1dbd78;
+  --brand-secondary: #0d8f60;
+  --brand-accent: #dff7eb;
+  --green: #1dbd78;
+  --blue: #0f8a63;
+  --teal: #77d8b2;
+  --pink: #1dbd78;
+  --purple: #0d8f60;
+  --cyan: #dff7eb;
+  --pink-soft: rgba(29, 189, 120, 0.12);
+  --shadow-soft: 0 20px 52px rgba(17, 42, 33, 0.08);
+  --shadow-card: 0 18px 42px rgba(17, 42, 33, 0.08);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
+  --font-sans: Arial, Helvetica, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, rgba(29, 189, 120, 0.08), transparent 20%),
+    radial-gradient(circle at top right, rgba(13, 143, 96, 0.05), transparent 18%),
+    linear-gradient(180deg, #f5f8f6 0%, #f0f5f2 100%);
   color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
   background-image:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(79, 140, 255, 0.08), transparent),
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 100% 100%, 48px 48px, 48px 48px;
+    linear-gradient(rgba(177, 238, 216, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(177, 238, 216, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(circle at center, black 25%, transparent 90%);
 }
 
 body.pdf-editor-open {
@@ -36,6 +65,54 @@ body.pdf-editor-open footer {
   display: none;
 }
 
+* {
+  box-sizing: border-box;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+p {
+  margin: 0;
+}
+
 ::selection {
-  background: rgba(79, 140, 255, 0.35);
+  background: rgba(69, 215, 170, 0.28);
+}
+
+.page-shell {
+  position: relative;
+  z-index: 1;
+}
+
+.section-shell {
+  width: min(1200px, calc(100% - 2rem));
+  margin-inline: auto;
+}
+
+.brand-mark {
+  display: inline-flex;
+  height: 3.2rem;
+  width: 3.2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.9rem;
+  background: linear-gradient(135deg, #1dbd78 0%, #0f9d67 100%);
+  box-shadow: 0 12px 24px rgba(29, 189, 120, 0.22);
+  color: #ffffff;
+  font-size: 1.55rem;
+  font-weight: 900;
+  letter-spacing: -0.08em;
+  border: 1px solid rgba(16, 52, 38, 0.08);
+  line-height: 1;
+}
+
+.soft-ring {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.nav-shell {
+  backdrop-filter: blur(18px);
 }

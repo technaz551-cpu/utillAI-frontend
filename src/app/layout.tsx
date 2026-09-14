@@ -1,23 +1,21 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, IBM_Plex_Mono } from "next/font/google";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { ThemeManager } from "@/components/settings/ThemeManager";
 import "./globals.css";
 
-const sans = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-sans" });
-const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono" });
-
 export const metadata: Metadata = {
-  title: { default: "ToolForge — Free Online Tools", template: "%s | ToolForge" },
-  description: "Free online PDF, AI, image, developer, internet, SEO, text and calculator tools.",
+  title: { default: "UtilAI — AI-powered creative tools", template: "%s | UtilAI" },
+  description: "Modern online tools for PDFs, AI workflows, image editing, developer utilities, and everyday productivity.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${sans.variable} ${mono.variable} min-h-screen font-sans antialiased`} suppressHydrationWarning>
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
+      <body className="min-h-screen antialiased" suppressHydrationWarning>
+        <ThemeManager />
         <Header />
-        {children}
+        <div className="page-shell">{children}</div>
         <Footer />
       </body>
     </html>

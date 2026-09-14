@@ -353,6 +353,11 @@ async function renderPageToJpg(
     });
 }
 
+function toPdfBlob(bytes: Uint8Array): Blob {
+    const arrayBuffer = new Uint8Array(bytes).buffer as ArrayBuffer;
+    return new Blob([arrayBuffer], { type: "application/pdf" });
+}
+
 async function mergePdfs(files: File[]) {
     const mergedPdf = await PDFDocument.create();
     for (const file of files) {
@@ -366,7 +371,7 @@ async function mergePdfs(files: File[]) {
     }
     const pdfBytes = await mergedPdf.save();
     return {
-        blob: new Blob([pdfBytes], { type: "application/pdf" }),
+        blob: toPdfBlob(pdfBytes),
         filename: "merged.pdf",
     };
 }
@@ -384,7 +389,7 @@ async function splitPdf(file: File) {
         const pdfBytes = await singlePagePdf.save();
         zip.file(
             `page-${String(i + 1).padStart(3, "0")}.pdf`,
-            new Blob([pdfBytes])
+            new Blob([new Uint8Array(pdfBytes)])
         );
     }
 
@@ -393,6 +398,11 @@ async function splitPdf(file: File) {
         blob: zipBlob,
         filename: `${file.name.replace(".pdf", "")}-pages.zip`,
     };
+}
+
+function toBlobFromUint8(bytes: Uint8Array): Blob {
+    const arrayBuffer = new Uint8Array(bytes).buffer as ArrayBuffer;
+    return new Blob([arrayBuffer]);
 }
 
 async function jpgToPdf(files: File[]) {
@@ -422,7 +432,7 @@ async function jpgToPdf(files: File[]) {
 
     const pdfBytes = await pdf.save();
     return {
-        blob: new Blob([pdfBytes], { type: "application/pdf" }),
+        blob: toPdfBlob(pdfBytes),
         filename: "converted.pdf",
     };
 }
@@ -658,7 +668,7 @@ export async function exportprocesspdf(
 
 /** Trigger a browser download of the exported PDF bytes. */
 export function downloadPdf(bytes: Uint8Array, filename: string): void {
-    const blob = new Blob([bytes], { type: "application/pdf" });
+    const blob = toPdfBlob(bytes);
     const url = URL.createObjectURL(blob);
 
     const link = document.createElement("a");

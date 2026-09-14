@@ -1,7 +1,16 @@
 import Link from "next/link";
-import { ArrowRight, Search, Shield, Zap } from "lucide-react";
+import { ArrowRight, BrainCircuit, Code2, FileText, Globe, ImageIcon, PenTool, Search, Shield, Sparkles, Wand2, Zap } from "lucide-react";
 import { fetchCategories, fetchTools } from "@/lib/api";
 import { btn, card, categoryAccent } from "@/lib/utils";
+
+const TOOL_ICONS: Record<string, typeof FileText> = {
+  pdf: FileText,
+  image: ImageIcon,
+  ai: BrainCircuit,
+  internet: Globe,
+  developer: Code2,
+  text: PenTool,
+};
 
 export default async function HomePage() {
   const [categories, popular] = await Promise.all([
@@ -12,111 +21,205 @@ export default async function HomePage() {
   const totalTools = (categories as Array<{ tools?: unknown[] }>).reduce((n, c) => n + (c.tools?.length || 0), 0);
 
   return (
-    <main>
-      <section className="relative overflow-hidden px-4 pb-20 pt-16 md:pt-24">
-        <div className="pointer-events-none absolute -right-32 top-0 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
-        <div className="relative mx-auto max-w-4xl text-center">
-          <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-1.5 text-xs font-medium text-[var(--muted)]">
-            <Zap className="h-3.5 w-3.5 text-[var(--accent)]" />
-            {totalTools || "60+"} free tools · No signup required
-          </p>
-          <h1 className="text-4xl font-semibold leading-tight tracking-tight md:text-6xl">
-            Online tools that
-            <span className="block text-[var(--accent)]">just get the job done</span>
-          </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-[var(--muted)]">
-            PDFs, AI helpers, images, developer utilities, network tools and more — fast, private, and built for real workflows.
-          </p>
+    <main className="pb-10">
+      <section className="section-shell relative overflow-hidden pb-16 pt-10 md:pt-16">
+        <div className="pointer-events-none absolute -right-24 top-0 h-72 w-72 rounded-full bg-[var(--pink)]/10 blur-3xl" />
+        <div className="pointer-events-none absolute left-0 top-10 h-64 w-64 rounded-full bg-[var(--cyan)]/10 blur-3xl" />
 
-          <form action="/tools" className="mx-auto mt-10 flex max-w-xl flex-col gap-3 sm:flex-row">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
-              <input
-                name="q"
-                placeholder="Search tools — summarize text, merge pdf, dns lookup…"
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] py-3.5 pl-11 pr-4 text-sm outline-none transition-colors focus:border-[var(--accent)]"
-              />
+        <div className="relative grid items-center gap-10 lg:grid-cols-[1.15fr_0.85fr]">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)] shadow-[0_10px_24px_rgba(66,46,94,0.05)]">
+              <Zap className="h-3.5 w-3.5 text-[var(--pink)]" />
+              {totalTools || "60+"} tools · creative workflow
             </div>
-            <button type="submit" className={btn("primary") + " px-6"}>Search</button>
-          </form>
 
-          <div className="mt-12 grid grid-cols-3 gap-4 text-center">
-            {[
-              { label: "Tools", value: String(totalTools || "60+") },
-              { label: "Categories", value: String(categories.length || 9) },
-              { label: "Client-side", value: "Many" },
-            ].map((s) => (
-              <div key={s.label} className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/60 px-4 py-3">
-                <p className="text-xl font-semibold">{s.value}</p>
-                <p className="mt-1 text-xs text-[var(--muted)]">{s.label}</p>
+            <h1 className="mt-6 max-w-xl text-4xl font-black leading-[1.02] tracking-[-0.07em] text-[var(--foreground)] md:text-6xl">
+              Smart tools for
+              <span className="block bg-gradient-to-r from-[var(--pink)] via-[var(--purple)] to-[var(--cyan)] bg-clip-text text-transparent">
+                modern work
+              </span>
+            </h1>
+
+            <p className="mt-5 max-w-xl text-lg leading-relaxed text-[var(--muted)]">
+              Transform PDFs, optimize images, speed up writing, and simplify digital tasks with a polished creative toolkit built for real everyday work.
+            </p>
+
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link href="/tools" className={btn("primary") + " !rounded-full"}>
+                Explore tools
+              </Link>
+              <Link href="/pricing" className={btn("secondary") + " !rounded-full"}>
+                View plans
+              </Link>
+            </div>
+
+            <form action="/tools" className="mt-8 flex max-w-xl flex-col gap-3 sm:flex-row">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
+                <input
+                  name="q"
+                  placeholder="Search for a tool…"
+                  className="w-full rounded-full border border-[var(--border)] bg-white/90 py-3.5 pl-11 pr-4 text-sm text-[var(--foreground)] shadow-[0_12px_28px_rgba(76,52,104,0.05)] outline-none transition-all focus:border-[var(--pink)] focus:ring-4 focus:ring-[var(--pink-soft)]"
+                />
               </div>
-            ))}
+              <button type="submit" className={btn("primary") + " !rounded-full !px-6"}>Search</button>
+            </form>
+
+            <div className="mt-10 grid gap-4 sm:grid-cols-3">
+              {[
+                { label: "Tools", value: String(totalTools || "60+") },
+                { label: "Categories", value: String((categories as Array<{ slug: string }>).length || 6) },
+                { label: "Client-side", value: "Built in" },
+              ].map((stat) => (
+                <div key={stat.label} className="rounded-[24px] border border-[var(--border)] bg-white/80 p-4 shadow-[0_16px_36px_rgba(79,58,120,0.06)]">
+                  <p className="text-2xl font-black tracking-[-0.05em] text-[var(--foreground)]">{stat.value}</p>
+                  <p className="mt-1 text-xs font-medium uppercase tracking-[0.14em] text-[var(--muted)]">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="relative">
+            <div className="rounded-[32px] border border-[var(--border)] bg-white/80 p-4 shadow-[var(--shadow-soft)] backdrop-blur-sm">
+              <div className="rounded-[28px] bg-gradient-to-br from-[var(--surface-alt)] via-white to-[var(--surface-strong)] p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Featured suite</p>
+                    <h2 className="mt-2 text-2xl font-black tracking-[-0.05em]">Creative toolkit</h2>
+                  </div>
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--pink)] via-[var(--purple)] to-[var(--cyan)] text-white shadow-[0_18px_36px_rgba(125,92,255,0.25)]">
+                    <Sparkles className="h-4 w-4" />
+                  </span>
+                </div>
+
+                <div className="mt-6 grid gap-3">
+                  {(popular as Array<{ slug: string; name: string; short_description: string; category_slug: string }>).slice(0, 4).map((tool) => {
+                    const accent = categoryAccent(tool.category_slug);
+                    const Icon = TOOL_ICONS[tool.category_slug] ?? Sparkles;
+                    return (
+                      <Link key={tool.slug} href={`/tools/${tool.category_slug}/${tool.slug}`} className="group flex items-center justify-between rounded-2xl border border-[var(--border)] bg-white p-3 transition hover:-translate-y-0.5 hover:border-[var(--brand-primary)]/30 hover:shadow-[0_16px_26px_rgba(2,20,31,0.2)]">
+                        <div className="flex items-center gap-3">
+                          <span className={`inline-flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold ${accent.badge}`}>
+                            <Icon className="h-4 w-4" />
+                          </span>
+                          <div>
+                            <p className="font-bold text-[var(--foreground)]">{tool.name}</p>
+                            <p className="text-xs text-[var(--muted)]">{tool.category_slug.replace("-", " ")}</p>
+                          </div>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-[var(--muted)] transition group-hover:translate-x-1 group-hover:text-[var(--foreground)]" />
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 pb-20">
+      <section className="section-shell pb-20">
         <div className="mb-8 flex items-end justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-semibold">Popular tools</h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">Most used this week</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">Popular tools</p>
+            <h2 className="mt-2 text-3xl font-black tracking-[-0.06em] text-[var(--foreground)]">Everything you need, in one place</h2>
           </div>
-          <Link href="/tools" className="hidden items-center gap-1 text-sm text-[var(--accent)] hover:underline sm:flex">
+          <Link href="/tools" className="hidden items-center gap-2 text-sm font-semibold text-[var(--foreground)] sm:inline-flex">
             View all <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {(popular as Array<{ slug: string; name: string; short_description: string; category_slug: string }>).map((t) => {
-            const accent = categoryAccent(t.category_slug);
-            return (
-              <Link
-                key={t.slug}
-                href={`/tools/${t.category_slug}/${t.slug}`}
-                className={card(accent.ring + " group transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--surface-raised)]")}
-              >
-                <span className={`inline-block rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${accent.badge}`}>
-                  {t.category_slug.replace("-", " ")}
-                </span>
-                <h3 className={`mt-3 font-medium ${accent.text}`}>{t.name}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-[var(--muted)] line-clamp-2">{t.short_description}</p>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
 
-      <section className="mx-auto max-w-7xl px-4 pb-24">
-        <h2 className="text-2xl font-semibold">Browse by category</h2>
-        <p className="mt-1 text-sm text-[var(--muted)]">Pick a category to explore related tools</p>
-        <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {(categories as Array<{ slug: string; name: string; description: string; tools?: unknown[] }>).map((c) => {
-            const accent = categoryAccent(c.slug);
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {(popular as Array<{ slug: string; name: string; short_description: string; category_slug: string }>).slice(0, 8).map((tool) => {
+            const accent = categoryAccent(tool.category_slug);
+            const Icon = TOOL_ICONS[tool.category_slug] ?? Sparkles;
             return (
               <Link
-                key={c.slug}
-                href={`/tools/${c.slug}`}
-                className={card(accent.ring + " transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--surface-raised)]")}
+                key={tool.slug}
+                href={`/tools/${tool.category_slug}/${tool.slug}`}
+                className={card(accent.ring + " group hover:-translate-y-1.5 hover:bg-[var(--brand-primary)] hover:text-white hover:shadow-[0_22px_38px_rgba(2,22,35,0.24)]")}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <h3 className="text-lg font-medium">{c.name}</h3>
-                  <span className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-medium ${accent.badge}`}>
-                    {c.tools?.length || 0}
+                <div className="flex items-center justify-between gap-4">
+                  <span className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl text-sm font-black ${accent.badge} group-hover:bg-white/15 group-hover:text-white`}>
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <span className="rounded-full border border-[var(--border)] bg-[var(--surface-alt)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)] group-hover:border-white/25 group-hover:bg-white/15 group-hover:text-white">
+                    {tool.category_slug}
                   </span>
                 </div>
-                <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{c.description}</p>
+                <h3 className="mt-5 text-xl font-bold text-[var(--foreground)] group-hover:text-white">{tool.name}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--muted)] group-hover:text-white/80">{tool.short_description}</p>
+                <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[var(--foreground)] group-hover:text-white">
+                  Open tool <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                </div>
               </Link>
             );
           })}
         </div>
       </section>
 
-      <section className="border-t border-[var(--border)] bg-[var(--surface)]/40 px-4 py-16">
-        <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-          <Shield className="mb-4 h-8 w-8 text-[var(--accent)]" />
-          <h2 className="text-xl font-semibold">Your data stays yours</h2>
-          <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
-            Client-side tools run entirely in your browser. Server tools process files securely and delete them automatically after processing.
-          </p>
+      <section className="section-shell pb-24">
+        <div className="mb-8 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">Browse categories</p>
+            <h2 className="mt-2 text-3xl font-black tracking-[-0.06em] text-[var(--foreground)]">Choose the workflow you need</h2>
+          </div>
+        </div>
+
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {(categories as Array<{ slug: string; name: string; description: string; tools?: unknown[] }>).map((category) => {
+            const accent = categoryAccent(category.slug);
+            const Icon = TOOL_ICONS[category.slug] ?? Sparkles;
+            return (
+              <Link
+                key={category.slug}
+                href={`/tools/${category.slug}`}
+                className={card(accent.ring + " group hover:-translate-y-1.5 hover:bg-[var(--brand-primary)] hover:text-white hover:shadow-[0_22px_38px_rgba(2,22,35,0.24)]")}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <span className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-black ${accent.badge} group-hover:bg-white/15 group-hover:text-white`}>
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <span className="rounded-full border border-[var(--border)] bg-[var(--surface-alt)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)] group-hover:border-white/25 group-hover:bg-white/15 group-hover:text-white">
+                    {category.tools?.length || 0} tools
+                  </span>
+                </div>
+                <h3 className="mt-5 text-xl font-bold text-[var(--foreground)] group-hover:text-white">{category.name}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--muted)] group-hover:text-white/80">{category.description}</p>
+                <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[var(--foreground)] group-hover:text-white">
+                  Open category <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="bg-white/70 py-16">
+        <div className="section-shell">
+          <div className="grid gap-5 md:grid-cols-3">
+            {[
+              { title: "Secure by default", text: "Private-by-design workflows for files and sensitive content." },
+              { title: "Built for speed", text: "Fast processing, clear actions, and streamlined interfaces." },
+              { title: "Made for creativity", text: "A friendly SaaS experience with colorful, product-grade polish." },
+            ].map((item) => (
+              <div key={item.title} className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_16px_32px_rgba(76,54,107,0.06)]">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--pink)]/15 via-[var(--purple)]/15 to-[var(--cyan)]/15 text-[var(--foreground)]">
+                  <Wand2 className="h-5 w-5 text-[var(--pink)]" />
+                </div>
+                <h3 className="mt-5 text-xl font-bold text-[var(--foreground)]">{item.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{item.text}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 flex flex-col items-center gap-4 rounded-[32px] border border-[var(--border)] bg-gradient-to-r from-[var(--surface)] to-[var(--surface-alt)] p-8 text-center shadow-[0_18px_38px_rgba(68,42,96,0.07)]">
+            <Shield className="h-9 w-9 text-[var(--pink)]" />
+            <h3 className="text-2xl font-black tracking-[-0.05em] text-[var(--foreground)]">Your data stays yours</h3>
+            <p className="max-w-2xl text-sm leading-relaxed text-[var(--muted)]">
+              Many tools work locally in the browser, and server-side tools are processed securely with clear delivery and privacy-minded patterns.
+            </p>
+          </div>
         </div>
       </section>
     </main>

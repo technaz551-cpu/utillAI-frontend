@@ -32,9 +32,14 @@ export default async function CategoryPage({ params }: Props) {
       <p className="mt-4 max-w-2xl leading-relaxed text-[var(--muted)]">{data.description}</p>
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {data.tools.map((t) => (
-          <Link key={t.slug} href={`/tools/${t.category_slug}/${t.slug}`} className={card(accent.ring + " transition-all hover:bg-[var(--surface-raised)]")}>
-            <h2 className={`font-medium ${accent.text}`}>{t.name}</h2>
-            <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{t.short_description}</p>
+          <Link key={t.slug} href={`/tools/${t.category_slug}/${t.slug}`} className={card(accent.ring + " group transition-all hover:bg-[var(--brand-primary)] hover:text-white") + " block"}>
+            <div className="flex items-start gap-3">
+              <span className="mt-1.5 inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--brand-primary)] group-hover:bg-white" />
+              <div>
+                <h2 className="text-base font-semibold text-[var(--foreground)] group-hover:text-white">{t.name}</h2>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--muted)] group-hover:text-white/80">{t.short_description}</p>
+              </div>
+            </div>
           </Link>
         ))}
       </div>

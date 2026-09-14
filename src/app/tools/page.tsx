@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { fetchCategories } from "@/lib/api";
-import { card, categoryAccent } from "@/lib/utils";
+import { categoryAccent } from "@/lib/utils";
 
 export default async function AllToolsPage() {
   const categories = await fetchCategories().catch(() => []);
@@ -18,14 +18,17 @@ export default async function AllToolsPage() {
                 <Link href={`/tools/${cat.slug}`} className="text-xl font-semibold hover:text-[var(--accent)]">{cat.name}</Link>
                 <span className={`rounded-md px-2 py-0.5 text-xs font-medium ${accent.badge}`}>{cat.tools?.length || 0}</span>
               </div>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <ul className="grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
                 {cat.tools?.map((t) => (
-                  <Link key={t.slug} href={`/tools/${t.category_slug}/${t.slug}`} className={card(accent.ring + " py-4 transition-colors hover:bg-[var(--surface-raised)]")}>
-                    <span className={`font-medium ${accent.text}`}>{t.name}</span>
-                    <p className="mt-1.5 text-xs leading-relaxed text-[var(--muted)] line-clamp-2">{t.short_description}</p>
-                  </Link>
+                  <li key={t.slug} className="group relative pl-6">
+                    <span className="absolute left-1 top-2.5 h-2.5 w-2.5 rounded-full bg-[var(--brand-primary)] transition-transform group-hover:scale-125" />
+                    <Link href={`/tools/${t.category_slug}/${t.slug}`} className="font-semibold text-[var(--foreground)] transition-colors hover:text-[var(--brand-primary)]">
+                      {t.name}
+                    </Link>
+                    <p className="mt-1 text-xs leading-relaxed text-[var(--muted)] line-clamp-2">{t.short_description}</p>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </section>
           );
         })}

@@ -40,7 +40,7 @@ export default async function ToolPage({ params }: Props) {
 
   if (isPdfEditor) {
     return (
-      <main className="h-[calc(100vh-4.25rem)] overflow-hidden bg-[#e8eaed]">
+      <main className="pdf-editor-page h-[calc(100dvh-5.9rem)] overflow-hidden bg-[#edf5f1]">
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         <ToolEngine tool={tool as ToolMeta} />
       </main>
