@@ -82,7 +82,7 @@ export default function ProfilePage() {
               <p className="mt-1 text-sm text-[var(--muted)]">Personalize your language and background.</p>
             </div>
 
-            <label className="mt-6 block text-sm font-semibold text-[var(--foreground)]">
+            {/* <label className="mt-6 block text-sm font-semibold text-[var(--foreground)]">
               <span className="flex items-center gap-2"><Languages className="h-4 w-4 text-[var(--brand-primary)]" /> Language</span>
               <select
                 value={preferences.language}
@@ -101,7 +101,7 @@ export default function ProfilePage() {
                 <option value="ja">Japanese</option>
                 <option value="ko">Korean</option>
               </select>
-            </label>
+            </label> */}
 
             <div className="mt-7 border-t border-[var(--border)] pt-6">
               <div className="flex items-center justify-between gap-3">
