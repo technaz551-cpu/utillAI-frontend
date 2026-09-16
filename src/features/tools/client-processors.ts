@@ -4,6 +4,8 @@ export interface ToolMeta {
   id: string;
   slug: string;
   name: string;
+  description?: string; 
+  category?: string;
   category_slug: string;
   processing_type: "client" | "server" | "hybrid";
   short_description: string;

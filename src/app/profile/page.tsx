@@ -84,11 +84,22 @@ export default function ProfilePage() {
 
             <label className="mt-6 block text-sm font-semibold text-[var(--foreground)]">
               <span className="flex items-center gap-2"><Languages className="h-4 w-4 text-[var(--brand-primary)]" /> Language</span>
-              <select value={preferences.language} onChange={(event) => updatePreferences({ language: event.target.value })} className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-alt)] px-4 py-3 font-normal text-[var(--foreground)] outline-none focus:border-[var(--brand-primary)]">
+              <select
+                value={preferences.language}
+                onChange={(event) =>
+                  updatePreferences({
+                    language: event.target.value,
+                  })
+                }
+                className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-alt)] px-4 py-3 font-normal text-[var(--foreground)] outline-none focus:border-[var(--brand-primary)]"
+              >
                 <option value="en">English</option>
                 <option value="ur">Urdu</option>
                 <option value="es">Spanish</option>
                 <option value="ar">Arabic</option>
+                <option value="zh">Chinese</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
               </select>
             </label>
 

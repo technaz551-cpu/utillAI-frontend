@@ -409,13 +409,14 @@ function localCatalogTools(
 function getLocalTool(
   category: string,
   slug: string
-) {
+): ToolMeta | null {
   return (
     getPdfTool(category, slug) ??
     getAiTool(category, slug) ??
     getImageTool(category, slug) ??
     getInternetTool(category, slug) ??
-    getDeveloperTool(slug)
+    getDeveloperTool(slug) ??
+    null
   );
 }
 
@@ -483,7 +484,7 @@ export async function apiFetch<T>(
 export async function fetchTool(
   category: string,
   slug: string
-) {
+) : Promise<ToolMeta | null>{
   const localMerged = getLocalTool(
     category,
     slug
