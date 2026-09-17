@@ -1,3 +1,4 @@
+
 import type { Metadata } from "next";
 
 import { Header } from "@/components/layout/Header";
@@ -21,18 +22,28 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
-      <body className="min-h-screen antialiased" suppressHydrationWarning>
+    <html
+      lang="en"
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
+    >
+      <body
+        className="min-h-screen antialiased"
+        suppressHydrationWarning
+      >
         <ThemeManager />
 
         <Header />
 
-        <div className="max-w-[1600px] mx-auto px-6 lg:px-12">
-          {children}
-        </div>
+        <main className="w-full">
+          <div className="mx-auto w-full max-w-[1920px] px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 2xl:px-16">
+            {children}
+          </div>
+        </main>
 
         <Footer />
       </body>
     </html>
   );
 }
+
