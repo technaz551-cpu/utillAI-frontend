@@ -13,10 +13,6 @@ import {
   X,
 } from "lucide-react";
 
-import {
-  useLanguage,
-} from "@/components/language/LanguageProvider";
-
 import { btn } from "@/lib/utils";
 
 type MobileCategory = {
@@ -41,8 +37,6 @@ export function MobileNav({
   navItems,
   categories,
 }: Props) {
-  const { t } = useLanguage();
-
   const [open, setOpen] =
     useState(false);
 
@@ -109,25 +103,6 @@ export function MobileNav({
     setOpen(false);
   };
 
-  /*
-   * Translate navbar labels.
-   *
-   * Example:
-   * Home       -> Inicio
-   * Tools      -> Herramientas
-   * Pricing    -> Precios
-   */
-  const getNavLabel = (
-    label: string
-  ) => {
-    const key =
-      label.toLowerCase() as keyof typeof t.common;
-
-    return (
-      t.common?.[key] ?? label
-    );
-  };
-
   return (
     <>
       {/* =========================
@@ -139,10 +114,7 @@ export function MobileNav({
         onClick={() => setOpen(true)}
         aria-expanded={open}
         aria-controls="mobile-navigation"
-        aria-label={
-          t.common?.menu ||
-          "Open navigation"
-        }
+        aria-label="Open navigation"
         className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] shadow-[0_10px_22px_rgba(9,25,37,0.12)] lg:hidden"
       >
         <Menu className="h-5 w-5" />
@@ -154,10 +126,7 @@ export function MobileNav({
       {open && (
         <button
           type="button"
-          aria-label={
-            t.common?.close ||
-            "Close navigation"
-          }
+          aria-label="Close navigation"
           onClick={close}
           className="fixed inset-0 z-[60] bg-black/35 backdrop-blur-[2px] lg:hidden"
         />
@@ -201,10 +170,7 @@ export function MobileNav({
           <button
             type="button"
             onClick={close}
-            aria-label={
-              t.common?.close ||
-              "Close navigation"
-            }
+            aria-label="Close navigation"
             className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-alt)] text-[var(--foreground)] hover:bg-[var(--brand-primary)] hover:text-white"
           >
             <X className="h-5 w-5" />
@@ -234,9 +200,7 @@ export function MobileNav({
                   onClick={close}
                   className="rounded-2xl px-4 py-3 text-base font-semibold text-[var(--foreground)] transition hover:bg-[var(--brand-primary)] hover:text-white"
                 >
-                  {getNavLabel(
-                    item.label
-                  )}
+                  {item.label}
                 </Link>
               ))}
           </div>
@@ -247,8 +211,7 @@ export function MobileNav({
           <div className="mt-6 border-t border-[var(--border)] pt-5">
             
             <p className="px-4 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">
-              {t.common?.toolsByCategory ||
-                "Tools by category"}
+              Tools by category
             </p>
 
             <div className="mt-2 flex flex-col gap-1">
@@ -274,11 +237,7 @@ export function MobileNav({
                       {/* Expand Button */}
                       <button
                         type="button"
-                        aria-label={
-                          t.common
-                            ?.showTools ||
-                          `Show ${category.label} tools`
-                        }
+                        aria-label={`Show ${category.label} tools`}
                         onClick={() =>
                           setExpandedCategory(
                             expandedCategory ===
@@ -352,8 +311,7 @@ export function MobileNav({
               " mt-6 w-full !justify-center !rounded-2xl !py-3"
             }
           >
-            {t.common?.signIn ||
-              "Sign in"}
+            Sign in
           </Link>
         </nav>
       </aside>

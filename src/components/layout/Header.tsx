@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AuthStatus } from "@/components/auth/AuthStatus";
-import { LanguageSelector } from "@/components/language/LanguageSelector";
+// import { LanguageSelector } from "@/components/language/LanguageSelector";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { NavigationMenu } from "@/components/layout/NavigationMenu";
 import { fetchCategories } from "@/lib/api";
@@ -128,7 +128,7 @@ return ( <header className="group/header sticky top-0 z-50 border-b border-[var(
       />
 
       {/* Language */}
-      <LanguageSelector />
+      {/* <LanguageSelector /> */}
 
       {/* Authentication */}
       <AuthStatus />

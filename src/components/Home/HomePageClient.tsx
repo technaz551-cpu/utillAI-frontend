@@ -17,7 +17,6 @@ import {
   Zap,
 } from "lucide-react";
 
-import { useLanguage } from "@/components/language/LanguageProvider";
 import { btn, card, categoryAccent } from "@/lib/utils";
 
 const TOOL_ICONS: Record<string, typeof FileText> = {
@@ -54,15 +53,13 @@ export function HomePageClient({
   popular,
   totalTools,
 }: HomePageClientProps) {
-  const { t } = useLanguage();
-
   const stats = [
     {
-      label: t.common.tools,
+      label: "Tools",
       value: String(totalTools || "60+"),
     },
     {
-      label: t.common.categories,
+      label: "Categories",
       value: String(categories.length || 6),
     },
     {
@@ -99,20 +96,18 @@ export function HomePageClient({
             <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)] shadow-[0_10px_24px_rgba(66,46,94,0.05)]">
               <Zap className="h-3.5 w-3.5 text-[var(--pink)]" />
 
-              {totalTools || "60+"} {t.common.tools} ·{" "}
-              {t.common.workflowSuite}
+              {totalTools || "60+"} Tools · Workflow Suite
             </div>
 
             <h1 className="mt-6 max-w-xl text-4xl font-black leading-[1.02] tracking-[-0.07em] text-[var(--foreground)] md:text-6xl">
-              {t.home.title}
-
+              Your Ultimate Toolkit
               <span className="block bg-gradient-to-r from-[var(--pink)] via-[var(--purple)] to-[var(--cyan)] bg-clip-text text-transparent">
-                {t.home.everythingYouNeed}
+                Everything You Need
               </span>
             </h1>
 
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-[var(--muted)]">
-              {t.home.subtitle}
+              Discover powerful tools to boost your productivity and creativity.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -120,14 +115,14 @@ export function HomePageClient({
                 href="/tools"
                 className={btn("primary") + " !rounded-full"}
               >
-                {t.home.exploreTools}
+                Explore Tools
               </Link>
 
               <Link
                 href="/pricing"
                 className={btn("secondary") + " !rounded-full"}
               >
-                {t.pricing.title}
+                Pricing
               </Link>
             </div>
 
@@ -140,7 +135,7 @@ export function HomePageClient({
 
                 <input
                   name="q"
-                  placeholder={t.tools.searchPlaceholder}
+                  placeholder="Search tools..."
                   className="w-full rounded-full border border-[var(--border)] bg-white/90 py-3.5 pl-11 pr-4 text-sm text-[var(--foreground)] shadow-[0_12px_28px_rgba(76,52,104,0.05)] outline-none transition-all focus:border-[var(--pink)] focus:ring-4 focus:ring-[var(--pink-soft)]"
                 />
               </div>
@@ -149,7 +144,7 @@ export function HomePageClient({
                 type="submit"
                 className={btn("primary") + " !rounded-full !px-6"}
               >
-                {t.common.search}
+                Search
               </button>
             </form>
 
@@ -178,11 +173,11 @@ export function HomePageClient({
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
-                      {t.home.featuredTools}
+                      Featured Tools
                     </p>
 
                     <h2 className="mt-2 text-2xl font-black tracking-[-0.05em]">
-                      {t.home.popularTools}
+                      Popular Tools
                     </h2>
                   </div>
 
@@ -238,11 +233,11 @@ export function HomePageClient({
         <div className="mb-8 flex items-end justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
-              {t.home.popularTools}
+              Popular Tools
             </p>
 
             <h2 className="mt-2 text-3xl font-black tracking-[-0.06em] text-[var(--foreground)]">
-              {t.home.everythingYouNeed}
+              Everything You Need
             </h2>
           </div>
 
@@ -250,7 +245,7 @@ export function HomePageClient({
             href="/tools"
             className="hidden items-center gap-2 text-sm font-semibold text-[var(--foreground)] sm:inline-flex"
           >
-            {t.common.viewAll}
+            View All
 
             <ArrowRight className="h-4 w-4" />
           </Link>
@@ -293,7 +288,7 @@ export function HomePageClient({
                 </p>
 
                 <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[var(--foreground)] group-hover:text-white">
-                  {t.home.tryNow}
+                  Try Now
 
                   <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
                 </div>
@@ -308,11 +303,11 @@ export function HomePageClient({
         <div className="mb-8 flex items-end justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
-              {t.categories.title}
+              Categories
             </p>
 
             <h2 className="mt-2 text-3xl font-black tracking-[-0.06em] text-[var(--foreground)]">
-              {t.home.everythingYouNeed}
+              Everything You Need
             </h2>
           </div>
         </div>
@@ -341,8 +336,7 @@ export function HomePageClient({
                   </span>
 
                   <span className="rounded-full border border-[var(--border)] bg-[var(--surface-alt)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)] group-hover:border-white/25 group-hover:bg-white/15 group-hover:text-white">
-                    {category.tools?.length || 0}{" "}
-                    {t.common.tools}
+                    {category.tools?.length || 0} Tools
                   </span>
                 </div>
 
@@ -355,7 +349,7 @@ export function HomePageClient({
                 </p>
 
                 <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[var(--foreground)] group-hover:text-white">
-                  {t.home.learnMore}
+                  Learn More
 
                   <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
                 </div>

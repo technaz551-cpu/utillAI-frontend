@@ -7,8 +7,6 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import { useLanguage } from "@/components/language/LanguageProvider";
-
 type NavItem = {
   label: string;
   href: string;
@@ -37,17 +35,6 @@ export function NavigationMenu({
   navItems,
   categories,
 }: NavigationMenuProps) {
-  // const { t } = useLanguage();
-  const { t, language } = useLanguage();
-
-  console.log("CURRENT LANGUAGE:", language);
-  const getNavLabel = (label: string) => {
-    const key =
-      label.toLowerCase() as keyof typeof t.common;
-
-    return t.common?.[key] ?? label;
-  };
-
   return (
     <nav className="nav-shell hidden items-center gap-1 rounded-full border border-[var(--border)] bg-white/80 p-1 shadow-[0_12px_24px_rgba(17,42,33,0.06)] opacity-0 transition-all duration-200 lg:flex lg:translate-y-1 lg:group-hover/header:translate-y-0 lg:group-hover/header:opacity-100 lg:group-focus-within:opacity-100 lg:group-hover/logo:opacity-100 lg:[&:hover]:translate-y-0 lg:[&:hover]:opacity-100">
       {navItems.map((item) => {
@@ -66,7 +53,7 @@ export function NavigationMenu({
                 type="button"
                 className="flex items-center gap-1 rounded-full px-3 py-2 text-sm font-semibold text-[var(--muted)] transition hover:bg-[var(--brand-primary)] hover:text-white"
               >
-                {getNavLabel(item.label)}
+                {item.label}
 
                 <ChevronDown className="h-4 w-4" />
               </button>
@@ -78,20 +65,18 @@ export function NavigationMenu({
                 <div className="mb-4 flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-alt)] px-4 py-3">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">
-                      {t.common?.browseAll || "Browse all"}
+                      Browse all
                     </p>
 
                     <p className="mt-1 text-sm text-[var(--foreground)]">
-                      {t.common?.powerfulTools ||
-                        "Powerful tools for creative, fast-moving work"}
+                      Powerful tools for creative, fast-moving work
                     </p>
                   </div>
 
                   <div className="inline-flex items-center gap-2 rounded-full bg-[var(--surface)] px-3 py-1.5 text-[11px] font-semibold text-[var(--foreground)]">
                     <Sparkles className="h-3.5 w-3.5 text-[var(--brand-primary)]" />
 
-                    {t.common?.workflowSuite ||
-                      "Workflow suite"}
+                    Workflow suite
                   </div>
                 </div>
 
@@ -159,11 +144,7 @@ export function NavigationMenu({
                                 <Link
                                   href={`/tools/${category.slug}`}
                                 >
-                                  {t.common?.viewAll ||
-                                    "View all"}{" "}
-                                  {tools.length}{" "}
-                                  {t.common?.tools ||
-                                    "tools"}
+                                  View all {tools.length} tools
                                 </Link>
                               </li>
                             )}
@@ -185,7 +166,7 @@ export function NavigationMenu({
             href={item.href}
             className="rounded-full px-3 py-2 text-sm font-semibold text-[var(--muted)] transition hover:bg-[var(--brand-primary)] hover:text-white"
           >
-            {getNavLabel(item.label)}
+            {item.label}
           </Link>
         );
       })}

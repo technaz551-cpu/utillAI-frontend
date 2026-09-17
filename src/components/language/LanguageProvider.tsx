@@ -1,135 +1,135 @@
-"use client";
+// "use client";
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+// import {
+//   createContext,
+//   useContext,
+//   useEffect,
+//   useMemo,
+//   useState,
+//   type ReactNode,
+// } from "react";
 
-import {
-  defaultLanguage,
-  getTranslations,
-  languageNames,
-  type Language,
-} from "@/i18n";
+// import {
+//   defaultLanguage,
+//   getTranslations,
+//   languageNames,
+//   type Language,
+// } from "@/i18n";
 
-type TranslationObject = ReturnType<typeof getTranslations>;
+// type TranslationObject = ReturnType<typeof getTranslations>;
 
-type LanguageContextType = {
-  language: Language;
-  setLanguage: (language: Language) => void;
-  t: TranslationObject;
-  languageNames: typeof languageNames;
-};
+// type LanguageContextType = {
+//   language: Language;
+//   setLanguage: (language: Language) => void;
+//   t: TranslationObject;
+//   languageNames: typeof languageNames;
+// };
 
-const LanguageContext =
-  createContext<LanguageContextType | null>(null);
+// const LanguageContext =
+//   createContext<LanguageContextType | null>(null);
 
-type LanguageProviderProps = {
-  children: ReactNode;
-};
+// type LanguageProviderProps = {
+//   children: ReactNode;
+// };
 
-export function LanguageProvider({
-  children,
-}: LanguageProviderProps) {
-  const [language, setLanguageState] =
-    useState<Language>(defaultLanguage);
+// export function LanguageProvider({
+//   children,
+// }: LanguageProviderProps) {
+//   const [language, setLanguageState] =
+//     useState<Language>(defaultLanguage);
 
-  const [mounted, setMounted] = useState(false);
+//   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    try {
-      const savedLanguage =
-        localStorage.getItem("utilai-language");
+//   useEffect(() => {
+//     try {
+//       const savedLanguage =
+//         localStorage.getItem("utilai-language");
 
-      if (
-        savedLanguage &&
-        Object.prototype.hasOwnProperty.call(
-          languageNames,
-          savedLanguage
-        )
-      ) {
-        setLanguageState(savedLanguage as Language);
-      }
-    } catch (error) {
-      console.error(
-        "Could not load saved language:",
-        error
-      );
-    }
+//       if (
+//         savedLanguage &&
+//         Object.prototype.hasOwnProperty.call(
+//           languageNames,
+//           savedLanguage
+//         )
+//       ) {
+//         setLanguageState(savedLanguage as Language);
+//       }
+//     } catch (error) {
+//       console.error(
+//         "Could not load saved language:",
+//         error
+//       );
+//     }
 
-    setMounted(true);
-  }, []);
+//     setMounted(true);
+//   }, []);
 
-  const setLanguage = (newLanguage: Language) => {
-    if (
-      !Object.prototype.hasOwnProperty.call(
-        languageNames,
-        newLanguage
-      )
-    ) {
-      return;
-    }
+//   const setLanguage = (newLanguage: Language) => {
+//     if (
+//       !Object.prototype.hasOwnProperty.call(
+//         languageNames,
+//         newLanguage
+//       )
+//     ) {
+//       return;
+//     }
 
-    setLanguageState(newLanguage);
+//     setLanguageState(newLanguage);
 
-    try {
-      localStorage.setItem(
-        "utilai-language",
-        newLanguage
-      );
-    } catch (error) {
-      console.error(
-        "Could not save language:",
-        error
-      );
-    }
-  };
+//     try {
+//       localStorage.setItem(
+//         "utilai-language",
+//         newLanguage
+//       );
+//     } catch (error) {
+//       console.error(
+//         "Could not save language:",
+//         error
+//       );
+//     }
+//   };
 
-  useEffect(() => {
-    if (!mounted) return;
+//   useEffect(() => {
+//     if (!mounted) return;
 
-    document.documentElement.lang = language;
+//     document.documentElement.lang = language;
 
-    document.documentElement.dir =
-      language === "ur" || language === "ar"
-        ? "rtl"
-        : "ltr";
-  }, [language, mounted]);
+//     document.documentElement.dir =
+//       language === "ur" || language === "ar"
+//         ? "rtl"
+//         : "ltr";
+//   }, [language, mounted]);
 
-  const t = useMemo(
-    () => getTranslations(language),
-    [language]
-  );
+//   const t = useMemo(
+//     () => getTranslations(language),
+//     [language]
+//   );
 
-  const value = useMemo(
-    () => ({
-      language,
-      setLanguage,
-      t,
-      languageNames,
-    }),
-    [language, t]
-  );
+//   const value = useMemo(
+//     () => ({
+//       language,
+//       setLanguage,
+//       t,
+//       languageNames,
+//     }),
+//     [language, t]
+//   );
 
-  return (
-    <LanguageContext.Provider value={value}>
-      {children}
-    </LanguageContext.Provider>
-  );
-}
+//   return (
+//     <LanguageContext.Provider value={value}>
+//       {children}
+//     </LanguageContext.Provider>
+//   );
+// }
 
-export function useLanguage() {
-  const context = useContext(LanguageContext);
+// export function useLanguage() {
+//   const context = useContext(LanguageContext);
 
-  if (!context) {
-    throw new Error(
-      "useLanguage must be used inside LanguageProvider"
-    );
-  }
+//   if (!context) {
+//     throw new Error(
+//       "useLanguage must be used inside LanguageProvider"
+//     );
+//   }
 
-  return context;
-}
+//   return context;
+// }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { LanguageProvider } from "@/components/language/LanguageProvider";
+// import { LanguageProvider } from "@/components/language/LanguageProvider";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ThemeManager } from "@/components/settings/ThemeManager";
@@ -35,7 +35,7 @@ export default function RootLayout({
       >
         <ThemeManager />
 
-        <LanguageProvider>
+        {/* <LanguageProvider> */}
           <Header />
 
           <div className="page-shell">
@@ -43,7 +43,7 @@ export default function RootLayout({
           </div>
 
           <Footer />
-        </LanguageProvider>
+        {/* </LanguageProvider> */}
       </body>
     </html>
   );
