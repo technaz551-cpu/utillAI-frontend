@@ -1,7 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { ChevronDown } from "lucide-react";
 import { fetchCategories } from "@/lib/api";
 
@@ -18,11 +22,8 @@ type Tool = {
 
 type Category = {
   slug: string;
-  label?: string;
-  name?: string;
-  icon?: string;
-  description?: string;
-  tools?: Tool[];
+  name: string;
+  tools: Tool[];
 };
 
 type NavigationMenuProps = {
@@ -36,13 +37,16 @@ export function NavigationMenu({
     "tools" | "categories" | null
   >(null);
 
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] =
+    useState<Category[]>([]);
 
-  const menuRef = useRef<HTMLDivElement>(null);
+  const menuRef =
+    useRef<HTMLDivElement>(null);
 
-  /*
-   * Load categories from backend/local fallback
-   */
+  /* =========================================================
+     LOAD CATEGORIES FROM API
+  ========================================================= */
+
   useEffect(() => {
     let mounted = true;
 
@@ -50,8 +54,94 @@ export function NavigationMenu({
       try {
         const data = await fetchCategories();
 
-        if (mounted && Array.isArray(data)) {
-          setCategories(data);
+        if (!mounted || !Array.isArray(data)) {
+          return;
+        }
+
+        const normalizedCategories: Category[] = [];
+
+        for (const category of data) {
+          /*
+           * Category slug
+           *
+           * Your API type says slug can be undefined,
+           * so only accept categories that have a valid slug.
+           */
+          if (
+            typeof category.slug !== "string" ||
+            category.slug.trim() === ""
+          ) {
+            continue;
+          }
+
+          /*
+           * Category name
+           */
+          const categoryName =
+            typeof category.name === "string" &&
+            category.name.trim() !== ""
+              ? category.name
+              : "Category";
+
+          /*
+           * Tools
+           */
+          const tools: Tool[] = [];
+
+          if (Array.isArray(category.tools)) {
+            for (const rawTool of category.tools) {
+              if (
+                typeof rawTool !== "object" ||
+                rawTool === null
+              ) {
+                continue;
+              }
+
+              const tool =
+                rawTool as Record<string, unknown>;
+
+              /*
+               * Tool must have slug and name
+               */
+              if (
+                typeof tool.slug !== "string" ||
+                tool.slug.trim() === "" ||
+                typeof tool.name !== "string" ||
+                tool.name.trim() === ""
+              ) {
+                continue;
+              }
+
+              const normalizedTool: Tool = {
+                slug: tool.slug,
+                name: tool.name,
+              };
+
+              /*
+               * category_slug is optional
+               */
+              if (
+                typeof tool.category_slug ===
+                "string" &&
+                tool.category_slug.trim() !== ""
+              ) {
+                normalizedTool.category_slug =
+                  tool.category_slug;
+              }
+
+              tools.push(normalizedTool);
+            }
+          }
+
+          normalizedCategories.push({
+            slug: category.slug,
+            name: categoryName,
+            tools,
+          });
+        }
+
+        if (mounted) {
+          setCategories(normalizedCategories);
         }
       } catch (error) {
         console.error(
@@ -72,11 +162,14 @@ export function NavigationMenu({
     };
   }, []);
 
-  /*
-   * Close popup when clicking outside
-   */
+  /* =========================================================
+     CLOSE POPUP WHEN CLICKING OUTSIDE
+  ========================================================= */
+
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    function handleClickOutside(
+      event: MouseEvent
+    ) {
       if (
         menuRef.current &&
         !menuRef.current.contains(
@@ -100,16 +193,17 @@ export function NavigationMenu({
     };
   }, []);
 
-  /*
-   * Toggle popup
-   */
-  const toggleMenu = (
+  /* =========================================================
+     TOGGLE MENU
+  ========================================================= */
+
+  function toggleMenu(
     menu: "tools" | "categories"
-  ) => {
+  ) {
     setOpenMenu((current) =>
       current === menu ? null : menu
     );
-  };
+  }
 
   return (
     <nav
@@ -117,16 +211,11 @@ export function NavigationMenu({
       className="relative hidden items-center justify-center gap-1 lg:flex"
     >
       {navItems.map((item) => {
-        const isTools = item.label === "Tools";
-        const isCategories =
-          item.label === "Categories";
+        /* =====================================================
+           TOOLS
+        ===================================================== */
 
-        /*
-         * =========================
-         * TOOLS POPUP
-         * =========================
-         */
-        if (isTools) {
+        if (item.label === "Tools") {
           return (
             <div
               key={item.label}
@@ -137,14 +226,14 @@ export function NavigationMenu({
                 onClick={() =>
                   toggleMenu("tools")
                 }
+                aria-expanded={
+                  openMenu === "tools"
+                }
                 className={`flex items-center gap-1 rounded-full px-4 py-2 text-[13px] font-medium transition-all duration-200 ${
                   openMenu === "tools"
                     ? "bg-[#E7F0FF] text-[#1769E0]"
                     : "text-[#52627A] hover:bg-[#F2F6FC] hover:text-[#1769E0]"
                 }`}
-                aria-expanded={
-                  openMenu === "tools"
-                }
               >
                 Tools
 
@@ -159,10 +248,10 @@ export function NavigationMenu({
               </button>
 
               {openMenu === "tools" && (
-                <div className="absolute left-1/2 top-full z-[100] mt-2 w-max max-w-[700px] -translate-x-1/2 rounded-xl border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.15)]">
+                <div className="absolute left-1/2 top-full z-[100] mt-2 w-[700px] max-w-[calc(100vw-40px)] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.16)]">
 
-                  {/* Header */}
-                  <div className="mb-5 pb-4 border-b border-slate-200">
+                  {/* Popup Header */}
+                  <div className="mb-5 border-b border-slate-200 pb-4">
                     <Link
                       href="/tools"
                       onClick={() =>
@@ -174,127 +263,92 @@ export function NavigationMenu({
                     </Link>
 
                     <p className="mt-1 text-xs text-slate-500">
-                      Explore our tools organized by
-                      category.
+                      Explore our tools organized
+                      by category.
                     </p>
                   </div>
 
-                  {/* Categories + Tools - SCROLLABLE */}
+                  {/* Categories + Tools */}
                   {categories.length > 0 ? (
                     <div className="max-h-[480px] overflow-y-auto pr-3">
-                      {/* Custom Scrollbar Styling */}
-                      <style>{`
-                        .tools-popup::-webkit-scrollbar {
-                          width: 6px;
-                        }
-                        .tools-popup::-webkit-scrollbar-track {
-                          background: transparent;
-                        }
-                        .tools-popup::-webkit-scrollbar-thumb {
-                          background: #cbd5e1;
-                          border-radius: 3px;
-                        }
-                        .tools-popup::-webkit-scrollbar-thumb:hover {
-                          background: #94a3b8;
-                        }
-                      `}</style>
-                      
-                      <div className="tools-popup grid grid-cols-2 gap-6 gap-y-2">
+                      <div className="grid grid-cols-2 gap-x-10 gap-y-6">
+
                         {categories.map(
-                          (category) => {
-                            const categoryName =
-                              category.label ||
-                              category.name ||
-                              "Category";
-
-                            const tools =
-                              category.tools || [];
-
-                            // Dynamic spacing based on tool count
-                            let toolSpacing = "space-y-0.5";
-                            let categoryGap = "mb-1.5";
-
-                            if (tools.length === 0) {
-                              toolSpacing = "space-y-0";
-                              categoryGap = "mb-1";
-                            } else if (tools.length <= 3) {
-                              toolSpacing = "space-y-0.5";
-                              categoryGap = "mb-1.5";
-                            } else if (tools.length <= 6) {
-                              toolSpacing = "space-y-1";
-                              categoryGap = "mb-2";
-                            } else {
-                              toolSpacing = "space-y-1";
-                              categoryGap = "mb-2";
-                            }
-
-                            return (
-                              <div
-                                key={category.slug}
-                                className="min-w-0"
+                          (category) => (
+                            <div
+                              key={
+                                category.slug
+                              }
+                              className="min-w-0"
+                            >
+                              {/* Category Name */}
+                              <Link
+                                href={`/tools/${category.slug}`}
+                                onClick={() =>
+                                  setOpenMenu(
+                                    null
+                                  )
+                                }
+                                className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-800 transition hover:text-[#1769E0]"
                               >
-                                {/* Category */}
-                                <Link
-                                  href={`/tools/${category.slug}`}
-                                  onClick={() =>
-                                    setOpenMenu(null)
-                                  }
-                                  className={`${categoryGap} block text-xs font-bold text-slate-800 transition hover:text-[#1769E0] uppercase tracking-wide`}
-                                >
-                                  {categoryName}
-                                </Link>
+                                {category.name}
+                              </Link>
 
-                                {/* Tools */}
-                                {tools.length > 0 ? (
-                                  <ul className={toolSpacing}>
-                                    {tools.map(
-                                      (tool) => (
-                                        <li
-                                          key={
-                                            tool.slug
+                              {/* Tools */}
+                              {category.tools
+                                .length > 0 ? (
+                                <ul className="space-y-1">
+                                  {category.tools.map(
+                                    (tool) => (
+                                      <li
+                                        key={
+                                          tool.slug
+                                        }
+                                        className="relative pl-4"
+                                      >
+                                        {/* Bullet */}
+                                        <span className="absolute left-0 top-[7px] h-1.5 w-1.5 rounded-full bg-[#1769E0]" />
+
+                                        <Link
+                                          href={`/tools/${
+                                            tool.category_slug ||
+                                            category.slug
+                                          }/${tool.slug}`}
+                                          onClick={() =>
+                                            setOpenMenu(
+                                              null
+                                            )
                                           }
-                                          className="relative pl-3.5"
+                                          className="text-xs text-slate-600 transition hover:text-[#1769E0] hover:underline"
                                         >
-                                          {/* Bullet */}
-                                          <span className="absolute left-0 top-[6px] h-1 w-1 rounded-full bg-[#1769E0]" />
-
-                                          <Link
-                                            href={`/tools/${
-                                              tool.category_slug ||
-                                              category.slug
-                                            }/${tool.slug}`}
-                                            onClick={() =>
-                                              setOpenMenu(
-                                                null
-                                              )
-                                            }
-                                            className="text-xs text-slate-600 transition hover:text-[#1769E0] hover:underline"
-                                          >
-                                            {tool.name}
-                                          </Link>
-                                        </li>
-                                      )
-                                    )}
-                                  </ul>
-                                ) : (
-                                  <p className="text-xs text-slate-400">
-                                    No tools available.
-                                  </p>
-                                )}
-                              </div>
-                            );
-                          }
+                                          {
+                                            tool.name
+                                          }
+                                        </Link>
+                                      </li>
+                                    )
+                                  )}
+                                </ul>
+                              ) : (
+                                <p className="text-xs text-slate-400">
+                                  No tools available.
+                                </p>
+                              )}
+                            </div>
+                          )
                         )}
+
                       </div>
                     </div>
                   ) : (
-                    <div className="py-6 text-center">
-                      <p className="text-xs font-medium text-slate-600">
+                    <div className="py-8 text-center">
+                      <p className="text-sm font-medium text-slate-600">
                         No categories available.
                       </p>
 
                       <p className="mt-1 text-xs text-slate-400">
-                        Categories could not be loaded.
+                        Categories could not
+                        be loaded.
                       </p>
                     </div>
                   )}
@@ -304,12 +358,11 @@ export function NavigationMenu({
           );
         }
 
-        /*
-         * =========================
-         * CATEGORIES POPUP
-         * =========================
-         */
-        if (isCategories) {
+        /* =====================================================
+           CATEGORIES
+        ===================================================== */
+
+        if (item.label === "Categories") {
           return (
             <div
               key={item.label}
@@ -320,14 +373,14 @@ export function NavigationMenu({
                 onClick={() =>
                   toggleMenu("categories")
                 }
+                aria-expanded={
+                  openMenu === "categories"
+                }
                 className={`flex items-center gap-1 rounded-full px-4 py-2 text-[13px] font-medium transition-all duration-200 ${
                   openMenu === "categories"
                     ? "bg-[#E7F0FF] text-[#1769E0]"
                     : "text-[#52627A] hover:bg-[#F2F6FC] hover:text-[#1769E0]"
                 }`}
-                aria-expanded={
-                  openMenu === "categories"
-                }
               >
                 Categories
 
@@ -342,10 +395,10 @@ export function NavigationMenu({
               </button>
 
               {openMenu === "categories" && (
-                <div className="absolute left-1/2 top-full z-[100] mt-2 w-80 -translate-x-1/2 rounded-xl border border-slate-200 bg-white p-4 shadow-[0_20px_60px_rgba(15,23,42,0.15)]">
+                <div className="absolute left-1/2 top-full z-[100] mt-2 w-80 max-w-[calc(100vw-40px)] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_20px_60px_rgba(15,23,42,0.16)]">
 
                   {/* Header */}
-                  <div className="mb-4 pb-3 border-b border-slate-200">
+                  <div className="mb-4 border-b border-slate-200 pb-3">
                     <p className="text-sm font-bold text-slate-800">
                       Categories
                     </p>
@@ -355,64 +408,51 @@ export function NavigationMenu({
                     </p>
                   </div>
 
-                  {/* ONLY CATEGORIES - SCROLLABLE */}
+                  {/* Categories Only */}
                   {categories.length > 0 ? (
                     <div className="max-h-[400px] overflow-y-auto pr-2">
-                      <style>{`
-                        .categories-popup::-webkit-scrollbar {
-                          width: 6px;
-                        }
-                        .categories-popup::-webkit-scrollbar-track {
-                          background: transparent;
-                        }
-                        .categories-popup::-webkit-scrollbar-thumb {
-                          background: #cbd5e1;
-                          border-radius: 3px;
-                        }
-                        .categories-popup::-webkit-scrollbar-thumb:hover {
-                          background: #94a3b8;
-                        }
-                      `}</style>
-                      
-                      <ul className="categories-popup space-y-1.5">
+                      <ul className="space-y-1.5">
+
                         {categories.map(
-                          (category) => {
-                            const categoryName =
-                              category.label ||
-                              category.name ||
-                              "Category";
-
-                            return (
-                              <li
-                                key={category.slug}
+                          (category) => (
+                            <li
+                              key={
+                                category.slug
+                              }
+                            >
+                              <Link
+                                href={`/tools/${category.slug}`}
+                                onClick={() =>
+                                  setOpenMenu(
+                                    null
+                                  )
+                                }
+                                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-[#F0F5FF] hover:text-[#1769E0]"
                               >
-                                <Link
-                                  href={`/tools/${category.slug}`}
-                                  onClick={() =>
-                                    setOpenMenu(
-                                      null
-                                    )
+                                {/* Simple Icon */}
+                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#E7F0FF] text-xs font-bold text-[#1769E0]">
+                                  {category.name
+                                    .charAt(0)
+                                    .toUpperCase()}
+                                </span>
+
+                                <span className="truncate font-semibold">
+                                  {
+                                    category.name
                                   }
-                                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-[#F0F5FF] hover:text-[#1769E0]"
-                                >
-                                  {/* Icon with background */}
-                                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#E7F0FF]" />
-
-
-                                  <span className="truncate font-semibold">
-                                    {categoryName}
-                                  </span>
-                                </Link>
-                              </li>
-                            );
-                          }
+                                </span>
+                              </Link>
+                            </li>
+                          )
                         )}
+
                       </ul>
                     </div>
                   ) : (
-                    <div className="py-4 text-center">
+                    <div className="py-5 text-center">
                       <p className="text-xs text-slate-500">
-                        No categories available.
+                        No categories
+                        available.
                       </p>
                     </div>
                   )}
@@ -422,16 +462,19 @@ export function NavigationMenu({
           );
         }
 
-        /*
-         * =========================
-         * NORMAL LINKS
-         * =========================
-         */
+        /* =====================================================
+           NORMAL NAVIGATION LINKS
+        ===================================================== */
+
         return (
           <Link
             key={item.label}
             href={item.href}
-            className="rounded-full px-4 py-2 text-[13px] font-medium text-[#52627A] transition-all duration-200 hover:bg-[#F2F6FC] hover:text-[#1769E0]"
+            className={`rounded-full px-4 py-2 text-[13px] font-medium transition-all duration-200 ${
+              item.label === "Home"
+                ? "bg-[#E7F0FF] text-[#1769E0]"
+                : "text-[#52627A] hover:bg-[#F2F6FC] hover:text-[#1769E0]"
+            }`}
           >
             {item.label}
           </Link>
