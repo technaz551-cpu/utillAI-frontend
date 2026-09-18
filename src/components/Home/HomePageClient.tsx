@@ -118,12 +118,11 @@ export function HomePageClient({
                 <div className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-emerald-500" /><span>Your data stays private</span></div>
               </div>
             </div>
-
             {/* ================= RIGHT IMAGE WITH FLOATING TOOL CARDS ================= */}
-            <div className="relative flex items-center justify-center lg:justify-end py-6">
-              
-              {/* Image Container Wrapper */}
-              <div className="relative w-full max-w-xl">
+            <div className="relative flex w-full items-center justify-center py-6 lg:justify-end">
+
+              {/* Relative Container for Image + Floating Cards */}
+              <div className="relative w-full max-w-lg lg:max-w-xl">
 
                 {/* Main WebP Image */}
                 <div className="relative overflow-hidden rounded-3xl border border-white/80 bg-white/40 p-2 shadow-2xl backdrop-blur-sm">
@@ -135,62 +134,61 @@ export function HomePageClient({
                 </div>
 
                 {/* FLOATING CARD 1: Top Left */}
-                <div className="animate-float-slow absolute -left-8 top-6 z-20 hidden sm:flex items-center gap-3 rounded-2xl border border-white/80 bg-white/90 p-3 shadow-xl backdrop-blur-md transition hover:scale-105">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 text-red-500">
-                    <FileText className="h-5 w-5" />
+                <div className="animate-float-slow absolute -left-4 top-4 z-20 hidden items-center gap-2.5 rounded-xl border border-white/80 bg-white/90 p-2.5 shadow-xl backdrop-blur-md transition hover:scale-105 sm:flex lg:-left-10 lg:top-6 lg:gap-3 lg:rounded-2xl lg:p-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-500 lg:h-10 lg:w-10 lg:rounded-xl">
+                    <FileText className="h-4 w-4 lg:h-5 lg:w-5" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-slate-800">PDF Tools</p>
-                    <p className="text-[10px] text-slate-400">Merge & Compress</p>
+                    <p className="text-[11px] font-bold text-slate-800 lg:text-xs">PDF Tools</p>
+                    <p className="text-[9px] text-slate-400 lg:text-[10px]">Merge & Compress</p>
                   </div>
                 </div>
 
                 {/* FLOATING CARD 2: Middle Left */}
-                <div className="animate-float-fast absolute -left-10 top-1/2 -translate-y-1/2 z-20 hidden sm:flex items-center gap-3 rounded-2xl border border-white/80 bg-white/90 p-3 shadow-xl backdrop-blur-md transition hover:scale-105 [animation-delay:1s]">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
-                    <BrainCircuit className="h-5 w-5" />
+                <div className="animate-float-fast absolute -left-6 top-1/2 z-20 hidden -translate-y-1/2 items-center gap-2.5 rounded-xl border border-white/80 bg-white/90 p-2.5 shadow-xl backdrop-blur-md transition hover:scale-105 sm:flex lg:-left-12 lg:gap-3 lg:rounded-2xl lg:p-3 [animation-delay:1s]">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-50 text-purple-600 lg:h-10 lg:w-10 lg:rounded-xl">
+                    <BrainCircuit className="h-4 w-4 lg:h-5 lg:w-5" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-slate-800">AI Tools</p>
-                    <p className="text-[10px] text-slate-400">Generative AI</p>
+                    <p className="text-[11px] font-bold text-slate-800 lg:text-xs">AI Tools</p>
+                    <p className="text-[9px] text-slate-400 lg:text-[10px]">Generative AI</p>
                   </div>
                 </div>
 
                 {/* FLOATING CARD 3: Bottom Left */}
-                <div className="animate-float-slow absolute -left-6 bottom-6 z-20 hidden sm:flex items-center gap-3 rounded-2xl border border-white/80 bg-white/90 p-3 shadow-xl backdrop-blur-md transition hover:scale-105 [animation-delay:2s]">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                    <PenTool className="h-5 w-5" />
+                <div className="animate-float-slow absolute -left-4 bottom-4 z-20 hidden items-center gap-2.5 rounded-xl border border-white/80 bg-white/90 p-2.5 shadow-xl backdrop-blur-md transition hover:scale-105 sm:flex lg:-left-8 lg:bottom-6 lg:gap-3 lg:rounded-2xl lg:p-3 [animation-delay:2s]">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 lg:h-10 lg:w-10 lg:rounded-xl">
+                    <PenTool className="h-4 w-4 lg:h-5 lg:w-5" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-slate-800">Text Tools</p>
-                    <p className="text-[10px] text-slate-400">Editor & Format</p>
+                    <p className="text-[11px] font-bold text-slate-800 lg:text-xs">Text Tools</p>
+                    <p className="text-[9px] text-slate-400 lg:text-[10px]">Editor & Format</p>
                   </div>
                 </div>
 
                 {/* FLOATING CARD 4: Top Right */}
-                <div className="animate-float-fast absolute -right-6 top-8 z-20 hidden sm:flex items-center gap-3 rounded-2xl border border-white/80 bg-white/90 p-3 shadow-xl backdrop-blur-md transition hover:scale-105 [animation-delay:0.5s]">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
-                    <ImageIcon className="h-5 w-5" />
+                <div className="animate-float-fast absolute -right-4 top-6 z-20 hidden items-center gap-2.5 rounded-xl border border-white/80 bg-white/90 p-2.5 shadow-xl backdrop-blur-md transition hover:scale-105 sm:flex lg:-right-8 lg:top-8 lg:gap-3 lg:rounded-2xl lg:p-3 [animation-delay:0.5s]">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-600 lg:h-10 lg:w-10 lg:rounded-xl">
+                    <ImageIcon className="h-4 w-4 lg:h-5 lg:w-5" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-slate-800">Image Tools</p>
-                    <p className="text-[10px] text-slate-400">Compress & Edit</p>
+                    <p className="text-[11px] font-bold text-slate-800 lg:text-xs">Image Tools</p>
+                    <p className="text-[9px] text-slate-400 lg:text-[10px]">Compress & Edit</p>
                   </div>
                 </div>
 
                 {/* FLOATING CARD 5: Bottom Right */}
-                <div className="animate-float-slow absolute -right-8 bottom-10 z-20 hidden sm:flex items-center gap-3 rounded-2xl border border-white/80 bg-white/90 p-3 shadow-xl backdrop-blur-md transition hover:scale-105 [animation-delay:1.5s]">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                    <Code2 className="h-5 w-5" />
+                <div className="animate-float-slow absolute -right-4 bottom-8 z-20 hidden items-center gap-2.5 rounded-xl border border-white/80 bg-white/90 p-2.5 shadow-xl backdrop-blur-md transition hover:scale-105 sm:flex lg:-right-10 lg:bottom-10 lg:gap-3 lg:rounded-2xl lg:p-3 [animation-delay:1.5s]">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 lg:h-10 lg:w-10 lg:rounded-xl">
+                    <Code2 className="h-4 w-4 lg:h-5 lg:w-5" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-slate-800">Dev Tools</p>
-                    <p className="text-[10px] text-slate-400">JSON & Formatter</p>
+                    <p className="text-[11px] font-bold text-slate-800 lg:text-xs">Dev Tools</p>
+                    <p className="text-[9px] text-slate-400 lg:text-[10px]">JSON & Formatter</p>
                   </div>
                 </div>
 
               </div>
-
             </div>
 
           </div>
