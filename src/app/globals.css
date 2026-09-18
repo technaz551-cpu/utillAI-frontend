@@ -1,34 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f3f6f4;
-  --foreground: #182b2b;
-  --surface: #ffffff;
-  --surface-raised: #f7faf8;
-  --surface-alt: #edf5f1;
-  --surface-strong: #e3f2ea;
-  --header-bg: rgba(255, 255, 255, 0.82);
-  --border: rgba(27, 48, 40, 0.12);
-  --muted: #5d6f6a;
-  --brand-primary: #1dbd78;
-  --brand-secondary: #0d8f60;
-  --brand-accent: #dff7eb;
-  --green: #1dbd78;
-  --blue: #0f8a63;
-  --teal: #77d8b2;
-  --pink: #1dbd78;
-  --purple: #0d8f60;
-  --cyan: #dff7eb;
-  --pink-soft: rgba(29, 189, 120, 0.12);
-  --shadow-soft: 0 20px 52px rgba(17, 42, 33, 0.08);
-  --shadow-card: 0 18px 42px rgba(17, 42, 33, 0.08);
+  --background: #f7faff;
+  --foreground: #102a56;
+
+  --primary: #1769e0;
+  --primary-dark: #0f5ed0;
+
+  --blue-soft: #e7f0ff;
+
+  --text-main: #102a56;
+  --text-secondary: #52627a;
+  --text-muted: #7b8ba3;
+
+  --border: #e3edf9;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: Arial, Helvetica, sans-serif;
-  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+* {
+  box-sizing: border-box;
 }
 
 html {
@@ -37,82 +26,125 @@ html {
 
 body {
   margin: 0;
-  background:
-    radial-gradient(circle at top left, rgba(29, 189, 120, 0.08), transparent 20%),
-    radial-gradient(circle at top right, rgba(13, 143, 96, 0.05), transparent 18%),
-    linear-gradient(180deg, #f5f8f6 0%, #f0f5f2 100%);
+  background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(177, 238, 216, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(177, 238, 216, 0.03) 1px, transparent 1px);
-  background-size: 32px 32px;
-  mask-image: radial-gradient(circle at center, black 25%, transparent 90%);
+button,
+a,
+input,
+textarea,
+select {
+  font-family: inherit;
 }
 
-body.pdf-editor-open {
-  overflow: hidden;
+button {
+  cursor: pointer;
 }
 
-body.pdf-editor-open footer {
-  display: none;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-img {
-  max-width: 100%;
-  display: block;
-}
-
-p {
-  margin: 0;
+a {
+  text-decoration: none;
 }
 
 ::selection {
-  background: rgba(69, 215, 170, 0.28);
+  background: #cfe2ff;
+  color: #0d3b7a;
 }
 
-.page-shell {
-  position: relative;
-  z-index: 1;
+/* Scrollbar */
+
+::-webkit-scrollbar {
+  width: 8px;
 }
 
-.section-shell {
-  width: min(1200px, calc(100% - 2rem));
-  margin-inline: auto;
+::-webkit-scrollbar-track {
+  background: #f4f8fd;
 }
 
-.brand-mark {
-  display: inline-flex;
-  height: 3.2rem;
-  width: 3.2rem;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.9rem;
-  background: linear-gradient(135deg, #1dbd78 0%, #0f9d67 100%);
-  box-shadow: 0 12px 24px rgba(29, 189, 120, 0.22);
-  color: #ffffff;
-  font-size: 1.55rem;
-  font-weight: 900;
-  letter-spacing: -0.08em;
-  border: 1px solid rgba(16, 52, 38, 0.08);
-  line-height: 1;
+::-webkit-scrollbar-thumb {
+  background: #c5d8f2;
+  border-radius: 999px;
 }
 
-.soft-ring {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+::-webkit-scrollbar-thumb:hover {
+  background: #9ebde7;
 }
 
-.nav-shell {
-  backdrop-filter: blur(18px);
+/* Reusable container */
+
+.utilai-container {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding-left: 40px;
+  padding-right: 40px;
+}
+
+@media (max-width: 1024px) {
+  .utilai-container {
+    padding-left: 28px;
+    padding-right: 28px;
+  }
+}
+
+@media (max-width: 640px) {
+  .utilai-container {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
+/* Soft page background */
+
+.utilai-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(
+      circle at 85% 5%,
+      rgba(101, 170, 255, 0.13),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 5% 20%,
+      rgba(83, 160, 255, 0.08),
+      transparent 25%
+    ),
+    #f7faff;
+}
+
+/* Section spacing */
+
+.utilai-section {
+  padding-top: 80px;
+  padding-bottom: 80px;
+}
+
+@media (max-width: 768px) {
+  .utilai-section {
+    padding-top: 60px;
+    padding-bottom: 60px;
+  }
+}
+
+/* Glass card */
+
+.utilai-glass {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(219, 232, 249, 0.9);
+  box-shadow: 0 15px 45px rgba(52, 100, 160, 0.08);
+  backdrop-filter: blur(14px);
+}
+
+/* Smooth transitions */
+
+.utilai-transition {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
 }

@@ -31,26 +31,65 @@ export function Header() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 border-b border-blue-100/60 bg-white/90 backdrop-blur-xl">
-      <div className="mx-auto flex h-[72px] w-full max-w-[1440px] items-center justify-between px-5 sm:px-8 lg:px-10">
-
+    <header className="sticky top-0 z-50   bg-gradient-to-r from-white to-sky-700 backdrop-blur-xl">
+      {/* <div className="mx-auto flex h-[72px] w-full max-w-[1440px] items-center justify-between px-5 sm:px-8 lg:px-10"> */}
+      <div className="mx-auto flex h-[80px] max-w-7xl items-center justify-between px-6">
         {/* Logo */}
         <Link
           href="/"
-          className="group flex items-center gap-2.5"
+          className="group flex items-center gap-2"
           onClick={() => setMobileMenuOpen(false)}
         >
-          <div className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-sm">
-            <div className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-white/20" />
 
-            <span className="relative text-[23px] font-black leading-none text-white">
-              U
-            </span>
-          </div>
 
-          <span className="text-[22px] font-bold tracking-tight text-[#12346B]">
-            Util<span className="text-[#1976F3]">AI</span>
-          </span>
+          <svg
+            width="126"
+            height="44"
+            viewBox="0 0 120 40"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-auto w-auto"
+          >
+            {/* Main U curve - left stroke */}
+            <path
+              d="M 8 8 Q 8 8 8 20 Q 8 28 16 28 Q 24 28 24 20"
+              stroke="#1769E0"
+              strokeWidth="4.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+            />
+
+            {/* Turquoise accent top-left */}
+            <circle
+              cx="10"
+              cy="6"
+              r="3"
+              fill="#21C7A8"
+            />
+
+            {/* Blue accent top-right */}
+            <circle
+              cx="22"
+              cy="6"
+              r="3"
+              fill="#1769E0"
+            />
+
+            {/* "Util" text */}
+            {/* "UtilAI" text - combined without gap */}
+            <text
+              x="32"
+              y="26"
+              fontFamily="Inter, system-ui, -apple-system, sans-serif"
+              fontSize="26"
+              fontWeight="700"
+              fill="#12346B"
+              letterSpacing="-0.3"
+            >
+              Util<tspan fill="#1976F3">AI</tspan>
+            </text>
+          </svg>
         </Link>
 
         {/* Desktop Navigation */}
@@ -59,11 +98,10 @@ export function Header() {
             <Link
               key={item.name}
               href={item.href}
-              className={`rounded-full px-4 py-2 text-[13px] font-medium transition-all duration-200 ${
-                item.name === "Home"
-                  ? "bg-[#E7F0FF] text-[#1769E0]"
-                  : "text-[#52627A] hover:bg-[#F2F6FC] hover:text-[#1769E0]"
-              }`}
+              className={`rounded-full px-4 py-2 text-[13px] font-medium transition-all duration-200 ${item.name === "Home"
+                ? "bg-[#E7F0FF] text-[#1769E0]"
+                : "text-[#52627A] hover:bg-[#F2F6FC] hover:text-[#1769E0]"
+                }`}
             >
               {item.name}
             </Link>
@@ -124,11 +162,10 @@ export function Header() {
                 key={item.name}
                 href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`rounded-xl px-4 py-3 text-sm font-medium transition ${
-                  item.name === "Home"
-                    ? "bg-[#E7F0FF] text-[#1769E0]"
-                    : "text-[#52627A] hover:bg-[#F3F7FC] hover:text-[#1769E0]"
-                }`}
+                className={`rounded-xl px-4 py-3 text-sm font-medium transition ${item.name === "Home"
+                  ? "bg-[#E7F0FF] text-[#1769E0]"
+                  : "text-[#52627A] hover:bg-[#F3F7FC] hover:text-[#1769E0]"
+                  }`}
               >
                 {item.name}
               </Link>
@@ -158,3 +195,8 @@ export function Header() {
     </header>
   );
 }
+
+
+
+
+
