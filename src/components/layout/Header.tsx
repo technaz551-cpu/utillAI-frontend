@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Search, ArrowRight, Menu, X } from "lucide-react";
 import { useState } from "react";
-
+import { NavigationMenu } from "./NavigationMenu";
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -93,21 +93,18 @@ export function Header() {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden items-center gap-1 lg:flex">
-          {navItems.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`rounded-full px-4 py-2 text-[13px] font-medium transition-all duration-200 ${item.name === "Home"
-                ? "bg-[#E7F0FF] text-[#1769E0]"
-                : "text-[#52627A] hover:bg-[#F2F6FC] hover:text-[#1769E0]"
-                }`}
-            >
-              {item.name}
-            </Link>
-          ))}
-        </nav>
-
+        {/* Desktop Navigation */}
+        {/* Desktop Navigation */}
+        <NavigationMenu
+          navItems={[
+            { label: "Home", href: "/" },
+            { label: "Tools", href: "/tools" },
+            { label: "Categories", href: "/categories" },
+            { label: "Pricing", href: "/pricing" },
+            { label: "About", href: "/about" },
+            { label: "Contact", href: "/contact" },
+          ]}
+        />
         {/* Desktop Actions */}
         <div className="hidden items-center gap-3 lg:flex">
 

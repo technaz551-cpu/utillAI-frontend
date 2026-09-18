@@ -1,9 +1,9 @@
-
 "use client";
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
+import { fetchCategories } from "@/lib/api";
 
 type NavItem = {
   label: string;
@@ -18,39 +18,79 @@ type Tool = {
 
 type Category = {
   slug: string;
-  label: string;
-  icon: string;
-  description: string;
-  tools: Tool[];
+  label?: string;
+  name?: string;
+  icon?: string;
+  description?: string;
+  tools?: Tool[];
 };
 
 type NavigationMenuProps = {
   navItems: NavItem[];
-  categories: Category[];
 };
 
 export function NavigationMenu({
   navItems,
-  categories,
 }: NavigationMenuProps) {
   const [openMenu, setOpenMenu] = useState<
     "tools" | "categories" | null
   >(null);
 
+  const [categories, setCategories] = useState<Category[]>([]);
+
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Close popup when clicking outside
+  /*
+   * Load categories from backend/local fallback
+   */
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadCategories() {
+      try {
+        const data = await fetchCategories();
+
+        if (mounted && Array.isArray(data)) {
+          setCategories(data);
+        }
+      } catch (error) {
+        console.error(
+          "Failed to load navigation categories:",
+          error
+        );
+
+        if (mounted) {
+          setCategories([]);
+        }
+      }
+    }
+
+    loadCategories();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  /*
+   * Close popup when clicking outside
+   */
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
         menuRef.current &&
-        !menuRef.current.contains(event.target as Node)
+        !menuRef.current.contains(
+          event.target as Node
+        )
       ) {
         setOpenMenu(null);
       }
     }
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener(
+      "mousedown",
+      handleClickOutside
+    );
 
     return () => {
       document.removeEventListener(
@@ -60,6 +100,9 @@ export function NavigationMenu({
     };
   }, []);
 
+  /*
+   * Toggle popup
+   */
   const toggleMenu = (
     menu: "tools" | "categories"
   ) => {
@@ -75,10 +118,13 @@ export function NavigationMenu({
     >
       {navItems.map((item) => {
         const isTools = item.label === "Tools";
-        const isCategories = item.label === "Categories";
+        const isCategories =
+          item.label === "Categories";
 
         /*
-         * TOOLS BUTTON
+         * =========================
+         * TOOLS POPUP
+         * =========================
          */
         if (isTools) {
           return (
@@ -88,14 +134,23 @@ export function NavigationMenu({
             >
               <button
                 type="button"
-                onClick={() => toggleMenu("tools")}
-                className="flex items-center gap-1 rounded-full px-4 py-2 text-sm font-semibold text-[var(--muted)] transition hover:bg-[var(--brand-primary)] hover:text-white"
-                aria-expanded={openMenu === "tools"}
+                onClick={() =>
+                  toggleMenu("tools")
+                }
+                className={`flex items-center gap-1 rounded-full px-4 py-2 text-[13px] font-medium transition-all duration-200 ${
+                  openMenu === "tools"
+                    ? "bg-[#E7F0FF] text-[#1769E0]"
+                    : "text-[#52627A] hover:bg-[#F2F6FC] hover:text-[#1769E0]"
+                }`}
+                aria-expanded={
+                  openMenu === "tools"
+                }
               >
                 Tools
 
                 <ChevronDown
-                  className={`h-4 w-4 transition-transform ${
+                  size={15}
+                  className={`transition-transform duration-200 ${
                     openMenu === "tools"
                       ? "rotate-180"
                       : ""
@@ -104,70 +159,145 @@ export function NavigationMenu({
               </button>
 
               {openMenu === "tools" && (
-                <div className="absolute left-1/2 top-full z-50 mt-3 w-[520px] -translate-x-1/2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_20px_60px_rgba(17,42,33,0.15)]">
-                  <div className="mb-4 border-b border-[var(--border)] pb-3">
+                <div className="absolute left-1/2 top-full z-[100] mt-2 w-max max-w-[700px] -translate-x-1/2 rounded-xl border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.15)]">
+
+                  {/* Header */}
+                  <div className="mb-5 pb-4 border-b border-slate-200">
                     <Link
                       href="/tools"
-                      onClick={() => setOpenMenu(null)}
-                      className="text-lg font-bold text-[var(--foreground)] hover:text-[var(--brand-primary)]"
+                      onClick={() =>
+                        setOpenMenu(null)
+                      }
+                      className="text-base font-bold text-slate-800 transition hover:text-[#1769E0]"
                     >
                       Browse All Tools
                     </Link>
 
-                    <p className="mt-1 text-sm text-[var(--muted)]">
-                      Explore tools organized by category.
+                    <p className="mt-1 text-xs text-slate-500">
+                      Explore our tools organized by
+                      category.
                     </p>
                   </div>
 
-                  <div className="grid gap-5 sm:grid-cols-2">
-                    {categories.map((category) => {
-                      const tools = category.tools || [];
+                  {/* Categories + Tools - SCROLLABLE */}
+                  {categories.length > 0 ? (
+                    <div className="max-h-[480px] overflow-y-auto pr-3">
+                      {/* Custom Scrollbar Styling */}
+                      <style>{`
+                        .tools-popup::-webkit-scrollbar {
+                          width: 6px;
+                        }
+                        .tools-popup::-webkit-scrollbar-track {
+                          background: transparent;
+                        }
+                        .tools-popup::-webkit-scrollbar-thumb {
+                          background: #cbd5e1;
+                          border-radius: 3px;
+                        }
+                        .tools-popup::-webkit-scrollbar-thumb:hover {
+                          background: #94a3b8;
+                        }
+                      `}</style>
+                      
+                      <div className="tools-popup grid grid-cols-2 gap-6 gap-y-2">
+                        {categories.map(
+                          (category) => {
+                            const categoryName =
+                              category.label ||
+                              category.name ||
+                              "Category";
 
-                      return (
-                        <div key={category.slug}>
-                          {/* Category */}
-                          <Link
-                            href={`/tools/${category.slug}`}
-                            onClick={() => setOpenMenu(null)}
-                            className="mb-2 block text-sm font-bold text-[var(--foreground)] hover:text-[var(--brand-primary)]"
-                          >
-                            {category.label}
-                          </Link>
+                            const tools =
+                              category.tools || [];
 
-                          {/* Tools */}
-                          {tools.length > 0 ? (
-                            <ul className="space-y-1.5">
-                              {tools.map((tool) => (
-                                <li
-                                  key={tool.slug}
-                                  className="relative pl-4 text-sm text-[var(--muted)]"
+                            // Dynamic spacing based on tool count
+                            let toolSpacing = "space-y-0.5";
+                            let categoryGap = "mb-1.5";
+
+                            if (tools.length === 0) {
+                              toolSpacing = "space-y-0";
+                              categoryGap = "mb-1";
+                            } else if (tools.length <= 3) {
+                              toolSpacing = "space-y-0.5";
+                              categoryGap = "mb-1.5";
+                            } else if (tools.length <= 6) {
+                              toolSpacing = "space-y-1";
+                              categoryGap = "mb-2";
+                            } else {
+                              toolSpacing = "space-y-1";
+                              categoryGap = "mb-2";
+                            }
+
+                            return (
+                              <div
+                                key={category.slug}
+                                className="min-w-0"
+                              >
+                                {/* Category */}
+                                <Link
+                                  href={`/tools/${category.slug}`}
+                                  onClick={() =>
+                                    setOpenMenu(null)
+                                  }
+                                  className={`${categoryGap} block text-xs font-bold text-slate-800 transition hover:text-[#1769E0] uppercase tracking-wide`}
                                 >
-                                  <span className="absolute left-0 top-[9px] h-1.5 w-1.5 rounded-full bg-[var(--brand-primary)]" />
+                                  {categoryName}
+                                </Link>
 
-                                  <Link
-                                    href={`/tools/${
-                                      tool.category_slug ||
-                                      category.slug
-                                    }/${tool.slug}`}
-                                    onClick={() =>
-                                      setOpenMenu(null)
-                                    }
-                                    className="transition hover:text-[var(--brand-primary)] hover:underline"
-                                  >
-                                    {tool.name}
-                                  </Link>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p className="text-xs text-[var(--muted)]">
-                              No tools available.
-                            </p>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                                {/* Tools */}
+                                {tools.length > 0 ? (
+                                  <ul className={toolSpacing}>
+                                    {tools.map(
+                                      (tool) => (
+                                        <li
+                                          key={
+                                            tool.slug
+                                          }
+                                          className="relative pl-3.5"
+                                        >
+                                          {/* Bullet */}
+                                          <span className="absolute left-0 top-[6px] h-1 w-1 rounded-full bg-[#1769E0]" />
+
+                                          <Link
+                                            href={`/tools/${
+                                              tool.category_slug ||
+                                              category.slug
+                                            }/${tool.slug}`}
+                                            onClick={() =>
+                                              setOpenMenu(
+                                                null
+                                              )
+                                            }
+                                            className="text-xs text-slate-600 transition hover:text-[#1769E0] hover:underline"
+                                          >
+                                            {tool.name}
+                                          </Link>
+                                        </li>
+                                      )
+                                    )}
+                                  </ul>
+                                ) : (
+                                  <p className="text-xs text-slate-400">
+                                    No tools available.
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          }
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-6 text-center">
+                      <p className="text-xs font-medium text-slate-600">
+                        No categories available.
+                      </p>
+
+                      <p className="mt-1 text-xs text-slate-400">
+                        Categories could not be loaded.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -175,7 +305,9 @@ export function NavigationMenu({
         }
 
         /*
-         * CATEGORIES BUTTON
+         * =========================
+         * CATEGORIES POPUP
+         * =========================
          */
         if (isCategories) {
           return (
@@ -185,8 +317,14 @@ export function NavigationMenu({
             >
               <button
                 type="button"
-                onClick={() => toggleMenu("categories")}
-                className="flex items-center gap-1 rounded-full px-4 py-2 text-sm font-semibold text-[var(--muted)] transition hover:bg-[var(--brand-primary)] hover:text-white"
+                onClick={() =>
+                  toggleMenu("categories")
+                }
+                className={`flex items-center gap-1 rounded-full px-4 py-2 text-[13px] font-medium transition-all duration-200 ${
+                  openMenu === "categories"
+                    ? "bg-[#E7F0FF] text-[#1769E0]"
+                    : "text-[#52627A] hover:bg-[#F2F6FC] hover:text-[#1769E0]"
+                }`}
                 aria-expanded={
                   openMenu === "categories"
                 }
@@ -194,7 +332,8 @@ export function NavigationMenu({
                 Categories
 
                 <ChevronDown
-                  className={`h-4 w-4 transition-transform ${
+                  size={15}
+                  className={`transition-transform duration-200 ${
                     openMenu === "categories"
                       ? "rotate-180"
                       : ""
@@ -203,36 +342,80 @@ export function NavigationMenu({
               </button>
 
               {openMenu === "categories" && (
-                <div className="absolute left-1/2 top-full z-50 mt-3 w-72 -translate-x-1/2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_20px_60px_rgba(17,42,33,0.15)]">
-                  <div className="mb-3 border-b border-[var(--border)] pb-3">
-                    <p className="text-lg font-bold text-[var(--foreground)]">
+                <div className="absolute left-1/2 top-full z-[100] mt-2 w-80 -translate-x-1/2 rounded-xl border border-slate-200 bg-white p-4 shadow-[0_20px_60px_rgba(15,23,42,0.15)]">
+
+                  {/* Header */}
+                  <div className="mb-4 pb-3 border-b border-slate-200">
+                    <p className="text-sm font-bold text-slate-800">
                       Categories
                     </p>
 
-                    <p className="mt-1 text-sm text-[var(--muted)]">
+                    <p className="mt-1 text-xs text-slate-500">
                       Browse tools by category.
                     </p>
                   </div>
 
-                  <ul className="space-y-1">
-                    {categories.map((category) => (
-                      <li key={category.slug}>
-                        <Link
-                          href={`/tools/${category.slug}`}
-                          onClick={() =>
-                            setOpenMenu(null)
-                          }
-                          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[var(--foreground)] transition hover:bg-[var(--brand-primary)] hover:text-white"
-                        >
-                          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--brand-primary)]/10 text-[9px] font-black text-[var(--brand-primary)]">
-                            {category.icon}
-                          </span>
+                  {/* ONLY CATEGORIES - SCROLLABLE */}
+                  {categories.length > 0 ? (
+                    <div className="max-h-[400px] overflow-y-auto pr-2">
+                      <style>{`
+                        .categories-popup::-webkit-scrollbar {
+                          width: 6px;
+                        }
+                        .categories-popup::-webkit-scrollbar-track {
+                          background: transparent;
+                        }
+                        .categories-popup::-webkit-scrollbar-thumb {
+                          background: #cbd5e1;
+                          border-radius: 3px;
+                        }
+                        .categories-popup::-webkit-scrollbar-thumb:hover {
+                          background: #94a3b8;
+                        }
+                      `}</style>
+                      
+                      <ul className="categories-popup space-y-1.5">
+                        {categories.map(
+                          (category) => {
+                            const categoryName =
+                              category.label ||
+                              category.name ||
+                              "Category";
 
-                          {category.label}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
+                            return (
+                              <li
+                                key={category.slug}
+                              >
+                                <Link
+                                  href={`/tools/${category.slug}`}
+                                  onClick={() =>
+                                    setOpenMenu(
+                                      null
+                                    )
+                                  }
+                                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-[#F0F5FF] hover:text-[#1769E0]"
+                                >
+                                  {/* Icon with background */}
+                                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#E7F0FF]" />
+
+
+                                  <span className="truncate font-semibold">
+                                    {categoryName}
+                                  </span>
+                                </Link>
+                              </li>
+                            );
+                          }
+                        )}
+                      </ul>
+                    </div>
+                  ) : (
+                    <div className="py-4 text-center">
+                      <p className="text-xs text-slate-500">
+                        No categories available.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -240,13 +423,15 @@ export function NavigationMenu({
         }
 
         /*
-         * NORMAL NAVIGATION LINKS
+         * =========================
+         * NORMAL LINKS
+         * =========================
          */
         return (
           <Link
             key={item.label}
             href={item.href}
-            className="rounded-full px-4 py-2 text-sm font-semibold text-[var(--muted)] transition hover:bg-[var(--brand-primary)] hover:text-white"
+            className="rounded-full px-4 py-2 text-[13px] font-medium text-[#52627A] transition-all duration-200 hover:bg-[#F2F6FC] hover:text-[#1769E0]"
           >
             {item.label}
           </Link>
@@ -255,4 +440,3 @@ export function NavigationMenu({
     </nav>
   );
 }
-
