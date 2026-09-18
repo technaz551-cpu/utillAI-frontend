@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { ThemeManager } from "@/components/settings/ThemeManager";
+// import { ThemeManager } from "@/components/settings/ThemeManager";
 import { Inter } from "next/font/google";
 
 import "./globals.css";
@@ -35,17 +35,16 @@ export default function RootLayout({
       className={inter.className}
     >
       <body
-        className="min-h-screen antialiased"
+        className="min-h-screen w-full overflow-x-hidden antialiased"
         suppressHydrationWarning
       >
-        <ThemeManager />
+        {/* <ThemeManager /> */}
 
         <Header />
 
-        <main className="w-full">
-          <div className="mx-auto w-full max-w-[1920px] px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 2xl:px-16">
-            {children}
-          </div>
+        {/* Extra div aur px/max-w padding yahan se hata di gayi hai */}
+        <main className="w-full min-h-screen">
+          {children}
         </main>
 
         <Footer />
