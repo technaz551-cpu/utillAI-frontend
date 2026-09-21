@@ -53,8 +53,8 @@ const CATEGORY_MAP: Record<string, { icon: any; color: string; bg: string }> = {
 
 // Reusable page-wide horizontal padding so the whole site keeps a consistent
 // margin from the browser edges on every screen size.
-const PAGE_PADDING = "px-5 sm:px-10 lg:px-16 xl:px-24";
-
+// const PAGE_PADDING = "px-5 sm:px-10 lg:px-16 xl:px-24";
+const PAGE_PADDING = "px-6 sm:px-14 lg:px-20 xl:px-32";
 export function HomePageClient({
   categories,
   popular,
