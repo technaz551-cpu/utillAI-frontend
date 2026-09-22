@@ -528,7 +528,7 @@ export async function Footer() {
           <div className="pointer-events-none absolute -bottom-24 left-1/3 h-48 w-48 rounded-full bg-[#1769E0]/10 blur-3xl" />
 
           <div className="relative flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
-
+{/* 
             <div className="max-w-2xl">
 
               <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/90 px-3.5 py-1.5 text-xs font-bold text-[#1769E0] shadow-sm backdrop-blur">
@@ -545,7 +545,7 @@ export async function Footer() {
                 text, productivity, and more — built to feel effortless.
               </p>
 
-            </div>
+            </div> */}
 
             {/* <Link
               href="/tools"
