@@ -427,7 +427,7 @@ import {
   Mail,
   ShieldCheck,
   Zap,
-  Github,
+  // Github,
   Globe,
   MessageCircle,
   Send,
@@ -491,7 +491,7 @@ async function getFooterCategories(): Promise<FooterCategory[]> {
 }
 
 const socialLinks = [
-  { icon: Github, href: "https://github.com", label: "GitHub" },
+  // { icon: Github, href: "https://github.com", label: "GitHub" },
   { icon: Globe, href: "https://utilai.com", label: "Website" },
   { icon: MessageCircle, href: "/contact", label: "Community" },
 ];
