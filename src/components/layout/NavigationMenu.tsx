@@ -270,8 +270,8 @@ export function NavigationMenu({
 
                   {/* Categories + Tools */}
                   {categories.length > 0 ? (
-                    <div className="max-h-[480px] overflow-y-auto pr-3">
-                      <div className="grid grid-cols-2 gap-x-10 gap-y-6">
+                    <div className="max-h-[350px] overflow-y-auto pr-3">
+                      <div className="grid grid-cols-3 gap-x-10 gap-y-4">
 
                         {categories.map(
                           (category) => (
