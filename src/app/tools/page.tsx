@@ -757,26 +757,10 @@
 
 
 import { fetchCategories } from "@/lib/api";
-
 import ToolsPageClient from "./ToolsPageClient";
 
-type ToolsPageProps = {
-  searchParams: Promise<{
-    search?: string;
-  }>;
-};
-
-export default async function AllToolsPage({
-  searchParams,
-}: ToolsPageProps) {
-  const params = await searchParams;
-
+export default async function AllToolsPage() {
   const categories = (await fetchCategories().catch(() => [])) as any[];
 
-  return (
-    <ToolsPageClient
-      categories={categories}
-      initialSearch={params.search || ""}
-    />
-  );
+  return <ToolsPageClient categories={categories} />;
 }
