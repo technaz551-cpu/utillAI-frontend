@@ -1,3 +1,9 @@
+
+
+
+
+
+
 // "use client";
 
 // import { useEffect, useMemo, useState } from "react";
@@ -5,16 +11,19 @@
 // import {
 //   ArrowDown,
 //   ArrowUp,
+//   CheckCircle2,
 //   Combine,
 //   Download,
 //   FileImage,
 //   FileText,
 //   Image,
+//   Loader2,
 //   RotateCcw,
 //   Scissors,
-//   Shield,
+//   ShieldCheck,
 //   Trash2,
 //   Upload,
+//   X,
 // } from "lucide-react";
 
 // import { btn, card } from "@/lib/utils";
@@ -22,7 +31,6 @@
 // import type { ToolMeta } from "@/features/tools/client-processors";
 
 // import { processPdf } from "@/features/tools/pdf-processors";
-// // import { exportEditedPdf, downloadPdf } from '@/features/tools/pdfeditor/pdf_processors';
 
 // const MULTI_FILE = new Set([
 //   "merge-pdf",
@@ -108,7 +116,7 @@
 
 //   return (
 //     map[slug] ||
-//     "Drop files or click to upload."
+//     "Drop files here or click to browse."
 //   );
 // }
 
@@ -117,15 +125,15 @@
 //   action: PdfAction | null,
 // ) {
 //   if (status === "processing") {
-//     return "Processing…";
+//     return "Processing...";
 //   }
 
 //   if (action === "merge") {
-//     return "Merge";
+//     return "Merge PDFs";
 //   }
 
 //   if (action === "split") {
-//     return "Split";
+//     return "Split PDF";
 //   }
 
 //   if (action === "jpg-to-pdf") {
@@ -137,6 +145,22 @@
 //   }
 
 //   return "Process";
+// }
+
+// function getFileIcon(file: File) {
+//   if (isImageFile(file)) {
+//     return (
+//       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50">
+//         <Image className="h-5 w-5 text-blue-500" />
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50">
+//       <FileText className="h-5 w-5 text-red-500" />
+//     </div>
+//   );
 // }
 
 // export function PdfTool({
@@ -267,9 +291,7 @@
 //   useEffect(() => {
 //     return () => {
 //       if (resultUrl) {
-//         URL.revokeObjectURL(
-//           resultUrl,
-//         );
+//         URL.revokeObjectURL(resultUrl);
 //       }
 //     };
 //   }, [resultUrl]);
@@ -286,10 +308,9 @@
 //       ),
 //     );
 
-//     const next = Array.from(
-//       list,
-//     ).filter((file) =>
-//       allowed.has(extOf(file)),
+//     const next = Array.from(list).filter(
+//       (file) =>
+//         allowed.has(extOf(file)),
 //     );
 
 //     if (!next.length) {
@@ -343,9 +364,7 @@
 
 //     setResultUrl((previous) => {
 //       if (previous) {
-//         URL.revokeObjectURL(
-//           previous,
-//         );
+//         URL.revokeObjectURL(previous);
 //       }
 
 //       return "";
@@ -390,8 +409,7 @@
 //           ? "split-pdf"
 //           : "merge-pdf"
 //         : isConvert
-//           ? action ===
-//             "pdf-to-jpg"
+//           ? action === "pdf-to-jpg"
 //             ? "pdf-to-jpg"
 //             : "jpg-to-pdf"
 //           : tool.slug;
@@ -407,9 +425,7 @@
 //     setError("");
 
 //     if (resultUrl) {
-//       URL.revokeObjectURL(
-//         resultUrl,
-//       );
+//       URL.revokeObjectURL(resultUrl);
 //     }
 
 //     setResultUrl("");
@@ -430,9 +446,11 @@
 //         );
 
 //       setResultUrl(url);
+
 //       setResultName(
 //         result.filename,
 //       );
+
 //       setResultSize(
 //         result.blob.size,
 //       );
@@ -459,9 +477,7 @@
 
 //     setResultUrl((previous) => {
 //       if (previous) {
-//         URL.revokeObjectURL(
-//           previous,
-//         );
+//         URL.revokeObjectURL(previous);
 //       }
 
 //       return "";
@@ -471,28 +487,127 @@
 //   const choiceClass = (
 //     selected: boolean,
 //   ) =>
-//     `flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
+//     `group flex items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
 //       selected
-//         ? "border-[var(--accent)] bg-[var(--accent-soft)]"
-//         : "border-[var(--border)] bg-[#0d121c] hover:border-[var(--accent)]"
+//         ? "border-blue-500 bg-blue-50 shadow-sm"
+//         : "border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/40"
 //     }`;
 
-//   return (
-//     <div className={card()}>
-//       <div className="mb-5 flex items-start gap-3 rounded-xl border border-cyan-500/20 bg-cyan-500/5 px-4 py-3">
-//         <Shield className="mt-0.5 h-4 w-4 shrink-0 text-cyan-400" />
+//   /*
+//    * ============================================================
+//    * RESULT SCREEN
+//    * ============================================================
+//    */
 
-//         <p className="text-xs leading-relaxed text-cyan-200/80">
-//           Runs locally in your browser —
-//           your files are never sent to
-//           our servers.
+//   if (
+//     status === "done" &&
+//     resultUrl
+//   ) {
+//     return (
+//       <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+//         {/* Success header */}
+//         <div className="border-b border-slate-100 bg-gradient-to-br from-blue-50 via-white to-cyan-50 px-6 py-10 text-center sm:px-10">
+//           <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
+//             <CheckCircle2 className="h-9 w-9 text-blue-600" />
+//           </div>
+
+//           <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+//             Your file is ready
+//           </h2>
+
+//           <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+//             Your PDF has been processed
+//             successfully and is ready to
+//             download.
+//           </p>
+//         </div>
+
+//         {/* Result card */}
+//         <div className="p-5 sm:p-7">
+//           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+//             <div className="flex items-center gap-4">
+//               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-50">
+//                 <FileText className="h-6 w-6 text-red-500" />
+//               </div>
+
+//               <div className="min-w-0 flex-1">
+//                 <p className="truncate text-sm font-semibold text-slate-900">
+//                   {resultName}
+//                 </p>
+
+//                 <p className="mt-1 text-xs text-slate-500">
+//                   {formatSize(resultSize)}
+//                   {" • "}
+//                   PDF
+//                 </p>
+//               </div>
+
+//               <CheckCircle2 className="hidden h-5 w-5 shrink-0 text-emerald-500 sm:block" />
+//             </div>
+//           </div>
+
+//           {/* Main download */}
+//           <a
+//             href={resultUrl}
+//             download={resultName}
+//             className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md"
+//           >
+//             <Download className="h-5 w-5" />
+//             Download {resultName}
+//           </a>
+
+//           {/* Secondary action */}
+//           <button
+//             type="button"
+//             onClick={clear}
+//             className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
+//           >
+//             <RotateCcw className="h-4 w-4" />
+//             Process another file
+//           </button>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   /*
+//    * ============================================================
+//    * MAIN TOOL UI
+//    * ============================================================
+//    */
+
+//   return (
+//     <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+
+//       {/* Privacy notice */}
+//       <div className="mb-6 flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3.5">
+//         <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+
+//         <div>
+//           <p className="text-sm font-semibold text-slate-800">
+//             Your files stay private
+//           </p>
+
+//           <p className="mt-0.5 text-xs leading-5 text-slate-500">
+//             Files are processed locally in
+//             your browser and are never
+//             uploaded to our servers.
+//           </p>
+//         </div>
+//       </div>
+
+//       {/* Description */}
+//       <div className="mb-5">
+//         <h3 className="text-base font-semibold text-slate-900">
+//           {tool.name}
+//         </h3>
+
+//         <p className="mt-1 text-sm leading-6 text-slate-500">
+//           {hintFor(tool.slug)}
 //         </p>
 //       </div>
 
-//       <p className="mb-4 text-sm text-[var(--muted)]">
-//         {hintFor(tool.slug)}
-//       </p>
-
+//       {/* Upload area */}
 //       <label
 //         onDragOver={(event) => {
 //           event.preventDefault();
@@ -506,27 +621,44 @@
 //           setDragOver(false);
 
 //           if (
-//             event.dataTransfer.files
-//               .length
+//             event.dataTransfer.files.length
 //           ) {
 //             addFiles(
 //               event.dataTransfer.files,
 //             );
 //           }
 //         }}
-//         className={`flex cursor-pointer flex-col items-center rounded-xl border-2 border-dashed px-6 py-12 transition-colors ${
+//         className={`group flex min-h-[220px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-all ${
 //           dragOver
-//             ? "border-[var(--accent)] bg-[var(--accent-soft)]"
-//             : "border-[var(--border)] bg-[#0d121c] hover:border-[var(--accent)]"
+//             ? "border-blue-500 bg-blue-50"
+//             : "border-slate-200 bg-slate-50/70 hover:border-blue-400 hover:bg-blue-50/40"
 //         }`}
 //       >
-//         <Upload className="mb-3 h-10 w-10 text-[var(--muted)]" />
+//         <div
+//           className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl transition-colors ${
+//             dragOver
+//               ? "bg-blue-100"
+//               : "bg-white shadow-sm ring-1 ring-slate-200 group-hover:bg-blue-50"
+//           }`}
+//         >
+//           <Upload
+//             className={`h-6 w-6 ${
+//               dragOver
+//                 ? "text-blue-600"
+//                 : "text-slate-400 group-hover:text-blue-500"
+//             }`}
+//           />
+//         </div>
 
-//         <span className="text-sm text-[var(--muted)]">
-//           Drop files or click to upload
+//         <span className="text-sm font-semibold text-slate-800">
+//           Drop your files here
 //         </span>
 
-//         <span className="mt-1 text-xs text-[var(--muted)]">
+//         <span className="mt-1 text-sm text-slate-500">
+//           or click to browse from your device
+//         </span>
+
+//         <span className="mt-3 rounded-full bg-white px-3 py-1 text-[11px] font-medium text-slate-500 ring-1 ring-slate-200">
 //           {accept
 //             .replaceAll(".", "")
 //             .toUpperCase()}
@@ -539,8 +671,7 @@
 //           className="hidden"
 //           onChange={(event) => {
 //             if (
-//               event.target.files
-//                 ?.length
+//               event.target.files?.length
 //             ) {
 //               addFiles(
 //                 event.target.files,
@@ -552,88 +683,106 @@
 //         />
 //       </label>
 
+//       {/* File list */}
 //       {files.length > 0 && (
-//         <ul className="mt-4 space-y-2">
-//           {files.map((file, index) => (
-//             <li
-//               key={`${file.name}-${index}`}
-//               className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[#0d121c] px-3 py-2.5"
-//             >
-//               <FileText className="h-4 w-4 shrink-0 text-rose-300" />
+//         <div className="mt-5">
+//           <div className="mb-3 flex items-center justify-between">
+//             <p className="text-sm font-semibold text-slate-800">
+//               Selected files
+//             </p>
 
-//               <div className="min-w-0 flex-1">
-//                 <p className="truncate text-sm">
-//                   {file.name}
-//                 </p>
+//             <span className="text-xs text-slate-500">
+//               {files.length}{" "}
+//               {files.length === 1
+//                 ? "file"
+//                 : "files"}
+//             </span>
+//           </div>
 
-//                 <p className="text-xs text-[var(--muted)]">
-//                   {formatSize(file.size)}
-//                 </p>
-//               </div>
+//           <ul className="space-y-2">
+//             {files.map(
+//               (file, index) => (
+//                 <li
+//                   key={`${file.name}-${index}`}
+//                   className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 transition-colors hover:border-blue-200"
+//                 >
+//                   {getFileIcon(file)}
 
-//               {showReorder && (
-//                 <div className="flex gap-1">
+//                   <div className="min-w-0 flex-1">
+//                     <p className="truncate text-sm font-medium text-slate-800">
+//                       {file.name}
+//                     </p>
+
+//                     <p className="mt-0.5 text-xs text-slate-500">
+//                       {formatSize(
+//                         file.size,
+//                       )}
+//                     </p>
+//                   </div>
+
+//                   {showReorder && (
+//                     <div className="flex gap-1">
+//                       <button
+//                         type="button"
+//                         className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
+//                         onClick={() =>
+//                           move(
+//                             index,
+//                             -1,
+//                           )
+//                         }
+//                         disabled={
+//                           index === 0
+//                         }
+//                         title="Move up"
+//                       >
+//                         <ArrowUp className="h-3.5 w-3.5" />
+//                       </button>
+
+//                       <button
+//                         type="button"
+//                         className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
+//                         onClick={() =>
+//                           move(
+//                             index,
+//                             1,
+//                           )
+//                         }
+//                         disabled={
+//                           index ===
+//                           files.length -
+//                             1
+//                         }
+//                         title="Move down"
+//                       >
+//                         <ArrowDown className="h-3.5 w-3.5" />
+//                       </button>
+//                     </div>
+//                   )}
+
 //                   <button
 //                     type="button"
-//                     className={
-//                       btn("ghost") +
-//                       " !px-2 !py-1"
-//                     }
+//                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-500"
 //                     onClick={() =>
-//                       move(index, -1)
+//                       removeFile(index)
 //                     }
-//                     disabled={
-//                       index === 0
-//                     }
-//                     title="Move up"
+//                     title="Remove"
 //                   >
-//                     <ArrowUp className="h-3.5 w-3.5" />
+//                     <Trash2 className="h-3.5 w-3.5" />
 //                   </button>
-
-//                   <button
-//                     type="button"
-//                     className={
-//                       btn("ghost") +
-//                       " !px-2 !py-1"
-//                     }
-//                     onClick={() =>
-//                       move(index, 1)
-//                     }
-//                     disabled={
-//                       index ===
-//                       files.length - 1
-//                     }
-//                     title="Move down"
-//                   >
-//                     <ArrowDown className="h-3.5 w-3.5" />
-//                   </button>
-//                 </div>
-//               )}
-
-//               <button
-//                 type="button"
-//                 className={
-//                   btn("ghost") +
-//                   " !px-2 !py-1"
-//                 }
-//                 onClick={() =>
-//                   removeFile(index)
-//                 }
-//                 title="Remove"
-//               >
-//                 <Trash2 className="h-3.5 w-3.5" />
-//               </button>
-//             </li>
-//           ))}
-//         </ul>
+//                 </li>
+//               ),
+//             )}
+//           </ul>
+//         </div>
 //       )}
 
+//       {/* Merge / Split */}
 //       {isMergeSplit &&
 //         files.length > 0 && (
-//           <div className="mt-5">
-//             <p className="mb-3 text-sm font-medium">
-//               Do you want to merge or
-//               split?
+//           <div className="mt-6">
+//             <p className="mb-3 text-sm font-semibold text-slate-800">
+//               What would you like to do?
 //             </p>
 
 //             <div className="grid gap-3 sm:grid-cols-2">
@@ -646,16 +795,18 @@
 //                   action === "merge",
 //                 )}
 //               >
-//                 <Combine className="mt-0.5 h-5 w-5 shrink-0 text-cyan-300" />
+//                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100">
+//                   <Combine className="h-5 w-5 text-blue-600" />
+//                 </div>
 
 //                 <span>
-//                   <span className="block text-sm font-medium">
+//                   <span className="block text-sm font-semibold text-slate-800">
 //                     Merge PDFs
 //                   </span>
 
-//                   <span className="mt-1 block text-xs text-[var(--muted)]">
-//                     Combine files into one
-//                     document.
+//                   <span className="mt-1 block text-xs leading-5 text-slate-500">
+//                     Combine multiple PDFs into
+//                     one document.
 //                   </span>
 //                 </span>
 //               </button>
@@ -669,16 +820,18 @@
 //                   action === "split",
 //                 )}
 //               >
-//                 <Scissors className="mt-0.5 h-5 w-5 shrink-0 text-cyan-300" />
+//                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100">
+//                   <Scissors className="h-5 w-5 text-blue-600" />
+//                 </div>
 
 //                 <span>
-//                   <span className="block text-sm font-medium">
+//                   <span className="block text-sm font-semibold text-slate-800">
 //                     Split PDF
 //                   </span>
 
-//                   <span className="mt-1 block text-xs text-[var(--muted)]">
-//                     Extract each page as
-//                     its own file.
+//                   <span className="mt-1 block text-xs leading-5 text-slate-500">
+//                     Extract pages into separate
+//                     PDF files.
 //                   </span>
 //                 </span>
 //               </button>
@@ -686,27 +839,28 @@
 
 //             {action === "merge" &&
 //               files.length < 2 && (
-//                 <p className="mt-3 text-xs text-amber-200/80">
-//                   Add at least one more
-//                   PDF to merge.
+//                 <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">
+//                   Add at least one more PDF
+//                   to merge.
 //                 </p>
 //               )}
 
 //             {action === "split" &&
 //               files.length > 1 && (
-//                 <p className="mt-3 text-xs text-[var(--muted)]">
+//                 <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
 //                   Split uses the first PDF.
-//                   Extra files are ignored.
+//                   Extra files will be ignored.
 //                 </p>
 //               )}
 //           </div>
 //         )}
 
+//       {/* Conversion */}
 //       {isConvert &&
 //         files.length > 0 && (
-//           <div className="mt-5">
-//             <p className="mb-3 text-sm font-medium">
-//               JPG to PDF or PDF to JPG?
+//           <div className="mt-6">
+//             <p className="mb-3 text-sm font-semibold text-slate-800">
+//               Choose conversion
 //             </p>
 
 //             <div className="grid gap-3 sm:grid-cols-2">
@@ -722,16 +876,18 @@
 //                     "jpg-to-pdf",
 //                 )}
 //               >
-//                 <Image className="mt-0.5 h-5 w-5 shrink-0 text-cyan-300" />
+//                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100">
+//                   <Image className="h-5 w-5 text-blue-600" />
+//                 </div>
 
 //                 <span>
-//                   <span className="block text-sm font-medium">
+//                   <span className="block text-sm font-semibold text-slate-800">
 //                     JPG to PDF
 //                   </span>
 
-//                   <span className="mt-1 block text-xs text-[var(--muted)]">
-//                     Turn images into a PDF
-//                     document.
+//                   <span className="mt-1 block text-xs leading-5 text-slate-500">
+//                     Convert images into one
+//                     PDF document.
 //                   </span>
 //                 </span>
 //               </button>
@@ -748,16 +904,18 @@
 //                     "pdf-to-jpg",
 //                 )}
 //               >
-//                 <FileImage className="mt-0.5 h-5 w-5 shrink-0 text-cyan-300" />
+//                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100">
+//                   <FileImage className="h-5 w-5 text-blue-600" />
+//                 </div>
 
 //                 <span>
-//                   <span className="block text-sm font-medium">
+//                   <span className="block text-sm font-semibold text-slate-800">
 //                     PDF to JPG
 //                   </span>
 
-//                   <span className="mt-1 block text-xs text-[var(--muted)]">
-//                     Turn each PDF page into
-//                     a JPG.
+//                   <span className="mt-1 block text-xs leading-5 text-slate-500">
+//                     Convert PDF pages into JPG
+//                     images.
 //                   </span>
 //                 </span>
 //               </button>
@@ -765,36 +923,33 @@
 
 //             {action === "jpg-to-pdf" &&
 //               images.length < 1 && (
-//                 <p className="mt-3 text-xs text-amber-200/80">
-//                   Add at least one JPG or
-//                   PNG image.
+//                 <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">
+//                   Add at least one JPG or PNG
+//                   image.
 //                 </p>
 //               )}
 
 //             {action === "pdf-to-jpg" &&
 //               pdfs.length < 1 && (
-//                 <p className="mt-3 text-xs text-amber-200/80">
+//                 <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">
 //                   Add a PDF to convert.
-//                 </p>
-//               )}
-
-//             {action === "pdf-to-jpg" &&
-//               pdfs.length >= 1 &&
-//               files.length > 1 && (
-//                 <p className="mt-3 text-xs text-[var(--muted)]">
-//                   PDF to JPG uses the first
-//                   PDF. Extra files are
-//                   ignored.
 //                 </p>
 //               )}
 //           </div>
 //         )}
 
+//       {/* JPG quality */}
 //       {action === "pdf-to-jpg" && (
-//         <div className="mt-4">
-//           <label className="text-xs text-[var(--muted)]">
-//             JPG quality: {quality}%
-//           </label>
+//         <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+//           <div className="flex items-center justify-between">
+//             <label className="text-sm font-medium text-slate-700">
+//               JPG quality
+//             </label>
+
+//             <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-600">
+//               {quality}%
+//             </span>
+//           </div>
 
 //           <input
 //             type="range"
@@ -803,15 +958,50 @@
 //             value={quality}
 //             onChange={(event) =>
 //               setQuality(
-//                 Number(event.target.value),
+//                 Number(
+//                   event.target.value,
+//                 ),
 //               )
 //             }
-//             className="mt-2 w-full accent-[var(--accent)]"
+//             className="mt-4 w-full accent-blue-600"
 //           />
+
+//           <div className="mt-1 flex justify-between text-[11px] text-slate-400">
+//             <span>Smaller file</span>
+//             <span>Better quality</span>
+//           </div>
 //         </div>
 //       )}
 
-//       <div className="mt-5 flex flex-wrap gap-2">
+//       {/* Error */}
+//       {error && (
+//         <div className="mt-5 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+//           <X className="mt-0.5 h-4 w-4 shrink-0" />
+
+//           <span>{error}</span>
+//         </div>
+//       )}
+
+//       {/* Processing */}
+//       {status === "processing" && (
+//         <div className="mt-5 flex items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
+//           <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+
+//           <div>
+//             <p className="text-sm font-semibold text-blue-700">
+//               Processing your file...
+//             </p>
+
+//             <p className="mt-0.5 text-xs text-blue-600/70">
+//               Please wait while we finish
+//               the conversion.
+//             </p>
+//           </div>
+//         </div>
+//       )}
+
+//       {/* Actions */}
+//       <div className="mt-6 flex flex-col gap-3 sm:flex-row">
 //         <button
 //           type="button"
 //           onClick={run}
@@ -819,54 +1009,33 @@
 //             !canRun ||
 //             status === "processing"
 //           }
-//           className={btn("primary")}
+//           className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
 //         >
-//           {processLabel(
-//             status,
-//             action,
+//           {status === "processing" ? (
+//             <>
+//               <Loader2 className="h-4 w-4 animate-spin" />
+//               Processing...
+//             </>
+//           ) : (
+//             processLabel(
+//               status,
+//               action,
+//             )
 //           )}
 //         </button>
 
 //         <button
 //           type="button"
 //           onClick={clear}
-//           className={btn("secondary")}
+//           className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
 //         >
-//           <RotateCcw className="mr-2 h-4 w-4" />
+//           <RotateCcw className="h-4 w-4" />
 //           Clear
 //         </button>
 //       </div>
-
-//       {error && (
-//         <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-300">
-//           {error}
-//         </div>
-//       )}
-
-//       {status === "done" &&
-//         resultUrl && (
-//           <a
-//             href={resultUrl}
-//             download={resultName}
-//             className={
-//               btn("secondary") +
-//               " mt-4 inline-flex"
-//             }
-//           >
-//             <Download className="mr-2 h-4 w-4" />
-
-//             Download {resultName} (
-//             {formatSize(resultSize)})
-//           </a>
-//         )}
 //     </div>
 //   );
 // }
-
-
-
-
-
 
 "use client";
 
@@ -889,8 +1058,6 @@ import {
   Upload,
   X,
 } from "lucide-react";
-
-import { btn, card } from "@/lib/utils";
 
 import type { ToolMeta } from "@/features/tools/client-processors";
 
@@ -1142,6 +1309,7 @@ export function PdfTool({
     setAction(null);
     setResultName("");
     setResultSize(0);
+    setDragOver(false);
 
     setResultUrl((previous) => {
       if (previous) {
@@ -1338,6 +1506,7 @@ export function PdfTool({
     setStatus("idle");
     setResultName("");
     setResultSize(0);
+    setDragOver(false);
 
     setResultUrl((previous) => {
       if (previous) {
@@ -1369,7 +1538,6 @@ export function PdfTool({
   ) {
     return (
       <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-        {/* Success header */}
         <div className="border-b border-slate-100 bg-gradient-to-br from-blue-50 via-white to-cyan-50 px-6 py-10 text-center sm:px-10">
           <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
             <CheckCircle2 className="h-9 w-9 text-blue-600" />
@@ -1386,7 +1554,6 @@ export function PdfTool({
           </p>
         </div>
 
-        {/* Result card */}
         <div className="p-5 sm:p-7">
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
             <div className="flex items-center gap-4">
@@ -1410,7 +1577,6 @@ export function PdfTool({
             </div>
           </div>
 
-          {/* Main download */}
           <a
             href={resultUrl}
             download={resultName}
@@ -1420,7 +1586,6 @@ export function PdfTool({
             Download {resultName}
           </a>
 
-          {/* Secondary action */}
           <button
             type="button"
             onClick={clear}
@@ -1471,15 +1636,18 @@ export function PdfTool({
         </p>
       </div>
 
-      {/* Upload area */}
+      {/* ======================================================
+          UPLOAD AREA
+          Full blue hover effect
+         ====================================================== */}
       <label
         onDragOver={(event) => {
           event.preventDefault();
           setDragOver(true);
         }}
-        onDragLeave={() =>
-          setDragOver(false)
-        }
+        onDragLeave={() => {
+          setDragOver(false);
+        }}
         onDrop={(event) => {
           event.preventDefault();
           setDragOver(false);
@@ -1492,41 +1660,71 @@ export function PdfTool({
             );
           }
         }}
-        className={`group flex min-h-[220px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-all ${
+        className={`group relative flex min-h-[220px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-all duration-300 ${
           dragOver
-            ? "border-blue-500 bg-blue-50"
-            : "border-slate-200 bg-slate-50/70 hover:border-blue-400 hover:bg-blue-50/40"
+            ? "border-blue-500 bg-blue-500 shadow-lg shadow-blue-500/20"
+            : "border-slate-200 bg-slate-50/70 hover:border-blue-500 hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-500/20"
         }`}
       >
+        {/* Full-card hover layer */}
         <div
-          className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl transition-colors ${
+          className={`pointer-events-none absolute inset-0 bg-blue-500 transition-opacity duration-300 ${
             dragOver
-              ? "bg-blue-100"
-              : "bg-white shadow-sm ring-1 ring-slate-200 group-hover:bg-blue-50"
+              ? "opacity-100"
+              : "opacity-0 group-hover:opacity-100"
           }`}
-        >
-          <Upload
-            className={`h-6 w-6 ${
+        />
+
+        {/* Upload content */}
+        <div className="relative z-10 flex flex-col items-center">
+          <div
+            className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl transition-all duration-300 ${
               dragOver
-                ? "text-blue-600"
-                : "text-slate-400 group-hover:text-blue-500"
+                ? "bg-white/20"
+                : "bg-white shadow-sm ring-1 ring-slate-200 group-hover:bg-white/20 group-hover:ring-white/30"
             }`}
-          />
+          >
+            <Upload
+              className={`h-6 w-6 transition-colors duration-300 ${
+                dragOver
+                  ? "text-white"
+                  : "text-slate-400 group-hover:text-white"
+              }`}
+            />
+          </div>
+
+          <span
+            className={`text-sm font-semibold transition-colors duration-300 ${
+              dragOver
+                ? "text-white"
+                : "text-slate-800 group-hover:text-white"
+            }`}
+          >
+            Drop your files here
+          </span>
+
+          <span
+            className={`mt-1 text-sm transition-colors duration-300 ${
+              dragOver
+                ? "text-blue-100"
+                : "text-slate-500 group-hover:text-blue-50"
+            }`}
+          >
+            or click to browse from your device
+          </span>
+
+          <span
+            className={`mt-3 rounded-full px-3 py-1 text-[11px] font-medium transition-all duration-300 ${
+              dragOver
+                ? "bg-white/20 text-white ring-1 ring-white/30"
+                : "bg-white text-slate-500 ring-1 ring-slate-200 group-hover:bg-white/20 group-hover:text-white group-hover:ring-white/30"
+            }`}
+          >
+            {accept
+              .replaceAll(".", "")
+              .toUpperCase()}
+          </span>
         </div>
-
-        <span className="text-sm font-semibold text-slate-800">
-          Drop your files here
-        </span>
-
-        <span className="mt-1 text-sm text-slate-500">
-          or click to browse from your device
-        </span>
-
-        <span className="mt-3 rounded-full bg-white px-3 py-1 text-[11px] font-medium text-slate-500 ring-1 ring-slate-200">
-          {accept
-            .replaceAll(".", "")
-            .toUpperCase()}
-        </span>
 
         <input
           type="file"
@@ -1614,8 +1812,7 @@ export function PdfTool({
                         }
                         disabled={
                           index ===
-                          files.length -
-                            1
+                          files.length - 1
                         }
                         title="Move down"
                       >
