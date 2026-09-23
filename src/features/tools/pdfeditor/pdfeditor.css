@@ -1,4 +1,4 @@
-.canvas-container {
+/* .canvas-container {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
     border-radius: 12px;
     overflow: hidden;
@@ -94,4 +94,193 @@ input[type="color"]::-webkit-color-swatch-wrapper {
 input[type="color"]::-webkit-color-swatch {
     border: none;
     border-radius: 9999px;
-}
+} */
+
+
+/* 
+.utilai-pdf-editor {
+    --utilai-blue: #2563eb;
+    --utilai-blue-dark: #12366b;
+    --utilai-cyan: #0ea5e9;
+  }
+  
+  .utilai-pdf-editor button {
+    transition:
+      background-color 160ms ease,
+      color 160ms ease,
+      border-color 160ms ease,
+      transform 160ms ease,
+      box-shadow 160ms ease;
+  }
+  
+  .pdf-editor-workspace::-webkit-scrollbar,
+  .pdf-editor-panel::-webkit-scrollbar {
+    width: 7px;
+  }
+  
+  .pdf-editor-workspace::-webkit-scrollbar-track,
+  .pdf-editor-panel::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .pdf-editor-workspace::-webkit-scrollbar-thumb,
+  .pdf-editor-panel::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 999px;
+  }
+  
+  .pdf-editor-workspace::-webkit-scrollbar-thumb:hover,
+  .pdf-editor-panel::-webkit-scrollbar-thumb:hover {
+    background: #93c5fd;
+  }
+  
+  .canvas-container {
+    transition:
+      box-shadow 180ms ease,
+      transform 180ms ease;
+  }
+  
+  .canvas-container:hover {
+    box-shadow: 0 24px 70px rgba(37, 99, 235, 0.16);
+  }
+  
+  .pdf-editor-panel label,
+  .pdf-editor-panel button {
+    transition: all 160ms ease;
+  } */
+
+
+
+  .utilai-pdf-editor {
+    --utilai-blue: #2563eb;
+    --utilai-blue-dark: #12366b;
+    --utilai-cyan: #0ea5e9;
+  }
+  
+  /* ---------------------------------------------------------
+     BODY
+  --------------------------------------------------------- */
+  
+  body.pdf-editor-open {
+    overflow: hidden;
+  }
+  
+  /* ---------------------------------------------------------
+     SCROLLBARS
+  --------------------------------------------------------- */
+  
+  .pdf-editor-workspace::-webkit-scrollbar,
+  .pdf-editor-panel::-webkit-scrollbar {
+    width: 7px;
+  }
+  
+  .pdf-editor-workspace::-webkit-scrollbar-track,
+  .pdf-editor-panel::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .pdf-editor-workspace::-webkit-scrollbar-thumb,
+  .pdf-editor-panel::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 999px;
+  }
+  
+  .pdf-editor-workspace::-webkit-scrollbar-thumb:hover,
+  .pdf-editor-panel::-webkit-scrollbar-thumb:hover {
+    background: #93c5fd;
+  }
+  
+  /* ---------------------------------------------------------
+     CANVAS
+  --------------------------------------------------------- */
+  
+  .canvas-container {
+    transition:
+      box-shadow 180ms ease,
+      transform 180ms ease;
+  }
+  
+  .canvas-container:hover {
+    box-shadow:
+      0 24px 70px rgba(15, 47, 102, 0.16);
+  }
+  
+  /* ---------------------------------------------------------
+     BUTTONS
+  --------------------------------------------------------- */
+  
+  .utilai-pdf-editor button {
+    transition:
+      background-color 160ms ease,
+      color 160ms ease,
+      border-color 160ms ease,
+      transform 160ms ease,
+      box-shadow 160ms ease;
+  }
+  
+  /* ---------------------------------------------------------
+     INPUT RANGE
+  --------------------------------------------------------- */
+  
+  .utilai-pdf-editor input[type="range"] {
+    height: 5px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  
+  /* ---------------------------------------------------------
+     SELECT
+  --------------------------------------------------------- */
+  
+  .utilai-pdf-editor select {
+    cursor: pointer;
+  }
+  
+  /* ---------------------------------------------------------
+     MOBILE
+  --------------------------------------------------------- */
+  
+  @media (max-width: 768px) {
+    .pdf-editor-sidebar {
+      min-height: 64px;
+    }
+  
+    .pdf-editor-panel {
+      max-height: 240px;
+    }
+  
+    .pdf-editor-workspace {
+      min-height: 0;
+    }
+  
+    .canvas-container {
+      max-width: calc(100vw - 32px);
+    }
+  
+    .canvas-container canvas {
+      max-width: 100%;
+      height: auto !important;
+    }
+  }
+  
+  /* ---------------------------------------------------------
+     SMALL SCREEN
+  --------------------------------------------------------- */
+  
+  @media (max-width: 480px) {
+    .pdf-editor-sidebar {
+      gap: 2px;
+    }
+  
+    .pdf-editor-sidebar button {
+      width: 58px;
+    }
+  
+    .pdf-editor-panel {
+      padding: 12px;
+    }
+  
+    .pdf-editor-workspace {
+      padding: 16px;
+    }
+  }
