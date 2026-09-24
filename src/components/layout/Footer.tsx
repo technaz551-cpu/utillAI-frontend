@@ -1726,7 +1726,7 @@ export async function Footer() {
 
             {/* Newsletter */}
 
-            <form className="mt-5 flex min-w-0 items-center rounded-xl border border-white/10 bg-white p-1.5">
+            <form className="mt-5 flex min-w-0 items-center rounded-2xl border border-white/10 bg-white p-1.5">
 
               <Mail className="ml-2 h-4 w-4 shrink-0 text-slate-400" />
 
@@ -1760,7 +1760,7 @@ export async function Footer() {
 
               <span>Contact Us</span>
 
-              <ArrowUpRight className="h-3.5 w-3.5 shrink-0" />
+              <ArrowUpRight className="h-4 w-4 shrink-0" />
             </Link>
 
           </div>

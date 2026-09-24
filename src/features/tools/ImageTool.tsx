@@ -46,9 +46,8 @@ function formatSize(bytes: number) {
     units.length - 1
   );
 
-  return `${(bytes / Math.pow(1024, index)).toFixed(index === 0 ? 0 : 1)} ${
-    units[index]
-  }`;
+  return `${(bytes / Math.pow(1024, index)).toFixed(index === 0 ? 0 : 1)} ${units[index]
+    }`;
 }
 
 function formatLabel(format: OutputFormat) {
@@ -471,9 +470,13 @@ export function ImageTool({ tool }: Props) {
               <ImageIcon className="h-6 w-6" />
             </div>
 
+
+
+
             <div>
               <h2 className="text-lg font-bold tracking-tight text-slate-900">
                 {tool.name}
+
               </h2>
 
               <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
@@ -481,10 +484,11 @@ export function ImageTool({ tool }: Props) {
                   "Process your image directly in your browser."}
               </p>
             </div>
+           
           </div>
 
           <div className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
-            <ShieldCheck className="h-4 w-4" />
+            <ShieldCheck className="h-4  w-4" />
             Private & browser-based
           </div>
         </div>
@@ -669,8 +673,8 @@ export function ImageTool({ tool }: Props) {
                               disabled
                                 ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300"
                                 : active
-                                ? "border-blue-500 bg-blue-500 text-white shadow-md shadow-blue-500/20"
-                                : "border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600",
+                                  ? "border-blue-500 bg-blue-500 text-white shadow-md shadow-blue-500/20"
+                                  : "border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600",
                             ].join(" ")}
                           >
                             {formatLabel(item)}

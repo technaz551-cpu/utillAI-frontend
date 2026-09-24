@@ -1,51 +1,3 @@
-// import Link from "next/link";
-// import type { Metadata } from "next";
-// import { notFound } from "next/navigation";
-// import { fetchCategory } from "@/lib/api";
-// import { card, categoryAccent } from "@/lib/utils";
-
-// type Props = { params: Promise<{ category: string }> };
-
-// export async function generateMetadata({ params }: Props): Promise<Metadata> {
-//   const { category } = await params;
-//   return { title: `${category.replace("-", " ")} Tools — Free Online`, description: `Free online ${category} tools.` };
-// }
-
-// export default async function CategoryPage({ params }: Props) {
-//   const { category } = await params;
-//   const data = await fetchCategory(category) as {
-//     slug: string;
-//     name: string;
-//     description: string;
-//     tools: Array<{ slug: string; name: string; short_description: string; category_slug: string }>;
-//   } | null;
-//   if (!data) notFound();
-
-//   const accent = categoryAccent(data.slug);
-
-//   return (
-//     <main className="mx-auto max-w-7xl px-4 py-12 md:py-16">
-//       <span className={`inline-block rounded-md px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${accent.badge}`}>
-//         {data.tools.length} tools
-//       </span>
-//       <h1 className="mt-4 text-3xl font-semibold md:text-4xl">{data.name}</h1>
-//       <p className="mt-4 max-w-2xl leading-relaxed text-[var(--muted)]">{data.description}</p>
-//       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-//         {data.tools.map((t) => (
-//           <Link key={t.slug} href={`/tools/${t.category_slug}/${t.slug}`} className={card(accent.ring + " group transition-all hover:bg-[var(--brand-primary)] hover:text-white") + " block"}>
-//             <div className="flex items-start gap-3">
-//               <span className="mt-1.5 inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--brand-primary)] group-hover:bg-white" />
-//               <div>
-//                 <h2 className="text-base font-semibold text-[var(--foreground)] group-hover:text-white">{t.name}</h2>
-//                 <p className="mt-2 text-sm leading-relaxed text-[var(--muted)] group-hover:text-white/80">{t.short_description}</p>
-//               </div>
-//             </div>
-//           </Link>
-//         ))}
-//       </div>
-//     </main>
-//   );
-// }
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -131,9 +83,7 @@ function getToolIcon(slug: string) {
 /* CATEGORY PAGE                    */
 /* -------------------------------- */
 
-export default async function CategoryPage({
-  params,
-}: Props) {
+export default async function CategoryPage({ params }: Props) {
   const { category } = await params;
 
   const data = (await fetchCategory(category)) as CategoryData | null;
@@ -150,41 +100,40 @@ export default async function CategoryPage({
 
       <section className="relative overflow-hidden border-b border-[var(--border)]">
         {/* Background decoration */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-        >
+        <div aria-hidden className="pointer-events-none absolute inset-0">
           <div className="absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-500/10 blur-3xl" />
-
           <div className="absolute -left-24 top-20 h-40 w-40 rounded-full bg-blue-400/5 blur-3xl" />
-
           <div className="absolute -right-24 bottom-0 h-48 w-48 rounded-full bg-indigo-500/5 blur-3xl" />
         </div>
 
         <div className="relative mx-auto max-w-7xl px-4 py-14 md:px-6 md:py-20">
+          {/* Right top corner image with hover */}
+          {/* <div className="group absolute right-4 top-6 z-10 hidden w-40 overflow-hidden rounded-2xl border border-white/80 bg-white/40 p-1.5 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:rotate-2 hover:scale-105 hover:shadow-2xl md:right-6 md:top-10 md:block lg:w-56 xl:w-64"> */}
+          <div className="group absolute right-4 top-16 z-10 hidden w-64 overflow-hidden rounded-2xl border border-white/80 bg-white/40 p-1.5 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:rotate-2 hover:scale-105 hover:shadow-2xl md:right-6 md:top-24 md:block lg:w-80 xl:w-[28rem]">
+            <img
+              src="/images4.png"
+              alt="UtilAI Mobile & Web Tools"
+              className="block h-auto w-full rounded-xl object-cover transition-transform duration-500 group-hover:scale-110"
+            />
+          </div>
+
           {/* Breadcrumb */}
           <div className="mb-7 flex items-center gap-2 text-sm text-[var(--muted)]">
-            <Link
-              href="/"
-              className="transition hover:text-blue-500"
-            >
+            <Link href="/" className="transition hover:text-blue-500">
               Home
             </Link>
 
             <span>/</span>
 
-            <span className="text-[var(--foreground)]">
-              {data.name}
-            </span>
+            <span className="text-[var(--foreground)]">{data.name}</span>
           </div>
 
-          <div className="max-w-3xl">
+          <div className="max-w-3xl lg:max-w-2xl">
             {/* Category badge */}
             <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-blue-500">
               <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
 
-              {data.tools.length}{" "}
-              {data.tools.length === 1 ? "Tool" : "Tools"}
+              {data.tools.length} {data.tools.length === 1 ? "Tool" : "Tools"}
             </div>
 
             {/* Heading */}
