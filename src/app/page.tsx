@@ -12,7 +12,7 @@ export default async function HomePage() {
     { ...AI_CATEGORY, count: "15+ Tools" },
     { ...INTERNET_CATEGORY, count: "8+ Tools" },
     { slug: "developer", name: "Developer Tools", description: "Format, convert, encode, and debug with ease.", count: "10+ Tools" },
-    { slug: "text", name: "Text Tools", description: "Count, transform, clean and analyze text instantly.", count: "8+ Tools" },
+    // { slug: "text", name: "Text Tools", description: "Count, transform, clean and analyze text instantly.", count: "8+ Tools" },
   ];
 
   const fallbackTools = [
