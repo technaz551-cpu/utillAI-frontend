@@ -1,6 +1,7 @@
 
 
 
+
 // import React, { useEffect, useRef, useState } from 'react';
 // import * as fabric from 'fabric';
 // import * as pdfjsLib from 'pdfjs-dist';
@@ -37,6 +38,20 @@
 //   Highlighter
 // } from 'lucide-react';
 // import './pdfeditor.css';
+// import UtilAiEditorSidebar, { type SidebarItem } from './UtilEditorSidebar';
+// import UtilAiHome from './UtilHome';
+// import UtilAiProjects from './UtilAIProjects';
+
+// import UtilAiChatBot from './UtilChatBot';
+// import {
+//   saveProjectRecord,
+//   listProjects,
+//   loadProject,
+//   deleteProject,
+//   renameProject,
+//   type ProjectMeta,
+//   type ProjectPage,
+// } from './UtilProjectStore';
 
 // type PdfTextItemLike = {
 //   str: string;
@@ -70,6 +85,28 @@
 //   const [exportFormat, setExportFormat] = useState<'pdf' | 'png' | 'jpg'>('pdf');
 //   const [exportAction, setExportAction] = useState<'download' | 'print' | 'share' | 'preview'>('download');
 //   const [isExportConfirmed, setIsExportConfirmed] = useState(false);
+
+//   // Canva-style shell: which page is visible and whether the sidebar is open
+//   const [view, setView] = useState<'home' | 'editor' | 'projects'>('home');
+//   const [sidebarOpen, setSidebarOpen] = useState(true);
+//   const [chatOpen, setChatOpen] = useState(false);
+//   const [projects, setProjects] = useState<ProjectMeta[]>([]);
+//   const [projectTitle, setProjectTitle] = useState('Untitled design');
+//   const [docKey, setDocKey] = useState(0);
+
+//   const pagesRef = useRef(pages);
+//   const hasDocRef = useRef(hasDocument);
+//   const titleRef = useRef(projectTitle);
+//   const currentProjectIdRef = useRef<string | null>(null);
+//   const createdAtRef = useRef<number>(Date.now());
+//   const importingRef = useRef(false);
+//   const restoringRef = useRef(0);
+//   const resettingRef = useRef(false);
+//   const pendingRestore = useRef<Record<string, unknown>>({});
+//   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+//   pagesRef.current = pages;
+//   hasDocRef.current = hasDocument;
+//   titleRef.current = projectTitle;
 
 //   useEffect(() => {
 //     document.body.classList.add('pdf-editor-open');
@@ -193,30 +230,36 @@
 //     if (!ctx) return '#ffffff';
 
 //     try {
+//       // Avoid blending glyph pixels with background pixels.
+//       ctx.imageSmoothingEnabled = false;
 //       ctx.drawImage(element, sourceX, sourceY, sourceW, sourceH, 0, 0, 40, 20);
 //       const pixels = ctx.getImageData(0, 0, 40, 20).data;
 //       const buckets = new Map<string, { r: number; g: number; b: number; count: number }>();
 
-//       // Quantize colors so antialiasing/compression does not create hundreds
-//       // of almost-identical colors.
+//       // Buckets are used ONLY for grouping similar colors. We store the REAL
+//       // pixel sums so the final color is the true average of the dominant
+//       // group, not a rounded value (rounding turned white into light grey,
+//       // which made the erase box visible).
 //       for (let i = 0; i < pixels.length; i += 4) {
 //         const r = pixels[i];
 //         const g = pixels[i + 1];
 //         const b = pixels[i + 2];
-//         const qr = Math.round(r / 12) * 12;
-//         const qg = Math.round(g / 12) * 12;
-//         const qb = Math.round(b / 12) * 12;
-//         const key = `${qr},${qg},${qb}`;
+//         const key = `${Math.round(r / 16)},${Math.round(g / 16)},${Math.round(b / 16)}`;
 //         const current = buckets.get(key);
-//         if (current) current.count += 1;
-//         else buckets.set(key, { r: qr, g: qg, b: qb, count: 1 });
+//         if (current) {
+//           current.r += r;
+//           current.g += g;
+//           current.b += b;
+//           current.count += 1;
+//         } else {
+//           buckets.set(key, { r, g, b, count: 1 });
+//         }
 //       }
 
-//       const ranked = [...buckets.values()].sort((x, y) => y.count - x.count);
-//       const dominant = ranked[0];
+//       const dominant = [...buckets.values()].sort((x, y) => y.count - x.count)[0];
 //       if (!dominant) return '#ffffff';
 
-//       return `rgb(${clamp(dominant.r, 0, 255)}, ${clamp(dominant.g, 0, 255)}, ${clamp(dominant.b, 0, 255)})`;
+//       return `rgb(${Math.round(dominant.r / dominant.count)}, ${Math.round(dominant.g / dominant.count)}, ${Math.round(dominant.b / dominant.count)})`;
 //     } catch {
 //       return '#ffffff';
 //     }
@@ -318,8 +361,8 @@
 //     const mask = new fabric.Rect({
 //       left: bounds.left + bounds.width / 2,
 //       top: bounds.top + bounds.height / 2,
-//       width: bounds.width + 2,
-//       height: bounds.height + 2,
+//       width: bounds.width + 1,
+//       height: bounds.height + 1,
 //       originX: 'center',
 //       originY: 'center',
 //       angle,
@@ -328,6 +371,8 @@
 //       evented: false,
 //       excludeFromExport: false,
 //     });
+//     // Lets a saved project reconnect this mask to its text after reload.
+//     (mask as any).pdfMaskFor = (object as any).pdfId;
 
 //     canvas.add(mask);
 //     canvas.sendObjectToBack(mask);
@@ -364,8 +409,8 @@
 //     originalMask.set({
 //       left: original.left + original.width / 2,
 //       top: original.top + original.height / 2,
-//       width: original.width + 3,
-//       height: original.height + 3,
+//       width: original.width + 1,
+//       height: original.height + 1,
 //       angle: original.angle,
 //       fill: color,
 //     });
@@ -579,6 +624,25 @@
 //     });
 
 //     fabricCanvases.current[id] = canvas;
+
+//     (['object:added', 'object:removed', 'object:modified', 'text:changed'] as const).forEach((evt) => {
+//       canvas.on(evt as any, () => scheduleAutosave());
+//     });
+
+//     const pendingJson = pendingRestore.current[id];
+//     if (pendingJson) {
+//       delete pendingRestore.current[id];
+//       canvas
+//         .loadFromJSON(pendingJson as any)
+//         .then(() => {
+//           rebuildPdfMaps(canvas);
+//           canvas.requestRenderAll();
+//         })
+//         .catch((err: unknown) => console.error('Project restore failed:', err))
+//         .finally(() => {
+//           restoringRef.current = Math.max(0, restoringRef.current - 1);
+//         });
+//     }
 //     if (!activeCanvas) setActiveCanvas(canvas);
 //   };
 
@@ -586,11 +650,265 @@
 //     pages.forEach((page) => initCanvas(page.id, page.width, page.height));
 //   }, [pages]);
 
+//   // ------------------------------------------------------------
+//   // Projects: autosave, restore, sidebar navigation
+//   // ------------------------------------------------------------
+//   const PERSIST_PROPS = ['pdfId', 'pdfBounds', 'pdfMaskColor', 'pdfMaskFor'];
+
+//   const refreshProjects = async () => {
+//     try {
+//       setProjects(await listProjects());
+//     } catch (err) {
+//       console.error('Could not load projects:', err);
+//     }
+//   };
+
+//   // Removes the temporary blue hover outline so it is not saved with the page.
+//   const cleanPageJson = (json: any) => {
+//     if (Array.isArray(json?.objects)) {
+//       json.objects.forEach((o: any) => {
+//         if (
+//           o.stroke === '#3b82f6' &&
+//           Array.isArray(o.strokeDashArray) &&
+//           o.strokeDashArray.join(',') === '4,4'
+//         ) {
+//           o.stroke = null;
+//           o.strokeDashArray = null;
+//           o.strokeWidth = 1;
+//         }
+//       });
+//     }
+//     return json;
+//   };
+
+//   const saveProject = async () => {
+//     if (autosaveTimer.current) {
+//       clearTimeout(autosaveTimer.current);
+//       autosaveTimer.current = null;
+//     }
+//     if (!hasDocRef.current || importingRef.current || restoringRef.current > 0) return;
+
+//     const currentPages = pagesRef.current;
+//     if (!currentPages.length) return;
+
+//     const pageData: ProjectPage[] = [];
+//     for (const page of currentPages) {
+//       const canvas = fabricCanvases.current[page.id];
+//       if (!canvas) return; // canvases are not ready yet
+//       pageData.push({
+//         id: page.id,
+//         width: page.width,
+//         height: page.height,
+//         json: cleanPageJson(canvas.toObject(PERSIST_PROPS)),
+//       });
+//     }
+
+//     let thumbnail = '';
+//     try {
+//       thumbnail = fabricCanvases.current[currentPages[0].id].toDataURL({
+//         format: 'jpeg',
+//         quality: 0.6,
+//         multiplier: 0.35,
+//       });
+//     } catch {
+//       /* thumbnail is optional */
+//     }
+
+//     if (!currentProjectIdRef.current) {
+//       currentProjectIdRef.current = `proj-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+//     }
+
+//     const meta: ProjectMeta = {
+//       id: currentProjectIdRef.current,
+//       title: titleRef.current.trim() || 'Untitled design',
+//       createdAt: createdAtRef.current,
+//       updatedAt: Date.now(),
+//       thumbnail,
+//       pageCount: currentPages.length,
+//     };
+
+//     try {
+//       await saveProjectRecord(meta, pageData);
+//       refreshProjects();
+//     } catch (err) {
+//       console.error('Project save failed:', err);
+//     }
+//   };
+
+//   const queueSave = () => {
+//     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+//     autosaveTimer.current = setTimeout(() => {
+//       saveProject();
+//     }, 2000);
+//   };
+
+//   // Called by canvas events. Ignored while a PDF is importing or a project is restoring.
+//   const scheduleAutosave = () => {
+//     if (importingRef.current || restoringRef.current > 0 || resettingRef.current) return;
+//     queueSave();
+//   };
+
+//   // After loading a saved project, reconnect edited-PDF text objects with their erase masks.
+//   const rebuildPdfMaps = (canvas: fabric.Canvas) => {
+//     const objects = canvas.getObjects();
+//     const masksById = new Map<string, fabric.Rect[]>();
+
+//     objects.forEach((o) => {
+//       const maskFor = (o as any).pdfMaskFor as string | undefined;
+//       if (!maskFor) return;
+//       const list = masksById.get(maskFor) || [];
+//       list.push(o as fabric.Rect);
+//       masksById.set(maskFor, list);
+//     });
+
+//     objects.forEach((o) => {
+//       const id = (o as any).pdfId as string | undefined;
+//       const bounds = (o as any).pdfBounds;
+//       if (!id || !bounds) return;
+//       pdfTextBounds.current.set(o, bounds);
+//       pdfTextMaskColors.current.set(o, (o as any).pdfMaskColor || '#ffffff');
+//       const masks = masksById.get(id);
+//       if (masks) pdfTextMasks.current.set(o, masks);
+//     });
+//   };
+
+//   // Disposes every page canvas so a different document can be shown.
+//   const resetWorkspace = () => {
+//     if (autosaveTimer.current) {
+//       clearTimeout(autosaveTimer.current);
+//       autosaveTimer.current = null;
+//     }
+//     resettingRef.current = true;
+//     Object.values(fabricCanvases.current).forEach((c) => {
+//       try {
+//         void Promise.resolve(c.dispose()).catch(() => undefined);
+//       } catch {
+//         /* ignore */
+//       }
+//     });
+//     resettingRef.current = false;
+
+//     fabricCanvases.current = {};
+//     canvasRefs.current = {};
+//     pdfTextMasks.current.clear();
+//     pdfTextMaskColors.current.clear();
+//     pdfTextBounds.current.clear();
+//     preservePdfMaskOnDelete.current.clear();
+//     pendingRestore.current = {};
+//     pagesRef.current = [];
+//     hasDocRef.current = false;
+
+//     setPages([]);
+//     setHasDocument(false);
+//     setActiveCanvas(null);
+//     setSelectedObject(null);
+//     setIsFloatingToolbarVisible(false);
+//     setFloatingMenuPos(null);
+//     setDocKey((k) => k + 1);
+//   };
+
+//   const newProjectSession = (title: string) => {
+//     currentProjectIdRef.current = null;
+//     createdAtRef.current = Date.now();
+//     titleRef.current = title;
+//     setProjectTitle(title);
+//   };
+
 //   // Create Blank Canvas Project
-//   const startBlankProject = () => {
+//   const startBlankProject = async () => {
+//     await saveProject();
+//     resetWorkspace();
+//     newProjectSession('Untitled design');
 //     setPages([{ id: 'page-1', width: 595.28, height: 841.89 }]);
 //     setHasDocument(true);
+//     setView('editor');
+//     queueSave();
 //   };
+
+//   const openProject = async (id: string) => {
+//     await saveProject();
+//     const record = await loadProject(id);
+//     if (!record) return;
+
+//     resetWorkspace();
+//     currentProjectIdRef.current = record.meta.id;
+//     createdAtRef.current = record.meta.createdAt;
+//     titleRef.current = record.meta.title;
+//     setProjectTitle(record.meta.title);
+
+//     pendingRestore.current = {};
+//     record.pages.forEach((p) => {
+//       pendingRestore.current[p.id] = p.json;
+//     });
+//     restoringRef.current = record.pages.length;
+
+//     setPages(record.pages.map(({ id: pageId, width, height }) => ({ id: pageId, width, height })));
+//     setHasDocument(true);
+//     setView('editor');
+//   };
+
+//   const handleRenameProject = async (id: string, title: string) => {
+//     try {
+//       await renameProject(id, title);
+//     } catch (err) {
+//       console.error('Rename failed:', err);
+//     }
+//     if (currentProjectIdRef.current === id) {
+//       titleRef.current = title;
+//       setProjectTitle(title);
+//     }
+//     refreshProjects();
+//   };
+
+//   const handleDeleteProject = async (id: string) => {
+//     try {
+//       await deleteProject(id);
+//     } catch (err) {
+//       console.error('Delete failed:', err);
+//     }
+//     if (currentProjectIdRef.current === id) {
+//       resetWorkspace();
+//       currentProjectIdRef.current = null;
+//     }
+//     refreshProjects();
+//   };
+
+//   const handleSidebarSelect = async (item: SidebarItem) => {
+//     if (item === 'chat') {
+//       setChatOpen((open) => !open);
+//       return;
+//     }
+//     setChatOpen(false);
+
+//     if (item === 'create') {
+//       await startBlankProject();
+//       return;
+//     }
+//     if (item === 'home' || item === 'projects') {
+//       setView(item);
+//       await saveProject();
+//       refreshProjects();
+//       return;
+//     }
+//     // uploads / text / elements
+//     setView('editor');
+//     setActiveTab(item);
+//   };
+
+//   useEffect(() => {
+//     refreshProjects();
+//   }, []);
+
+//   useEffect(() => {
+//     const onVisibility = () => {
+//       if (document.visibilityState === 'hidden') saveProject();
+//     };
+//     document.addEventListener('visibilitychange', onVisibility);
+//     return () => {
+//       document.removeEventListener('visibilitychange', onVisibility);
+//       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+//     };
+//   }, []);
 
 //   // Add Page dynamically
 //   const addNewPage = () => {
@@ -600,10 +918,18 @@
 
 //   // PDF File Importer & Text Extractor
 //   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-//     const file = e.target.files?.[0];
+//     const input = e.target;
+//     const file = input.files?.[0];
 //     if (!file) return;
+//     input.value = ''; // allows choosing the same file again later
 
 //     try {
+//       await saveProject();
+//       resetWorkspace();
+//       newProjectSession(file.name.replace(/\.pdf$/i, '') || 'Untitled design');
+//       importingRef.current = true;
+//       setView('editor');
+
 //       const arrayBuffer = await file.arrayBuffer();
 //       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
 //       const pdf = await loadingTask.promise;
@@ -623,6 +949,7 @@
 //       setHasDocument(true);
 
 //       setTimeout(async () => {
+//         try {
 //         for (let i = 1; i <= pdf.numPages; i++) {
 //           const page = await pdf.getPage(i);
 //           const renderScale = 4;
@@ -676,34 +1003,56 @@
 //               const angle = Math.atan2(textItem.transform[1], textItem.transform[0]) * (180 / Math.PI);
 
 //               // Preserve the PDF's font information instead of creating every
-//               // imported text as normal Helvetica. The old implementation did
-//               // this, so selecting a bold PDF heading made it visually change
-//               // to a normal font.
+//               // imported text as normal Helvetica.
+//               //
+//               // pdf.js gives internal font ids (e.g. "g_d0_f1") in textItem.fontName
+//               // and often only a generic family ("sans-serif" / "serif") in styles.
+//               // The real embedded font name (e.g. "ABCDEF+Arial-BoldMT") lives in
+//               // page.commonObjs, so we read it from there.
 //               const rawFontName = String(textItem.fontName || '');
 //               const fontInfo = rawFontName ? pdfStyles[rawFontName] : undefined;
-//               const rawFontFamily = String(
-//                 fontInfo?.fontFamily || fontInfo?.family || rawFontName || 'Helvetica',
-//               );
-//               const fontNameLower = `${rawFontName} ${rawFontFamily} ${String(fontInfo?.fontWeight || '')}`.toLowerCase();
 
-//               // Embedded PDF font names are frequently internal names such as
-//               // "AAAAAA+Arial-BoldMT". Passing those directly to Fabric makes
-//               // the browser fall back to Helvetica and changes the appearance.
-//               // Map them to a real browser font family while preserving weight
-//               // and italic information.
-//               let fontFamily = 'Helvetica';
-//               if (/times|serif|roman|cambria|georgia/i.test(rawFontFamily)) {
-//                 fontFamily = 'Times New Roman';
-//               } else if (/courier|mono|consolas|monaco/i.test(rawFontFamily)) {
-//                 fontFamily = 'Courier New';
-//               } else if (/arial|helvetica|roboto|calibri|verdana|tahoma|sans/i.test(rawFontFamily)) {
-//                 fontFamily = 'Arial';
+//               let loadedFont: any = null;
+//               let realFontName = rawFontName;
+//               try {
+//                 if (rawFontName && page.commonObjs.has(rawFontName)) {
+//                   loadedFont = page.commonObjs.get(rawFontName);
+//                   realFontName = String(loadedFont?.name || loadedFont?.fallbackName || rawFontName);
+//                 }
+//               } catch {
+//                 /* font not resolved, fall back to generic info below */
 //               }
 
-//               const fontWeight = /bold|black|heavy|semibold|demibold|700|800|900/.test(fontNameLower)
+//               const fontNameLower = realFontName.toLowerCase();
+//               const genericFamily = String(fontInfo?.fontFamily || '').toLowerCase();
+
+//               // IMPORTANT: check "sans" BEFORE "serif". The word "sans-serif"
+//               // contains "serif", so checking serif first turned every font
+//               // into Times New Roman.
+//               let fontFamily = 'Arial';
+//               if (
+//                 loadedFont?.isMonospace ||
+//                 /courier|mono|consolas|monaco/.test(fontNameLower) ||
+//                 genericFamily.includes('monospace')
+//               ) {
+//                 fontFamily = 'Courier New';
+//               } else if (/sans|arial|helvetica|calibri|verdana|tahoma|roboto|segoe|open/.test(fontNameLower)) {
+//                 fontFamily = 'Arial';
+//               } else if (
+//                 loadedFont?.isSerifFont ||
+//                 /times|serif|roman|cambria|georgia|garamond|palatino|book/.test(fontNameLower)
+//               ) {
+//                 fontFamily = 'Times New Roman';
+//               } else if (genericFamily.includes('sans')) {
+//                 fontFamily = 'Arial';
+//               } else if (genericFamily.includes('serif')) {
+//                 fontFamily = 'Times New Roman';
+//               }
+
+//               const fontWeight = loadedFont?.bold || /bold|black|heavy|semibold|demibold/.test(fontNameLower)
 //                 ? 'bold'
 //                 : 'normal';
-//               const fontStyle = /italic|oblique/.test(fontNameLower)
+//               const fontStyle = loadedFont?.italic || /italic|oblique/.test(fontNameLower)
 //                 ? 'italic'
 //                 : 'normal';
 
@@ -748,14 +1097,29 @@
 //                 height: fontSize * 1.15,
 //                 angle,
 //               });
+//               // Saved with the project so edited text can be restored after reload.
+//               (text as any).pdfId = `pt-${Math.random().toString(36).slice(2, 10)}`;
+//               (text as any).pdfBounds = {
+//                 left: textX,
+//                 top: textTop,
+//                 width: textWidth,
+//                 height: fontSize * 1.15,
+//                 angle,
+//               };
+//               (text as any).pdfMaskColor = maskColor;
 //               fCanvas.add(text);
 //             });
 //             fCanvas.requestRenderAll();
 
 //           }
 //         }
+//         } finally {
+//           importingRef.current = false;
+//           queueSave();
+//         }
 //       }, 300);
 //     } catch (err) {
+//       importingRef.current = false;
 //       console.error('PDF parsing error:', err);
 //       alert('Failed to parse PDF file. Please try another file.');
 //     }
@@ -978,6 +1342,17 @@
 //     setIsExportConfirmed(false);
 //   };
 
+//   const railActive: SidebarItem = chatOpen
+//     ? 'chat'
+//     : view === 'home'
+//       ? 'home'
+//       : view === 'projects'
+//         ? 'projects'
+//         : activeTab === 'text' || activeTab === 'elements'
+//           ? activeTab
+//           : 'uploads';
+//   const panelVisible = sidebarOpen && (chatOpen || view === 'editor');
+
 //   return (
 //     <div className="utilai-pdf-editor flex flex-col h-screen w-full bg-[#f8fbff] font-sans overflow-hidden select-none">
 //       {/* TOP UTILAI PDF TOOLBAR */}
@@ -989,10 +1364,22 @@
 //           <span className="text-xs font-semibold text-blue-700/70 border-l pl-3 border-blue-100">
 //             Studio Editor
 //           </span>
+//           {hasDocument && view === 'editor' && (
+//             <input
+//               value={projectTitle}
+//               onChange={(e) => {
+//                 setProjectTitle(e.target.value);
+//                 titleRef.current = e.target.value;
+//                 scheduleAutosave();
+//               }}
+//               aria-label="Project name"
+//               className="ml-2 w-40 rounded-lg border border-transparent bg-transparent px-2 py-1 text-xs font-semibold text-slate-700 select-text hover:border-blue-100 focus:border-blue-300 focus:bg-white focus:outline-none"
+//             />
+//           )}
 //         </div>
 
 //         {/* Dynamic Context Control Bar */}
-//         {hasDocument && (
+//         {hasDocument && view === 'editor' && (
 //           <div className="pdf-editor-context-tools flex items-center gap-1.5 bg-blue-50 px-3 py-1 rounded-xl border border-blue-100 shadow-inner">
 //             <select
 //               value={fontFamily}
@@ -1006,6 +1393,7 @@
 //               <option value="Arial">Arial</option>
 //               <option value="Times New Roman">Times New Roman</option>
 //               <option value="Courier">Courier</option>
+//               <option value="Courier New">Courier New</option>
 //               <option value="Impact">Impact</option>
 //             </select>
 
@@ -1112,7 +1500,7 @@
 //         )}
 
 //         {/* PDF Export Button */}
-//         {hasDocument && (
+//         {hasDocument && view === 'editor' && (
 //           <button
 //             onClick={() => {
 //               setIsExportConfirmed(false);
@@ -1127,30 +1515,21 @@
 
 //       {/* BODY CONTENT */}
 //       <div className="pdf-editor-body flex flex-1 overflow-hidden relative flex-col md:flex-row">
-//         {/* SIDEBAR NAVIGATION */}
-//         <aside className="pdf-editor-sidebar w-20 shrink-0 bg-[#0f2747] flex flex-col items-center py-5 gap-6 text-blue-100/70 z-10 shadow-xl">
-//           <button
-//             onClick={() => setActiveTab('uploads')}
-//             className={`flex flex-col items-center gap-1 text-[11px] font-semibold hover:text-white transition ${activeTab === 'uploads' ? 'text-[#93c5fd]' : ''}`}
-//           >
-//             <Upload className="w-5 h-5" /> Uploads
-//           </button>
-//           <button
-//             onClick={() => setActiveTab('text')}
-//             className={`flex flex-col items-center gap-1 text-[11px] font-semibold hover:text-white transition ${activeTab === 'text' ? 'text-[#93c5fd]' : ''}`}
-//           >
-//             <Type className="w-5 h-5" /> Text
-//           </button>
-//           <button
-//             onClick={() => setActiveTab('elements')}
-//             className={`flex flex-col items-center gap-1 text-[11px] font-semibold hover:text-white transition ${activeTab === 'elements' ? 'text-[#93c5fd]' : ''}`}
-//           >
-//             <Square className="w-5 h-5" /> Elements
-//           </button>
-//         </aside>
+//         {/* SIDEBAR NAVIGATION (Canva-style rail with open/close toggle) */}
+//         <UtilAiEditorSidebar
+//           open={sidebarOpen}
+//           active={railActive}
+//           onToggle={() => setSidebarOpen((open) => !open)}
+//           onSelect={handleSidebarSelect}
+//         />
 
 //         {/* SIDEBAR EXTENDED PANELS */}
-//         <div className="pdf-editor-panel w-72 shrink-0 bg-white border-r border-blue-100 p-5 overflow-y-auto z-10 shadow-sm">
+//         {panelVisible && (
+//         <div className={`pdf-editor-panel shrink-0 bg-white border-r border-blue-100 z-10 shadow-sm ${chatOpen ? 'w-80 overflow-hidden' : 'w-72 p-5 overflow-y-auto'}`}>
+//           {chatOpen ? (
+//             <UtilAiChatBot />
+//           ) : (
+//           <>
 //           {activeTab === 'uploads' && (
 //             <div className="flex flex-col gap-4">
 //               <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Import Document</h3>
@@ -1163,12 +1542,12 @@
 //                 <input type="file" accept="application/pdf" onChange={handlePdfUpload} className="hidden" />
 //               </label>
 
-//               <button
+//               {/* <button
 //                 onClick={startBlankProject}
 //                 className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 transition"
 //               >
 //                 <FilePlus className="w-4 h-4 text-slate-500" /> Start Blank Canvas
-//               </button>
+//               </button> */}
 
 //               <div className="h-[1px] bg-slate-100 my-1" />
 
@@ -1219,10 +1598,13 @@
 //               </div>
 //             </div>
 //           )}
+//           </>
+//           )}
 //         </div>
+//         )}
 
 //         {/* WORKSPACE ENGINE AREA */}
-//         <main className="pdf-editor-workspace min-w-0 min-h-0 flex-1 w-full bg-[#f1f7ff] overflow-y-auto p-8 flex flex-col items-center gap-8 relative">
+//         <main className={`pdf-editor-workspace min-w-0 min-h-0 flex-1 w-full bg-[#f1f7ff] overflow-y-auto p-8 ${view === 'editor' ? 'flex' : 'hidden'} flex-col items-center gap-8 relative`}>
 //           {!hasDocument ? (
 //             <div className="my-auto flex flex-col items-center text-center p-8 bg-white rounded-3xl shadow-xl border border-slate-200 max-w-md">
 //               <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
@@ -1240,7 +1622,7 @@
 //           ) : (
 //             <>
 //               {pages.map((page, index) => (
-//                 <div key={page.id} className="flex max-w-full flex-col items-center gap-2">
+//                 <div key={`${docKey}-${page.id}`} className="flex max-w-full flex-col items-center gap-2">
 //                   <div className="text-xs font-bold text-slate-400 self-start mb-1">
 //                     Page {index + 1}
 //                   </div>
@@ -1263,8 +1645,28 @@
 //           )}
 //         </main>
 
+//         {/* HOME + PROJECTS PAGES (separate files) */}
+//         {view === 'home' && (
+//           <UtilAiHome
+//             projects={projects}
+//             onCreateBlank={startBlankProject}
+//             onUploadPdf={handlePdfUpload}
+//             onOpenProject={openProject}
+//             onViewAllProjects={() => handleSidebarSelect('projects')}
+//           />
+//         )}
+//         {view === 'projects' && (
+//           <UtilAiProjects
+//             projects={projects}
+//             onOpen={openProject}
+//             onCreate={startBlankProject}
+//             onRename={handleRenameProject}
+//             onDelete={handleDeleteProject}
+//           />
+//         )}
+
 //         {/* CANVA PURPLE FLOATING CONTEXT MENU (Shown on selecting objects) */}
-//         {selectedObject && floatingMenuPos && isFloatingToolbarVisible && (
+//         {view === 'editor' && selectedObject && floatingMenuPos && isFloatingToolbarVisible && (
 //           <div
 //             onMouseEnter={() => setIsFloatingToolbarVisible(true)}
 //             onMouseLeave={() => setIsFloatingToolbarVisible(false)}
@@ -1374,19 +1776,13 @@
 
 
 
-
-
-
-
 import React, { useEffect, useRef, useState } from 'react';
 import * as fabric from 'fabric';
 import * as pdfjsLib from 'pdfjs-dist';
 import { jsPDF } from 'jspdf';
 import {
-  Type,
   Image as ImageIcon,
   Square,
-  Layout,
   Upload,
   Download,
   Bold,
@@ -1406,14 +1802,23 @@ import {
   Circle,
   ArrowRight,
   ArrowRightCircle,
-  Star,
-  Layers,
-  FilePlus,
-  Eye,
-  Sliders,
   Highlighter
 } from 'lucide-react';
 import './pdfeditor.css';
+import UtilAiEditorSidebar, { type SidebarItem } from './UtilEditorSidebar';
+import UtilAiHome from './UtilHome';
+import UtilAiProjects from './UtilAIProjects';
+
+import UtilAiChatBot from './UtilChatBot';
+import {
+  saveProjectRecord,
+  listProjects,
+  loadProject,
+  deleteProject,
+  renameProject,
+  type ProjectMeta,
+  type ProjectPage,
+} from './UtilProjectStore';
 
 type PdfTextItemLike = {
   str: string;
@@ -1422,12 +1827,6 @@ type PdfTextItemLike = {
 };
 
 // Setting up pdfjs worker using CDN fallback to fix render issues
-// pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version || '3.11.174'}/pdf.worker.min.js`;
-
-
-// 1. Updated Import
-
-// 2. Updated Worker setup
 if (typeof window !== "undefined") {
   pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version || '3.11.174'}/pdf.worker.min.js`;
 }
@@ -1448,6 +1847,27 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
   const [exportAction, setExportAction] = useState<'download' | 'print' | 'share' | 'preview'>('download');
   const [isExportConfirmed, setIsExportConfirmed] = useState(false);
 
+  // Canva-style shell: which page is visible and whether the sidebar is open
+  const [view, setView] = useState<'home' | 'editor' | 'projects'>('home');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [projects, setProjects] = useState<ProjectMeta[]>([]);
+  const [projectTitle, setProjectTitle] = useState('Untitled design');
+  const [docKey, setDocKey] = useState(0);
+
+  const pagesRef = useRef(pages);
+  const hasDocRef = useRef(hasDocument);
+  const titleRef = useRef(projectTitle);
+  const currentProjectIdRef = useRef<string | null>(null);
+  const createdAtRef = useRef<number>(Date.now());
+  const importingRef = useRef(false);
+  const restoringRef = useRef(0);
+  const resettingRef = useRef(false);
+  const pendingRestore = useRef<Record<string, unknown>>({});
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  pagesRef.current = pages;
+  hasDocRef.current = hasDocument;
+  titleRef.current = projectTitle;
+
   useEffect(() => {
     document.body.classList.add('pdf-editor-open');
     return () => document.body.classList.remove('pdf-editor-open');
@@ -1465,6 +1885,7 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
   const [textColor, setTextColor] = useState<string>('#1e293b');
   const [bgColor, setBgColor] = useState<string>('#ffffff');
   const [opacity, setOpacity] = useState<number>(1);
+  void opacity;
   // ------------------------------------------------------------
   // Existing PDF text editing support
   // ------------------------------------------------------------
@@ -1530,6 +1951,7 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
       return null;
     }
   };
+  void getBackgroundPixel;
 
   const estimateBackgroundColor = (
     canvas: fabric.Canvas,
@@ -1690,6 +2112,7 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
       height: Math.max(1, bounds.height),
     };
   };
+  void getObjectBounds;
 
   const createPdfMask = (
     canvas: fabric.Canvas,
@@ -1711,6 +2134,8 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
       evented: false,
       excludeFromExport: false,
     });
+    // Lets a saved project reconnect this mask to its text after reload.
+    (mask as any).pdfMaskFor = (object as any).pdfId;
 
     canvas.add(mask);
     canvas.sendObjectToBack(mask);
@@ -1962,6 +2387,25 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
     });
 
     fabricCanvases.current[id] = canvas;
+
+    (['object:added', 'object:removed', 'object:modified', 'text:changed'] as const).forEach((evt) => {
+      canvas.on(evt as any, () => scheduleAutosave());
+    });
+
+    const pendingJson = pendingRestore.current[id];
+    if (pendingJson) {
+      delete pendingRestore.current[id];
+      canvas
+        .loadFromJSON(pendingJson as any)
+        .then(() => {
+          rebuildPdfMaps(canvas);
+          canvas.requestRenderAll();
+        })
+        .catch((err: unknown) => console.error('Project restore failed:', err))
+        .finally(() => {
+          restoringRef.current = Math.max(0, restoringRef.current - 1);
+        });
+    }
     if (!activeCanvas) setActiveCanvas(canvas);
   };
 
@@ -1969,11 +2413,259 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
     pages.forEach((page) => initCanvas(page.id, page.width, page.height));
   }, [pages]);
 
+  // ------------------------------------------------------------
+  // Projects: autosave, restore, sidebar navigation
+  // ------------------------------------------------------------
+  const PERSIST_PROPS = ['pdfId', 'pdfBounds', 'pdfMaskColor', 'pdfMaskFor'];
+
+  const refreshProjects = async () => {
+    try {
+      setProjects(await listProjects());
+    } catch (err) {
+      console.error('Could not load projects:', err);
+    }
+  };
+
+  // Removes the temporary blue hover outline so it is not saved with the page.
+  const cleanPageJson = (json: any) => {
+    if (Array.isArray(json?.objects)) {
+      json.objects.forEach((o: any) => {
+        if (
+          o.stroke === '#3b82f6' &&
+          Array.isArray(o.strokeDashArray) &&
+          o.strokeDashArray.join(',') === '4,4'
+        ) {
+          o.stroke = null;
+          o.strokeDashArray = null;
+          o.strokeWidth = 1;
+        }
+      });
+    }
+    return json;
+  };
+
+  const saveProject = async () => {
+    if (autosaveTimer.current) {
+      clearTimeout(autosaveTimer.current);
+      autosaveTimer.current = null;
+    }
+    if (!hasDocRef.current || importingRef.current || restoringRef.current > 0) return;
+
+    const currentPages = pagesRef.current;
+    if (!currentPages.length) return;
+
+    const pageData: ProjectPage[] = [];
+    for (const page of currentPages) {
+      const canvas = fabricCanvases.current[page.id];
+      if (!canvas) return; // canvases are not ready yet
+      pageData.push({
+        id: page.id,
+        width: page.width,
+        height: page.height,
+        json: cleanPageJson(canvas.toObject(PERSIST_PROPS)),
+      });
+    }
+
+    let thumbnail = '';
+    try {
+      thumbnail = fabricCanvases.current[currentPages[0].id].toDataURL({
+        format: 'jpeg',
+        quality: 0.6,
+        multiplier: 0.35,
+      });
+    } catch {
+      /* thumbnail is optional */
+    }
+
+    if (!currentProjectIdRef.current) {
+      currentProjectIdRef.current = `proj-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+    }
+
+    const meta: ProjectMeta = {
+      id: currentProjectIdRef.current,
+      title: titleRef.current.trim() || 'Untitled design',
+      createdAt: createdAtRef.current,
+      updatedAt: Date.now(),
+      thumbnail,
+      pageCount: currentPages.length,
+    };
+
+    try {
+      await saveProjectRecord(meta, pageData);
+      refreshProjects();
+    } catch (err) {
+      console.error('Project save failed:', err);
+    }
+  };
+
+  const queueSave = () => {
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = setTimeout(() => {
+      saveProject();
+    }, 2000);
+  };
+
+  // Called by canvas events. Ignored while a PDF is importing or a project is restoring.
+  const scheduleAutosave = () => {
+    if (importingRef.current || restoringRef.current > 0 || resettingRef.current) return;
+    queueSave();
+  };
+
+  // After loading a saved project, reconnect edited-PDF text objects with their erase masks.
+  const rebuildPdfMaps = (canvas: fabric.Canvas) => {
+    const objects = canvas.getObjects();
+    const masksById = new Map<string, fabric.Rect[]>();
+
+    objects.forEach((o) => {
+      const maskFor = (o as any).pdfMaskFor as string | undefined;
+      if (!maskFor) return;
+      const list = masksById.get(maskFor) || [];
+      list.push(o as fabric.Rect);
+      masksById.set(maskFor, list);
+    });
+
+    objects.forEach((o) => {
+      const id = (o as any).pdfId as string | undefined;
+      const bounds = (o as any).pdfBounds;
+      if (!id || !bounds) return;
+      pdfTextBounds.current.set(o, bounds);
+      pdfTextMaskColors.current.set(o, (o as any).pdfMaskColor || '#ffffff');
+      const masks = masksById.get(id);
+      if (masks) pdfTextMasks.current.set(o, masks);
+    });
+  };
+
+  // Disposes every page canvas so a different document can be shown.
+  const resetWorkspace = () => {
+    if (autosaveTimer.current) {
+      clearTimeout(autosaveTimer.current);
+      autosaveTimer.current = null;
+    }
+    resettingRef.current = true;
+    Object.values(fabricCanvases.current).forEach((c) => {
+      try {
+        void Promise.resolve(c.dispose()).catch(() => undefined);
+      } catch {
+        /* ignore */
+      }
+    });
+    resettingRef.current = false;
+
+    fabricCanvases.current = {};
+    canvasRefs.current = {};
+    pdfTextMasks.current.clear();
+    pdfTextMaskColors.current.clear();
+    pdfTextBounds.current.clear();
+    preservePdfMaskOnDelete.current.clear();
+    pendingRestore.current = {};
+    pagesRef.current = [];
+    hasDocRef.current = false;
+
+    setPages([]);
+    setHasDocument(false);
+    setActiveCanvas(null);
+    setSelectedObject(null);
+    setIsFloatingToolbarVisible(false);
+    setFloatingMenuPos(null);
+    setDocKey((k) => k + 1);
+  };
+
+  const newProjectSession = (title: string) => {
+    currentProjectIdRef.current = null;
+    createdAtRef.current = Date.now();
+    titleRef.current = title;
+    setProjectTitle(title);
+  };
+
   // Create Blank Canvas Project
-  const startBlankProject = () => {
+  const startBlankProject = async () => {
+    await saveProject();
+    resetWorkspace();
+    newProjectSession('Untitled design');
     setPages([{ id: 'page-1', width: 595.28, height: 841.89 }]);
     setHasDocument(true);
+    setView('editor');
+    queueSave();
   };
+
+  const openProject = async (id: string) => {
+    await saveProject();
+    const record = await loadProject(id);
+    if (!record) return;
+
+    resetWorkspace();
+    currentProjectIdRef.current = record.meta.id;
+    createdAtRef.current = record.meta.createdAt;
+    titleRef.current = record.meta.title;
+    setProjectTitle(record.meta.title);
+
+    pendingRestore.current = {};
+    record.pages.forEach((p) => {
+      pendingRestore.current[p.id] = p.json;
+    });
+    restoringRef.current = record.pages.length;
+
+    setPages(record.pages.map(({ id: pageId, width, height }) => ({ id: pageId, width, height })));
+    setHasDocument(true);
+    setView('editor');
+  };
+
+  const handleRenameProject = async (id: string, title: string) => {
+    try {
+      await renameProject(id, title);
+    } catch (err) {
+      console.error('Rename failed:', err);
+    }
+    if (currentProjectIdRef.current === id) {
+      titleRef.current = title;
+      setProjectTitle(title);
+    }
+    refreshProjects();
+  };
+
+  const handleDeleteProject = async (id: string) => {
+    try {
+      await deleteProject(id);
+    } catch (err) {
+      console.error('Delete failed:', err);
+    }
+    if (currentProjectIdRef.current === id) {
+      resetWorkspace();
+      currentProjectIdRef.current = null;
+    }
+    refreshProjects();
+  };
+
+  const handleSidebarSelect = async (item: SidebarItem) => {
+    if (item === 'create') {
+      await startBlankProject();
+      return;
+    }
+    if (item === 'home' || item === 'projects') {
+      setView(item);
+      await saveProject();
+      refreshProjects();
+      return;
+    }
+    // uploads / text / elements
+    setView('editor');
+    setActiveTab(item);
+  };
+
+  useEffect(() => {
+    refreshProjects();
+  }, []);
+
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') saveProject();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    };
+  }, []);
 
   // Add Page dynamically
   const addNewPage = () => {
@@ -1983,10 +2675,18 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
 
   // PDF File Importer & Text Extractor
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const input = e.target;
+    const file = input.files?.[0];
     if (!file) return;
+    input.value = ''; // allows choosing the same file again later
 
     try {
+      await saveProject();
+      resetWorkspace();
+      newProjectSession(file.name.replace(/\.pdf$/i, '') || 'Untitled design');
+      importingRef.current = true;
+      setView('editor');
+
       const arrayBuffer = await file.arrayBuffer();
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
       const pdf = await loadingTask.promise;
@@ -2006,6 +2706,7 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
       setHasDocument(true);
 
       setTimeout(async () => {
+        try {
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
           const renderScale = 4;
@@ -2153,14 +2854,29 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
                 height: fontSize * 1.15,
                 angle,
               });
+              // Saved with the project so edited text can be restored after reload.
+              (text as any).pdfId = `pt-${Math.random().toString(36).slice(2, 10)}`;
+              (text as any).pdfBounds = {
+                left: textX,
+                top: textTop,
+                width: textWidth,
+                height: fontSize * 1.15,
+                angle,
+              };
+              (text as any).pdfMaskColor = maskColor;
               fCanvas.add(text);
             });
             fCanvas.requestRenderAll();
 
           }
         }
+        } finally {
+          importingRef.current = false;
+          queueSave();
+        }
       }, 300);
     } catch (err) {
+      importingRef.current = false;
       console.error('PDF parsing error:', err);
       alert('Failed to parse PDF file. Please try another file.');
     }
@@ -2383,6 +3099,16 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
     setIsExportConfirmed(false);
   };
 
+  const railActive: SidebarItem =
+    view === 'home'
+      ? 'home'
+      : view === 'projects'
+        ? 'projects'
+        : activeTab === 'text' || activeTab === 'elements'
+          ? activeTab
+          : 'uploads';
+  const panelVisible = sidebarOpen && view === 'editor';
+
   return (
     <div className="utilai-pdf-editor flex flex-col h-screen w-full bg-[#f8fbff] font-sans overflow-hidden select-none">
       {/* TOP UTILAI PDF TOOLBAR */}
@@ -2394,10 +3120,22 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
           <span className="text-xs font-semibold text-blue-700/70 border-l pl-3 border-blue-100">
             Studio Editor
           </span>
+          {hasDocument && view === 'editor' && (
+            <input
+              value={projectTitle}
+              onChange={(e) => {
+                setProjectTitle(e.target.value);
+                titleRef.current = e.target.value;
+                scheduleAutosave();
+              }}
+              aria-label="Project name"
+              className="ml-2 w-40 rounded-lg border border-transparent bg-transparent px-2 py-1 text-xs font-semibold text-slate-700 select-text hover:border-blue-100 focus:border-blue-300 focus:bg-white focus:outline-none"
+            />
+          )}
         </div>
 
         {/* Dynamic Context Control Bar */}
-        {hasDocument && (
+        {hasDocument && view === 'editor' && (
           <div className="pdf-editor-context-tools flex items-center gap-1.5 bg-blue-50 px-3 py-1 rounded-xl border border-blue-100 shadow-inner">
             <select
               value={fontFamily}
@@ -2518,7 +3256,7 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
         )}
 
         {/* PDF Export Button */}
-        {hasDocument && (
+        {hasDocument && view === 'editor' && (
           <button
             onClick={() => {
               setIsExportConfirmed(false);
@@ -2533,30 +3271,17 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
 
       {/* BODY CONTENT */}
       <div className="pdf-editor-body flex flex-1 overflow-hidden relative flex-col md:flex-row">
-        {/* SIDEBAR NAVIGATION */}
-        <aside className="pdf-editor-sidebar w-20 shrink-0 bg-[#0f2747] flex flex-col items-center py-5 gap-6 text-blue-100/70 z-10 shadow-xl">
-          <button
-            onClick={() => setActiveTab('uploads')}
-            className={`flex flex-col items-center gap-1 text-[11px] font-semibold hover:text-white transition ${activeTab === 'uploads' ? 'text-[#93c5fd]' : ''}`}
-          >
-            <Upload className="w-5 h-5" /> Uploads
-          </button>
-          <button
-            onClick={() => setActiveTab('text')}
-            className={`flex flex-col items-center gap-1 text-[11px] font-semibold hover:text-white transition ${activeTab === 'text' ? 'text-[#93c5fd]' : ''}`}
-          >
-            <Type className="w-5 h-5" /> Text
-          </button>
-          <button
-            onClick={() => setActiveTab('elements')}
-            className={`flex flex-col items-center gap-1 text-[11px] font-semibold hover:text-white transition ${activeTab === 'elements' ? 'text-[#93c5fd]' : ''}`}
-          >
-            <Square className="w-5 h-5" /> Elements
-          </button>
-        </aside>
+        {/* SIDEBAR NAVIGATION (Canva-style rail with open/close toggle) */}
+        <UtilAiEditorSidebar
+          open={sidebarOpen}
+          active={railActive}
+          onToggle={() => setSidebarOpen((open) => !open)}
+          onSelect={handleSidebarSelect}
+        />
 
         {/* SIDEBAR EXTENDED PANELS */}
-        <div className="pdf-editor-panel w-72 shrink-0 bg-white border-r border-blue-100 p-5 overflow-y-auto z-10 shadow-sm">
+        {panelVisible && (
+        <div className="pdf-editor-panel shrink-0 w-72 p-5 overflow-y-auto bg-white border-r border-blue-100 z-10 shadow-sm">
           {activeTab === 'uploads' && (
             <div className="flex flex-col gap-4">
               <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Import Document</h3>
@@ -2568,13 +3293,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
                 <span className="text-[10px] text-blue-600 mt-1">Extract text & make pages canvas-ready</span>
                 <input type="file" accept="application/pdf" onChange={handlePdfUpload} className="hidden" />
               </label>
-
-              <button
-                onClick={startBlankProject}
-                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 transition"
-              >
-                <FilePlus className="w-4 h-4 text-slate-500" /> Start Blank Canvas
-              </button>
 
               <div className="h-[1px] bg-slate-100 my-1" />
 
@@ -2626,9 +3344,10 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
             </div>
           )}
         </div>
+        )}
 
         {/* WORKSPACE ENGINE AREA */}
-        <main className="pdf-editor-workspace min-w-0 min-h-0 flex-1 w-full bg-[#f1f7ff] overflow-y-auto p-8 flex flex-col items-center gap-8 relative">
+        <main className={`pdf-editor-workspace min-w-0 min-h-0 flex-1 w-full bg-[#f1f7ff] overflow-y-auto p-8 ${view === 'editor' ? 'flex' : 'hidden'} flex-col items-center gap-8 relative`}>
           {!hasDocument ? (
             <div className="my-auto flex flex-col items-center text-center p-8 bg-white rounded-3xl shadow-xl border border-slate-200 max-w-md">
               <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
@@ -2646,7 +3365,7 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
           ) : (
             <>
               {pages.map((page, index) => (
-                <div key={page.id} className="flex max-w-full flex-col items-center gap-2">
+                <div key={`${docKey}-${page.id}`} className="flex max-w-full flex-col items-center gap-2">
                   <div className="text-xs font-bold text-slate-400 self-start mb-1">
                     Page {index + 1}
                   </div>
@@ -2669,8 +3388,28 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
           )}
         </main>
 
+        {/* HOME + PROJECTS PAGES (separate files) */}
+        {view === 'home' && (
+          <UtilAiHome
+            projects={projects}
+            onCreateBlank={startBlankProject}
+            onUploadPdf={handlePdfUpload}
+            onOpenProject={openProject}
+            onViewAllProjects={() => handleSidebarSelect('projects')}
+          />
+        )}
+        {view === 'projects' && (
+          <UtilAiProjects
+            projects={projects}
+            onOpen={openProject}
+            onCreate={startBlankProject}
+            onRename={handleRenameProject}
+            onDelete={handleDeleteProject}
+          />
+        )}
+
         {/* CANVA PURPLE FLOATING CONTEXT MENU (Shown on selecting objects) */}
-        {selectedObject && floatingMenuPos && isFloatingToolbarVisible && (
+        {view === 'editor' && selectedObject && floatingMenuPos && isFloatingToolbarVisible && (
           <div
             onMouseEnter={() => setIsFloatingToolbarVisible(true)}
             onMouseLeave={() => setIsFloatingToolbarVisible(false)}
@@ -2773,6 +3512,9 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
           </div>
         </div>
       )}
+
+      {/* Floating AI chat: fixed at the bottom-right, independent of the layout */}
+      <UtilAiChatBot />
     </div>
   );
 }
