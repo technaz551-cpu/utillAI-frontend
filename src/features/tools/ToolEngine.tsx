@@ -1900,7 +1900,7 @@ import {
 import { FileClientTool } from "./FileClientTool";
 import { ServerFileTool } from "./ServerFileTool";
 import { SpeedTestTool } from "./SpeedTestTool";
-import { PdfTool } from "./PdfTool";
+import { PdfTool } from "./pdftools/PdfTool";
 import PdfEditor from "./pdfeditor/PdfEditor";
 import { ImageTool } from "./ImageTool";
 import { EmailOtpTool } from "./EmailOtpTool";

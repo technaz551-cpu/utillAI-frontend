@@ -1,9 +1,4 @@
 
-
-
-
-
-
 // "use client";
 
 // import { useEffect, useMemo, useState } from "react";
@@ -25,8 +20,6 @@
 //   Upload,
 //   X,
 // } from "lucide-react";
-
-// import { btn, card } from "@/lib/utils";
 
 // import type { ToolMeta } from "@/features/tools/client-processors";
 
@@ -278,6 +271,7 @@
 //     setAction(null);
 //     setResultName("");
 //     setResultSize(0);
+//     setDragOver(false);
 
 //     setResultUrl((previous) => {
 //       if (previous) {
@@ -474,6 +468,7 @@
 //     setStatus("idle");
 //     setResultName("");
 //     setResultSize(0);
+//     setDragOver(false);
 
 //     setResultUrl((previous) => {
 //       if (previous) {
@@ -505,7 +500,6 @@
 //   ) {
 //     return (
 //       <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-//         {/* Success header */}
 //         <div className="border-b border-slate-100 bg-gradient-to-br from-blue-50 via-white to-cyan-50 px-6 py-10 text-center sm:px-10">
 //           <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
 //             <CheckCircle2 className="h-9 w-9 text-blue-600" />
@@ -522,7 +516,6 @@
 //           </p>
 //         </div>
 
-//         {/* Result card */}
 //         <div className="p-5 sm:p-7">
 //           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
 //             <div className="flex items-center gap-4">
@@ -546,7 +539,6 @@
 //             </div>
 //           </div>
 
-//           {/* Main download */}
 //           <a
 //             href={resultUrl}
 //             download={resultName}
@@ -556,7 +548,6 @@
 //             Download {resultName}
 //           </a>
 
-//           {/* Secondary action */}
 //           <button
 //             type="button"
 //             onClick={clear}
@@ -607,15 +598,18 @@
 //         </p>
 //       </div>
 
-//       {/* Upload area */}
+//       {/* ======================================================
+//           UPLOAD AREA
+//           Full blue hover effect
+//          ====================================================== */}
 //       <label
 //         onDragOver={(event) => {
 //           event.preventDefault();
 //           setDragOver(true);
 //         }}
-//         onDragLeave={() =>
-//           setDragOver(false)
-//         }
+//         onDragLeave={() => {
+//           setDragOver(false);
+//         }}
 //         onDrop={(event) => {
 //           event.preventDefault();
 //           setDragOver(false);
@@ -628,41 +622,71 @@
 //             );
 //           }
 //         }}
-//         className={`group flex min-h-[220px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-all ${
+//         className={`group relative flex min-h-[220px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-all duration-300 ${
 //           dragOver
-//             ? "border-blue-500 bg-blue-50"
-//             : "border-slate-200 bg-slate-50/70 hover:border-blue-400 hover:bg-blue-50/40"
+//             ? "border-blue-500 bg-blue-500 shadow-lg shadow-blue-500/20"
+//             : "border-slate-200 bg-slate-50/70 hover:border-blue-500 hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-500/20"
 //         }`}
 //       >
+//         {/* Full-card hover layer */}
 //         <div
-//           className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl transition-colors ${
+//           className={`pointer-events-none absolute inset-0 bg-blue-500 transition-opacity duration-300 ${
 //             dragOver
-//               ? "bg-blue-100"
-//               : "bg-white shadow-sm ring-1 ring-slate-200 group-hover:bg-blue-50"
+//               ? "opacity-100"
+//               : "opacity-0 group-hover:opacity-100"
 //           }`}
-//         >
-//           <Upload
-//             className={`h-6 w-6 ${
+//         />
+
+//         {/* Upload content */}
+//         <div className="relative z-10 flex flex-col items-center">
+//           <div
+//             className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl transition-all duration-300 ${
 //               dragOver
-//                 ? "text-blue-600"
-//                 : "text-slate-400 group-hover:text-blue-500"
+//                 ? "bg-white/20"
+//                 : "bg-white shadow-sm ring-1 ring-slate-200 group-hover:bg-white/20 group-hover:ring-white/30"
 //             }`}
-//           />
+//           >
+//             <Upload
+//               className={`h-6 w-6 transition-colors duration-300 ${
+//                 dragOver
+//                   ? "text-white"
+//                   : "text-slate-400 group-hover:text-white"
+//               }`}
+//             />
+//           </div>
+
+//           <span
+//             className={`text-sm font-semibold transition-colors duration-300 ${
+//               dragOver
+//                 ? "text-white"
+//                 : "text-slate-800 group-hover:text-white"
+//             }`}
+//           >
+//             Drop your files here
+//           </span>
+
+//           <span
+//             className={`mt-1 text-sm transition-colors duration-300 ${
+//               dragOver
+//                 ? "text-blue-100"
+//                 : "text-slate-500 group-hover:text-blue-50"
+//             }`}
+//           >
+//             or click to browse from your device
+//           </span>
+
+//           <span
+//             className={`mt-3 rounded-full px-3 py-1 text-[11px] font-medium transition-all duration-300 ${
+//               dragOver
+//                 ? "bg-white/20 text-white ring-1 ring-white/30"
+//                 : "bg-white text-slate-500 ring-1 ring-slate-200 group-hover:bg-white/20 group-hover:text-white group-hover:ring-white/30"
+//             }`}
+//           >
+//             {accept
+//               .replaceAll(".", "")
+//               .toUpperCase()}
+//           </span>
 //         </div>
-
-//         <span className="text-sm font-semibold text-slate-800">
-//           Drop your files here
-//         </span>
-
-//         <span className="mt-1 text-sm text-slate-500">
-//           or click to browse from your device
-//         </span>
-
-//         <span className="mt-3 rounded-full bg-white px-3 py-1 text-[11px] font-medium text-slate-500 ring-1 ring-slate-200">
-//           {accept
-//             .replaceAll(".", "")
-//             .toUpperCase()}
-//         </span>
 
 //         <input
 //           type="file"
@@ -750,8 +774,7 @@
 //                         }
 //                         disabled={
 //                           index ===
-//                           files.length -
-//                             1
+//                           files.length - 1
 //                         }
 //                         title="Move down"
 //                       >
@@ -1037,6 +1060,12 @@
 //   );
 // }
 
+
+
+
+
+
+
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -1063,6 +1092,15 @@ import type { ToolMeta } from "@/features/tools/client-processors";
 
 import { processPdf } from "@/features/tools/pdf-processors";
 
+// NEW: naye tools (organize, rotate+crop, watermark+sign, protect, metadata)
+import {
+  MetadataTool,
+  OrganizeTool,
+  ProtectTool,
+  RotateCropTool,
+  WatermarkTool,
+} from "./PdfExtraTools";
+
 const MULTI_FILE = new Set([
   "merge-pdf",
   "split-pdf",
@@ -1070,41 +1108,18 @@ const MULTI_FILE = new Set([
   "pdf-to-jpg",
 ]);
 
-const MERGE_SPLIT = new Set([
-  "merge-pdf",
-  "split-pdf",
-]);
+const MERGE_SPLIT = new Set(["merge-pdf", "split-pdf"]);
 
-const CONVERT = new Set([
-  "jpg-to-pdf",
-  "pdf-to-jpg",
-]);
+const CONVERT = new Set(["jpg-to-pdf", "pdf-to-jpg"]);
 
-const IMAGE_EXTS = new Set([
-  "jpg",
-  "jpeg",
-  "png",
-]);
+const IMAGE_EXTS = new Set(["jpg", "jpeg", "png"]);
 
-type PdfAction =
-  | "merge"
-  | "split"
-  | "jpg-to-pdf"
-  | "pdf-to-jpg";
+type PdfAction = "merge" | "split" | "jpg-to-pdf" | "pdf-to-jpg";
 
-type PdfStatus =
-  | "idle"
-  | "processing"
-  | "done"
-  | "error";
+type PdfStatus = "idle" | "processing" | "done" | "error";
 
 function extOf(file: File) {
-  return (
-    file.name
-      .split(".")
-      .pop()
-      ?.toLowerCase() || ""
-  );
+  return file.name.split(".").pop()?.toLowerCase() || "";
 }
 
 function isPdfFile(file: File) {
@@ -1132,29 +1147,20 @@ function hintFor(slug: string) {
     "merge-pdf":
       "Upload two or more PDFs and combine them into one document.",
 
-    "split-pdf":
-      "Upload a PDF and split its pages into separate files.",
+    "split-pdf": "Upload a PDF and split its pages into separate files.",
 
     "compress-pdf":
       "Upload a PDF to optimize its structure and reduce its size.",
 
-    "jpg-to-pdf":
-      "Upload JPG or PNG images and convert them into a PDF.",
+    "jpg-to-pdf": "Upload JPG or PNG images and convert them into a PDF.",
 
-    "pdf-to-jpg":
-      "Upload a PDF and convert its pages into JPG images.",
+    "pdf-to-jpg": "Upload a PDF and convert its pages into JPG images.",
   };
 
-  return (
-    map[slug] ||
-    "Drop files here or click to browse."
-  );
+  return map[slug] || "Drop files here or click to browse.";
 }
 
-function processLabel(
-  status: PdfStatus,
-  action: PdfAction | null,
-) {
+function processLabel(status: PdfStatus, action: PdfAction | null) {
   if (status === "processing") {
     return "Processing...";
   }
@@ -1194,73 +1200,85 @@ function getFileIcon(file: File) {
   );
 }
 
-export function PdfTool({
-  tool,
-}: {
-  tool: ToolMeta;
-}) {
+/*
+ * ============================================================
+ * ROUTER (NEW) - slug ke hisaab se sahi tool dikhata hai.
+ * Baqi pages mein import wahi rahega: import { PdfTool } from ".../PdfTool"
+ * ============================================================
+ */
+
+export function PdfTool({ tool }: { tool: ToolMeta }) {
+  switch (tool.slug) {
+    case "organize-pdf":
+      return <OrganizeTool tool={tool} />;
+
+    case "rotate-crop-pdf":
+      return <RotateCropTool tool={tool} />;
+
+    case "watermark-pdf":
+      return <WatermarkTool tool={tool} />;
+
+    case "protect-pdf":
+      return <ProtectTool tool={tool} />;
+
+    case "pdf-metadata":
+      return <MetadataTool tool={tool} />;
+
+    default:
+      return <BasicPdfTool tool={tool} />;
+  }
+}
+
+/*
+ * ============================================================
+ * PURANA TOOL (merge, split, compress, jpg<->pdf)
+ * Sirf naam badla hai: PdfTool -> BasicPdfTool
+ * ============================================================
+ */
+
+function BasicPdfTool({ tool }: { tool: ToolMeta }) {
   const [files, setFiles] = useState<File[]>([]);
 
-  const [quality, setQuality] =
-    useState(80);
+  const [quality, setQuality] = useState(80);
 
-  const [status, setStatus] =
-    useState<PdfStatus>("idle");
+  const [status, setStatus] = useState<PdfStatus>("idle");
 
-  const [error, setError] =
-    useState("");
+  const [error, setError] = useState("");
 
-  const [resultUrl, setResultUrl] =
-    useState("");
+  const [resultUrl, setResultUrl] = useState("");
 
-  const [resultName, setResultName] =
-    useState("");
+  const [resultName, setResultName] = useState("");
 
-  const [resultSize, setResultSize] =
-    useState(0);
+  const [resultSize, setResultSize] = useState(0);
 
-  const [dragOver, setDragOver] =
-    useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
-  const [action, setAction] =
-    useState<PdfAction | null>(null);
+  const [action, setAction] = useState<PdfAction | null>(null);
 
   const accept = useMemo(() => {
     if (tool.accepted_formats?.length) {
-      return tool.accepted_formats
-        .map((format) => `.${format}`)
-        .join(",");
+      return tool.accepted_formats.map((format) => `.${format}`).join(",");
     }
 
     return ".pdf";
   }, [tool.accepted_formats]);
 
-  const isMergeSplit =
-    MERGE_SPLIT.has(tool.slug);
+  const isMergeSplit = MERGE_SPLIT.has(tool.slug);
 
-  const isConvert =
-    CONVERT.has(tool.slug);
+  const isConvert = CONVERT.has(tool.slug);
 
-  const multiple =
-    MULTI_FILE.has(tool.slug);
+  const multiple = MULTI_FILE.has(tool.slug);
 
-  const images =
-    files.filter(isImageFile);
+  const images = files.filter(isImageFile);
 
-  const pdfs =
-    files.filter(isPdfFile);
+  const pdfs = files.filter(isPdfFile);
 
   const showReorder =
     multiple &&
     files.length > 1 &&
-    (
-      (isMergeSplit &&
-        action === "merge") ||
-      (isConvert &&
-        action === "jpg-to-pdf") ||
-      (!isMergeSplit &&
-        !isConvert)
-    );
+    ((isMergeSplit && action === "merge") ||
+      (isConvert && action === "jpg-to-pdf") ||
+      (!isMergeSplit && !isConvert));
 
   const canRun = (() => {
     if (!files.length) {
@@ -1272,10 +1290,7 @@ export function PdfTool({
         return true;
       }
 
-      if (
-        action === "merge" &&
-        files.length >= 2
-      ) {
+      if (action === "merge" && files.length >= 2) {
         return true;
       }
 
@@ -1283,15 +1298,11 @@ export function PdfTool({
     }
 
     if (isConvert) {
-      if (
-        action === "jpg-to-pdf"
-      ) {
+      if (action === "jpg-to-pdf") {
         return images.length >= 1;
       }
 
-      if (
-        action === "pdf-to-jpg"
-      ) {
+      if (action === "pdf-to-jpg") {
         return pdfs.length >= 1;
       }
 
@@ -1328,31 +1339,15 @@ export function PdfTool({
     };
   }, [resultUrl]);
 
-  const addFiles = (
-    list: FileList | File[],
-  ) => {
+  const addFiles = (list: FileList | File[]) => {
     const allowed = new Set(
-      (
-        tool.accepted_formats ||
-        ["pdf"]
-      ).map((format) =>
-        format.toLowerCase(),
-      ),
+      (tool.accepted_formats || ["pdf"]).map((format) => format.toLowerCase()),
     );
 
-    const next = Array.from(list).filter(
-      (file) =>
-        allowed.has(extOf(file)),
-    );
+    const next = Array.from(list).filter((file) => allowed.has(extOf(file)));
 
     if (!next.length) {
-      setError(
-        `Please choose ${[
-          ...allowed,
-        ]
-          .join(", ")
-          .toUpperCase()} file(s).`,
-      );
+      setError(`Please choose ${[...allowed].join(", ").toUpperCase()} file(s).`);
 
       setStatus("error");
 
@@ -1360,22 +1355,15 @@ export function PdfTool({
     }
 
     setFiles((previous) =>
-      multiple
-        ? [...previous, ...next]
-        : next.slice(0, 1),
+      multiple ? [...previous, ...next] : next.slice(0, 1),
     );
 
     setStatus("idle");
     setError("");
   };
 
-  const removeFile = (
-    index: number,
-  ) => {
-    const next = files.filter(
-      (_, currentIndex) =>
-        currentIndex !== index,
-    );
+  const removeFile = (index: number) => {
+    const next = files.filter((_, currentIndex) => currentIndex !== index);
 
     setFiles(next);
 
@@ -1384,9 +1372,7 @@ export function PdfTool({
     }
   };
 
-  const chooseAction = (
-    nextAction: PdfAction,
-  ) => {
+  const chooseAction = (nextAction: PdfAction) => {
     setAction(nextAction);
 
     setStatus("idle");
@@ -1403,29 +1389,16 @@ export function PdfTool({
     });
   };
 
-  const move = (
-    index: number,
-    direction: -1 | 1,
-  ) => {
-    const target =
-      index + direction;
+  const move = (index: number, direction: -1 | 1) => {
+    const target = index + direction;
 
-    if (
-      target < 0 ||
-      target >= files.length
-    ) {
+    if (target < 0 || target >= files.length) {
       return;
     }
 
     const copy = [...files];
 
-    [
-      copy[index],
-      copy[target],
-    ] = [
-      copy[target],
-      copy[index],
-    ];
+    [copy[index], copy[target]] = [copy[target], copy[index]];
 
     setFiles(copy);
   };
@@ -1435,23 +1408,18 @@ export function PdfTool({
       return;
     }
 
-    const slug =
-      isMergeSplit
-        ? action === "split"
-          ? "split-pdf"
-          : "merge-pdf"
-        : isConvert
-          ? action === "pdf-to-jpg"
-            ? "pdf-to-jpg"
-            : "jpg-to-pdf"
-          : tool.slug;
+    const slug = isMergeSplit
+      ? action === "split"
+        ? "split-pdf"
+        : "merge-pdf"
+      : isConvert
+        ? action === "pdf-to-jpg"
+          ? "pdf-to-jpg"
+          : "jpg-to-pdf"
+        : tool.slug;
 
     const input =
-      slug === "jpg-to-pdf"
-        ? images
-        : slug === "pdf-to-jpg"
-          ? pdfs
-          : files;
+      slug === "jpg-to-pdf" ? images : slug === "pdf-to-jpg" ? pdfs : files;
 
     setStatus("processing");
     setError("");
@@ -1463,36 +1431,22 @@ export function PdfTool({
     setResultUrl("");
 
     try {
-      const result =
-        await processPdf(
-          slug,
-          input,
-          {
-            quality,
-          },
-        );
+      const result = await processPdf(slug, input, {
+        quality,
+      });
 
-      const url =
-        URL.createObjectURL(
-          result.blob,
-        );
+      const url = URL.createObjectURL(result.blob);
 
       setResultUrl(url);
 
-      setResultName(
-        result.filename,
-      );
+      setResultName(result.filename);
 
-      setResultSize(
-        result.blob.size,
-      );
+      setResultSize(result.blob.size);
 
       setStatus("done");
     } catch (exception) {
       const message =
-        exception instanceof Error
-          ? exception.message
-          : "Processing failed";
+        exception instanceof Error ? exception.message : "Processing failed";
 
       setError(message);
       setStatus("error");
@@ -1517,9 +1471,7 @@ export function PdfTool({
     });
   };
 
-  const choiceClass = (
-    selected: boolean,
-  ) =>
+  const choiceClass = (selected: boolean) =>
     `group flex items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
       selected
         ? "border-blue-500 bg-blue-50 shadow-sm"
@@ -1532,10 +1484,7 @@ export function PdfTool({
    * ============================================================
    */
 
-  if (
-    status === "done" &&
-    resultUrl
-  ) {
+  if (status === "done" && resultUrl) {
     return (
       <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-100 bg-gradient-to-br from-blue-50 via-white to-cyan-50 px-6 py-10 text-center sm:px-10">
@@ -1548,9 +1497,7 @@ export function PdfTool({
           </h2>
 
           <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-            Your PDF has been processed
-            successfully and is ready to
-            download.
+            Your PDF has been processed successfully and is ready to download.
           </p>
         </div>
 
@@ -1607,7 +1554,6 @@ export function PdfTool({
 
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-
       {/* Privacy notice */}
       <div className="mb-6 flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3.5">
         <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
@@ -1618,28 +1564,22 @@ export function PdfTool({
           </p>
 
           <p className="mt-0.5 text-xs leading-5 text-slate-500">
-            Files are processed locally in
-            your browser and are never
-            uploaded to our servers.
+            Files are processed locally in your browser and are never uploaded
+            to our servers.
           </p>
         </div>
       </div>
 
       {/* Description */}
       <div className="mb-5">
-        <h3 className="text-base font-semibold text-slate-900">
-          {tool.name}
-        </h3>
+        <h3 className="text-base font-semibold text-slate-900">{tool.name}</h3>
 
         <p className="mt-1 text-sm leading-6 text-slate-500">
           {hintFor(tool.slug)}
         </p>
       </div>
 
-      {/* ======================================================
-          UPLOAD AREA
-          Full blue hover effect
-         ====================================================== */}
+      {/* Upload area - full blue hover effect */}
       <label
         onDragOver={(event) => {
           event.preventDefault();
@@ -1652,12 +1592,8 @@ export function PdfTool({
           event.preventDefault();
           setDragOver(false);
 
-          if (
-            event.dataTransfer.files.length
-          ) {
-            addFiles(
-              event.dataTransfer.files,
-            );
+          if (event.dataTransfer.files.length) {
+            addFiles(event.dataTransfer.files);
           }
         }}
         className={`group relative flex min-h-[220px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-all duration-300 ${
@@ -1669,9 +1605,7 @@ export function PdfTool({
         {/* Full-card hover layer */}
         <div
           className={`pointer-events-none absolute inset-0 bg-blue-500 transition-opacity duration-300 ${
-            dragOver
-              ? "opacity-100"
-              : "opacity-0 group-hover:opacity-100"
+            dragOver ? "opacity-100" : "opacity-0 group-hover:opacity-100"
           }`}
         />
 
@@ -1695,9 +1629,7 @@ export function PdfTool({
 
           <span
             className={`text-sm font-semibold transition-colors duration-300 ${
-              dragOver
-                ? "text-white"
-                : "text-slate-800 group-hover:text-white"
+              dragOver ? "text-white" : "text-slate-800 group-hover:text-white"
             }`}
           >
             Drop your files here
@@ -1720,9 +1652,7 @@ export function PdfTool({
                 : "bg-white text-slate-500 ring-1 ring-slate-200 group-hover:bg-white/20 group-hover:text-white group-hover:ring-white/30"
             }`}
           >
-            {accept
-              .replaceAll(".", "")
-              .toUpperCase()}
+            {accept.replaceAll(".", "").toUpperCase()}
           </span>
         </div>
 
@@ -1732,12 +1662,8 @@ export function PdfTool({
           accept={accept}
           className="hidden"
           onChange={(event) => {
-            if (
-              event.target.files?.length
-            ) {
-              addFiles(
-                event.target.files,
-              );
+            if (event.target.files?.length) {
+              addFiles(event.target.files);
             }
 
             event.target.value = "";
@@ -1754,250 +1680,191 @@ export function PdfTool({
             </p>
 
             <span className="text-xs text-slate-500">
-              {files.length}{" "}
-              {files.length === 1
-                ? "file"
-                : "files"}
+              {files.length} {files.length === 1 ? "file" : "files"}
             </span>
           </div>
 
           <ul className="space-y-2">
-            {files.map(
-              (file, index) => (
-                <li
-                  key={`${file.name}-${index}`}
-                  className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 transition-colors hover:border-blue-200"
-                >
-                  {getFileIcon(file)}
+            {files.map((file, index) => (
+              <li
+                key={`${file.name}-${index}`}
+                className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 transition-colors hover:border-blue-200"
+              >
+                {getFileIcon(file)}
 
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-slate-800">
-                      {file.name}
-                    </p>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-slate-800">
+                    {file.name}
+                  </p>
 
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      {formatSize(
-                        file.size,
-                      )}
-                    </p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {formatSize(file.size)}
+                  </p>
+                </div>
+
+                {showReorder && (
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
+                      onClick={() => move(index, -1)}
+                      disabled={index === 0}
+                      title="Move up"
+                    >
+                      <ArrowUp className="h-3.5 w-3.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
+                      onClick={() => move(index, 1)}
+                      disabled={index === files.length - 1}
+                      title="Move down"
+                    >
+                      <ArrowDown className="h-3.5 w-3.5" />
+                    </button>
                   </div>
+                )}
 
-                  {showReorder && (
-                    <div className="flex gap-1">
-                      <button
-                        type="button"
-                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
-                        onClick={() =>
-                          move(
-                            index,
-                            -1,
-                          )
-                        }
-                        disabled={
-                          index === 0
-                        }
-                        title="Move up"
-                      >
-                        <ArrowUp className="h-3.5 w-3.5" />
-                      </button>
-
-                      <button
-                        type="button"
-                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
-                        onClick={() =>
-                          move(
-                            index,
-                            1,
-                          )
-                        }
-                        disabled={
-                          index ===
-                          files.length - 1
-                        }
-                        title="Move down"
-                      >
-                        <ArrowDown className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  )}
-
-                  <button
-                    type="button"
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-500"
-                    onClick={() =>
-                      removeFile(index)
-                    }
-                    title="Remove"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </li>
-              ),
-            )}
+                <button
+                  type="button"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-500"
+                  onClick={() => removeFile(index)}
+                  title="Remove"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </li>
+            ))}
           </ul>
         </div>
       )}
 
       {/* Merge / Split */}
-      {isMergeSplit &&
-        files.length > 0 && (
-          <div className="mt-6">
-            <p className="mb-3 text-sm font-semibold text-slate-800">
-              What would you like to do?
-            </p>
+      {isMergeSplit && files.length > 0 && (
+        <div className="mt-6">
+          <p className="mb-3 text-sm font-semibold text-slate-800">
+            What would you like to do?
+          </p>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() =>
-                  chooseAction("merge")
-                }
-                className={choiceClass(
-                  action === "merge",
-                )}
-              >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100">
-                  <Combine className="h-5 w-5 text-blue-600" />
-                </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => chooseAction("merge")}
+              className={choiceClass(action === "merge")}
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100">
+                <Combine className="h-5 w-5 text-blue-600" />
+              </div>
 
-                <span>
-                  <span className="block text-sm font-semibold text-slate-800">
-                    Merge PDFs
-                  </span>
-
-                  <span className="mt-1 block text-xs leading-5 text-slate-500">
-                    Combine multiple PDFs into
-                    one document.
-                  </span>
+              <span>
+                <span className="block text-sm font-semibold text-slate-800">
+                  Merge PDFs
                 </span>
-              </button>
 
-              <button
-                type="button"
-                onClick={() =>
-                  chooseAction("split")
-                }
-                className={choiceClass(
-                  action === "split",
-                )}
-              >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100">
-                  <Scissors className="h-5 w-5 text-blue-600" />
-                </div>
-
-                <span>
-                  <span className="block text-sm font-semibold text-slate-800">
-                    Split PDF
-                  </span>
-
-                  <span className="mt-1 block text-xs leading-5 text-slate-500">
-                    Extract pages into separate
-                    PDF files.
-                  </span>
+                <span className="mt-1 block text-xs leading-5 text-slate-500">
+                  Combine multiple PDFs into one document.
                 </span>
-              </button>
-            </div>
+              </span>
+            </button>
 
-            {action === "merge" &&
-              files.length < 2 && (
-                <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                  Add at least one more PDF
-                  to merge.
-                </p>
-              )}
+            <button
+              type="button"
+              onClick={() => chooseAction("split")}
+              className={choiceClass(action === "split")}
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100">
+                <Scissors className="h-5 w-5 text-blue-600" />
+              </div>
 
-            {action === "split" &&
-              files.length > 1 && (
-                <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
-                  Split uses the first PDF.
-                  Extra files will be ignored.
-                </p>
-              )}
+              <span>
+                <span className="block text-sm font-semibold text-slate-800">
+                  Split PDF
+                </span>
+
+                <span className="mt-1 block text-xs leading-5 text-slate-500">
+                  Extract pages into separate PDF files.
+                </span>
+              </span>
+            </button>
           </div>
-        )}
+
+          {action === "merge" && files.length < 2 && (
+            <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">
+              Add at least one more PDF to merge.
+            </p>
+          )}
+
+          {action === "split" && files.length > 1 && (
+            <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
+              Split uses the first PDF. Extra files will be ignored.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Conversion */}
-      {isConvert &&
-        files.length > 0 && (
-          <div className="mt-6">
-            <p className="mb-3 text-sm font-semibold text-slate-800">
-              Choose conversion
-            </p>
+      {isConvert && files.length > 0 && (
+        <div className="mt-6">
+          <p className="mb-3 text-sm font-semibold text-slate-800">
+            Choose conversion
+          </p>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() =>
-                  chooseAction(
-                    "jpg-to-pdf",
-                  )
-                }
-                className={choiceClass(
-                  action ===
-                    "jpg-to-pdf",
-                )}
-              >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100">
-                  <Image className="h-5 w-5 text-blue-600" />
-                </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => chooseAction("jpg-to-pdf")}
+              className={choiceClass(action === "jpg-to-pdf")}
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100">
+                <Image className="h-5 w-5 text-blue-600" />
+              </div>
 
-                <span>
-                  <span className="block text-sm font-semibold text-slate-800">
-                    JPG to PDF
-                  </span>
-
-                  <span className="mt-1 block text-xs leading-5 text-slate-500">
-                    Convert images into one
-                    PDF document.
-                  </span>
+              <span>
+                <span className="block text-sm font-semibold text-slate-800">
+                  JPG to PDF
                 </span>
-              </button>
 
-              <button
-                type="button"
-                onClick={() =>
-                  chooseAction(
-                    "pdf-to-jpg",
-                  )
-                }
-                className={choiceClass(
-                  action ===
-                    "pdf-to-jpg",
-                )}
-              >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100">
-                  <FileImage className="h-5 w-5 text-blue-600" />
-                </div>
-
-                <span>
-                  <span className="block text-sm font-semibold text-slate-800">
-                    PDF to JPG
-                  </span>
-
-                  <span className="mt-1 block text-xs leading-5 text-slate-500">
-                    Convert PDF pages into JPG
-                    images.
-                  </span>
+                <span className="mt-1 block text-xs leading-5 text-slate-500">
+                  Convert images into one PDF document.
                 </span>
-              </button>
-            </div>
+              </span>
+            </button>
 
-            {action === "jpg-to-pdf" &&
-              images.length < 1 && (
-                <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                  Add at least one JPG or PNG
-                  image.
-                </p>
-              )}
+            <button
+              type="button"
+              onClick={() => chooseAction("pdf-to-jpg")}
+              className={choiceClass(action === "pdf-to-jpg")}
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100">
+                <FileImage className="h-5 w-5 text-blue-600" />
+              </div>
 
-            {action === "pdf-to-jpg" &&
-              pdfs.length < 1 && (
-                <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                  Add a PDF to convert.
-                </p>
-              )}
+              <span>
+                <span className="block text-sm font-semibold text-slate-800">
+                  PDF to JPG
+                </span>
+
+                <span className="mt-1 block text-xs leading-5 text-slate-500">
+                  Convert PDF pages into JPG images.
+                </span>
+              </span>
+            </button>
           </div>
-        )}
+
+          {action === "jpg-to-pdf" && images.length < 1 && (
+            <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">
+              Add at least one JPG or PNG image.
+            </p>
+          )}
+
+          {action === "pdf-to-jpg" && pdfs.length < 1 && (
+            <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">
+              Add a PDF to convert.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* JPG quality */}
       {action === "pdf-to-jpg" && (
@@ -2017,13 +1884,7 @@ export function PdfTool({
             min={40}
             max={100}
             value={quality}
-            onChange={(event) =>
-              setQuality(
-                Number(
-                  event.target.value,
-                ),
-              )
-            }
+            onChange={(event) => setQuality(Number(event.target.value))}
             className="mt-4 w-full accent-blue-600"
           />
 
@@ -2054,8 +1915,7 @@ export function PdfTool({
             </p>
 
             <p className="mt-0.5 text-xs text-blue-600/70">
-              Please wait while we finish
-              the conversion.
+              Please wait while we finish the conversion.
             </p>
           </div>
         </div>
@@ -2066,10 +1926,7 @@ export function PdfTool({
         <button
           type="button"
           onClick={run}
-          disabled={
-            !canRun ||
-            status === "processing"
-          }
+          disabled={!canRun || status === "processing"}
           className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
         >
           {status === "processing" ? (
@@ -2078,10 +1935,7 @@ export function PdfTool({
               Processing...
             </>
           ) : (
-            processLabel(
-              status,
-              action,
-            )
+            processLabel(status, action)
           )}
         </button>
 
