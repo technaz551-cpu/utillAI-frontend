@@ -7,10 +7,8 @@
 // import * as pdfjsLib from 'pdfjs-dist';
 // import { jsPDF } from 'jspdf';
 // import {
-//   Type,
 //   Image as ImageIcon,
 //   Square,
-//   Layout,
 //   Upload,
 //   Download,
 //   Bold,
@@ -30,11 +28,6 @@
 //   Circle,
 //   ArrowRight,
 //   ArrowRightCircle,
-//   Star,
-//   Layers,
-//   FilePlus,
-//   Eye,
-//   Sliders,
 //   Highlighter
 // } from 'lucide-react';
 // import './pdfeditor.css';
@@ -60,12 +53,6 @@
 // };
 
 // // Setting up pdfjs worker using CDN fallback to fix render issues
-// // pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version || '3.11.174'}/pdf.worker.min.js`;
-
-
-// // 1. Updated Import
-
-// // 2. Updated Worker setup
 // if (typeof window !== "undefined") {
 //   pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version || '3.11.174'}/pdf.worker.min.js`;
 // }
@@ -75,7 +62,7 @@
 //   const [activeTab, setActiveTab] = useState<'templates' | 'elements' | 'text' | 'uploads' | 'export'>('uploads');
 //   const [pages, setPages] = useState<{ id: string; width: number; height: number }[]>([]);
 //   const [hasDocument, setHasDocument] = useState<boolean>(false);
-  
+
 //   const canvasRefs = useRef<{ [key: string]: HTMLCanvasElement | null }>({});
 //   const fabricCanvases = useRef<{ [key: string]: fabric.Canvas }>({});
 //   const [activeCanvas, setActiveCanvas] = useState<fabric.Canvas | null>(null);
@@ -89,7 +76,6 @@
 //   // Canva-style shell: which page is visible and whether the sidebar is open
 //   const [view, setView] = useState<'home' | 'editor' | 'projects'>('home');
 //   const [sidebarOpen, setSidebarOpen] = useState(true);
-//   const [chatOpen, setChatOpen] = useState(false);
 //   const [projects, setProjects] = useState<ProjectMeta[]>([]);
 //   const [projectTitle, setProjectTitle] = useState('Untitled design');
 //   const [docKey, setDocKey] = useState(0);
@@ -125,6 +111,7 @@
 //   const [textColor, setTextColor] = useState<string>('#1e293b');
 //   const [bgColor, setBgColor] = useState<string>('#ffffff');
 //   const [opacity, setOpacity] = useState<number>(1);
+//   void opacity;
 //   // ------------------------------------------------------------
 //   // Existing PDF text editing support
 //   // ------------------------------------------------------------
@@ -190,6 +177,7 @@
 //       return null;
 //     }
 //   };
+//   void getBackgroundPixel;
 
 //   const estimateBackgroundColor = (
 //     canvas: fabric.Canvas,
@@ -350,6 +338,7 @@
 //       height: Math.max(1, bounds.height),
 //     };
 //   };
+//   void getObjectBounds;
 
 //   const createPdfMask = (
 //     canvas: fabric.Canvas,
@@ -874,12 +863,6 @@
 //   };
 
 //   const handleSidebarSelect = async (item: SidebarItem) => {
-//     if (item === 'chat') {
-//       setChatOpen((open) => !open);
-//       return;
-//     }
-//     setChatOpen(false);
-
 //     if (item === 'create') {
 //       await startBlankProject();
 //       return;
@@ -1342,16 +1325,15 @@
 //     setIsExportConfirmed(false);
 //   };
 
-//   const railActive: SidebarItem = chatOpen
-//     ? 'chat'
-//     : view === 'home'
+//   const railActive: SidebarItem =
+//     view === 'home'
 //       ? 'home'
 //       : view === 'projects'
 //         ? 'projects'
 //         : activeTab === 'text' || activeTab === 'elements'
 //           ? activeTab
 //           : 'uploads';
-//   const panelVisible = sidebarOpen && (chatOpen || view === 'editor');
+//   const panelVisible = sidebarOpen && view === 'editor';
 
 //   return (
 //     <div className="utilai-pdf-editor flex flex-col h-screen w-full bg-[#f8fbff] font-sans overflow-hidden select-none">
@@ -1525,11 +1507,7 @@
 
 //         {/* SIDEBAR EXTENDED PANELS */}
 //         {panelVisible && (
-//         <div className={`pdf-editor-panel shrink-0 bg-white border-r border-blue-100 z-10 shadow-sm ${chatOpen ? 'w-80 overflow-hidden' : 'w-72 p-5 overflow-y-auto'}`}>
-//           {chatOpen ? (
-//             <UtilAiChatBot />
-//           ) : (
-//           <>
+//         <div className="pdf-editor-panel shrink-0 w-72 p-5 overflow-y-auto bg-white border-r border-blue-100 z-10 shadow-sm">
 //           {activeTab === 'uploads' && (
 //             <div className="flex flex-col gap-4">
 //               <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Import Document</h3>
@@ -1541,13 +1519,6 @@
 //                 <span className="text-[10px] text-blue-600 mt-1">Extract text & make pages canvas-ready</span>
 //                 <input type="file" accept="application/pdf" onChange={handlePdfUpload} className="hidden" />
 //               </label>
-
-//               {/* <button
-//                 onClick={startBlankProject}
-//                 className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 transition"
-//               >
-//                 <FilePlus className="w-4 h-4 text-slate-500" /> Start Blank Canvas
-//               </button> */}
 
 //               <div className="h-[1px] bg-slate-100 my-1" />
 
@@ -1597,8 +1568,6 @@
 //                 </button>
 //               </div>
 //             </div>
-//           )}
-//           </>
 //           )}
 //         </div>
 //         )}
@@ -1769,9 +1738,17 @@
 //           </div>
 //         </div>
 //       )}
+
+//       {/* Floating AI chat: fixed at the bottom-right, independent of the layout */}
+//       <UtilAiChatBot />
 //     </div>
 //   );
 // }
+
+
+
+
+
 
 
 
@@ -1802,7 +1779,8 @@ import {
   Circle,
   ArrowRight,
   ArrowRightCircle,
-  Highlighter
+  Highlighter,
+  RefreshCw
 } from 'lucide-react';
 import './pdfeditor.css';
 import UtilAiEditorSidebar, { type SidebarItem } from './UtilEditorSidebar';
@@ -1836,7 +1814,7 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
   const [activeTab, setActiveTab] = useState<'templates' | 'elements' | 'text' | 'uploads' | 'export'>('uploads');
   const [pages, setPages] = useState<{ id: string; width: number; height: number }[]>([]);
   const [hasDocument, setHasDocument] = useState<boolean>(false);
-  
+
   const canvasRefs = useRef<{ [key: string]: HTMLCanvasElement | null }>({});
   const fabricCanvases = useRef<{ [key: string]: fabric.Canvas }>({});
   const [activeCanvas, setActiveCanvas] = useState<fabric.Canvas | null>(null);
@@ -1853,6 +1831,11 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
   const [projects, setProjects] = useState<ProjectMeta[]>([]);
   const [projectTitle, setProjectTitle] = useState('Untitled design');
   const [docKey, setDocKey] = useState(0);
+
+  // Image Editing States (Dimensions & Replacement)
+  const [imgWidth, setImgWidth] = useState<number>(100);
+  const [imgHeight, setImgHeight] = useState<number>(100);
+  const replaceFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const pagesRef = useRef(pages);
   const hasDocRef = useRef(hasDocument);
@@ -1886,19 +1869,7 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
   const [bgColor, setBgColor] = useState<string>('#ffffff');
   const [opacity, setOpacity] = useState<number>(1);
   void opacity;
-  // ------------------------------------------------------------
-  // Existing PDF text editing support
-  // ------------------------------------------------------------
-  // PDF pages are rendered into a background image. That means the
-  // original PDF text is physically part of the background pixels.
-  // We therefore need a separate "erase" layer before drawing the
-  // edited text. The old implementation used one mask that moved
-  // with the text and sampled only one pixel, which caused:
-  //   1. old text to reappear when the edited text became empty;
-  //   2. white/incorrect backgrounds over colored PDF areas;
-  //   3. the mask to move away from the original text when the text
-  //      object was moved.
-  // ------------------------------------------------------------
+
   const pdfTextMasks = useRef(new Map<fabric.Object, fabric.Rect[]>());
   const pdfTextMaskColors = useRef(new Map<fabric.Object, string>());
   const pdfTextBounds = useRef(new Map<fabric.Object, {
@@ -1909,59 +1880,15 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
     angle: number;
   }>());
 
-  // When a PDF text object is deleted, its erase mask must stay on the
-  // canvas. Otherwise the original PDF text becomes visible again because
-  // the original text is part of the background image.
   const preservePdfMaskOnDelete = useRef(new Set<fabric.Object>());
 
   const clamp = (value: number, min: number, max: number) =>
     Math.max(min, Math.min(max, value));
 
-  const getBackgroundPixel = (
-    canvas: fabric.Canvas,
-    x: number,
-    y: number,
-  ): [number, number, number] | null => {
-    const background = canvas.backgroundImage as fabric.Image | undefined;
-    const element = background?.getElement() as HTMLImageElement | HTMLCanvasElement | undefined;
-    if (!background || !element) return null;
-
-    const sourceX = clamp(
-      (x - (background.left || 0)) / (background.scaleX || 1),
-      0,
-      Math.max(0, element.width - 1),
-    );
-    const sourceY = clamp(
-      (y - (background.top || 0)) / (background.scaleY || 1),
-      0,
-      Math.max(0, element.height - 1),
-    );
-
-    const sampleCanvas = document.createElement('canvas');
-    sampleCanvas.width = 1;
-    sampleCanvas.height = 1;
-    const ctx = sampleCanvas.getContext('2d', { willReadFrequently: true });
-    if (!ctx) return null;
-
-    try {
-      ctx.drawImage(element, sourceX, sourceY, 1, 1, 0, 0, 1, 1);
-      const pixel = ctx.getImageData(0, 0, 1, 1).data;
-      return [pixel[0], pixel[1], pixel[2]];
-    } catch {
-      return null;
-    }
-  };
-  void getBackgroundPixel;
-
   const estimateBackgroundColor = (
     canvas: fabric.Canvas,
     bounds: { left: number; top: number; width: number; height: number },
   ) => {
-    // The background can be white, dark gray, green, highlighted, etc.
-    // Sampling only outside the text fails for highlighted PDF text because
-    // the highlight often exists exactly underneath the glyphs. Instead,
-    // sample the complete text rectangle and choose the dominant color.
-    // Glyphs normally occupy far fewer pixels than their background.
     const background = canvas.backgroundImage as fabric.Image | undefined;
     const element = background?.getElement() as HTMLImageElement | HTMLCanvasElement | undefined;
     if (!background || !element) return '#ffffff';
@@ -1992,16 +1919,11 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
     if (!ctx) return '#ffffff';
 
     try {
-      // Avoid blending glyph pixels with background pixels.
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(element, sourceX, sourceY, sourceW, sourceH, 0, 0, 40, 20);
       const pixels = ctx.getImageData(0, 0, 40, 20).data;
       const buckets = new Map<string, { r: number; g: number; b: number; count: number }>();
 
-      // Buckets are used ONLY for grouping similar colors. We store the REAL
-      // pixel sums so the final color is the true average of the dominant
-      // group, not a rounded value (rounding turned white into light grey,
-      // which made the erase box visible).
       for (let i = 0; i < pixels.length; i += 4) {
         const r = pixels[i];
         const g = pixels[i + 1];
@@ -2031,9 +1953,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
     canvas: fabric.Canvas,
     bounds: { left: number; top: number; width: number; height: number },
   ) => {
-    // Estimate the foreground/text color from pixels INSIDE the text area.
-    // We compare them with the background color sampled around the text.
-    // This avoids forcing every selected PDF text object to black.
     const background = estimateBackgroundColor(canvas, bounds);
     const bgMatch = background.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
     const bg: [number, number, number] = bgMatch
@@ -2093,7 +2012,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
 
       if (!best) return '#1e293b';
 
-      // Snap near-black/near-white values to stable text colors.
       const [r, g, b] = best;
       if (r < 55 && g < 55 && b < 55) return '#111111';
       if (r > 220 && g > 220 && b > 220) return '#ffffff';
@@ -2102,17 +2020,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
       return '#1e293b';
     }
   };
-
-  const getObjectBounds = (object: fabric.Object) => {
-    const bounds = object.getBoundingRect();
-    return {
-      left: bounds.left,
-      top: bounds.top,
-      width: Math.max(1, bounds.width),
-      height: Math.max(1, bounds.height),
-    };
-  };
-  void getObjectBounds;
 
   const createPdfMask = (
     canvas: fabric.Canvas,
@@ -2134,7 +2041,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
       evented: false,
       excludeFromExport: false,
     });
-    // Lets a saved project reconnect this mask to its text after reload.
     (mask as any).pdfMaskFor = (object as any).pdfId;
 
     canvas.add(mask);
@@ -2161,11 +2067,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
     const masks = pdfTextMasks.current.get(object) || [];
     if (!masks.length) return;
 
-    // IMPORTANT:
-    // Only the ORIGINAL PDF text area is masked.
-    // We do NOT create/move a second mask around the edited text.
-    // The edited text should sit directly on the real PDF background,
-    // otherwise Fabric creates a visible colored rectangle behind it.
     const originalMask = masks[0];
     const color = pdfTextMaskColors.current.get(object) || '#ffffff';
 
@@ -2178,8 +2079,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
       fill: color,
     });
 
-    // Never create another mask for the current edited text position.
-    // Keep the original erase mask below all objects.
     canvas.sendObjectToBack(originalMask);
     canvas.bringObjectToFront(object);
     canvas.requestRenderAll();
@@ -2193,10 +2092,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
 
     if (!storedBounds) return;
 
-    // The imported PDF text starts transparent so the original PDF pixels
-    // remain visible until the user edits the text. On selection we need a
-    // visible editable text color, but it must NOT be hard-coded to black.
-    // Estimate the original foreground color from the rendered PDF.
     if ((textObject.fill as string) === 'rgba(0, 0, 0, 0)' || !textObject.fill) {
       const foreground = estimateTextColor(canvas, storedBounds);
       textObject.set({
@@ -2217,8 +2112,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
 
     pdfTextMaskColors.current.set(object, color);
 
-    // One mask only: erase the ORIGINAL PDF text area.
-    // It stays fixed even if the user moves/resizes the edited text.
     createPdfMask(
       canvas,
       object,
@@ -2242,6 +2135,16 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
     });
   };
 
+  // Sync selected image dimensions to UI state
+  const syncImageDimensions = (obj: fabric.Object) => {
+    if (obj.type === 'image') {
+      const width = Math.round((obj.width || 0) * (obj.scaleX || 1));
+      const height = Math.round((obj.height || 0) * (obj.scaleY || 1));
+      setImgWidth(width);
+      setImgHeight(height);
+    }
+  };
+
   // Initialize fabric canvas instance per page
   const initCanvas = (id: string, width: number, height: number) => {
     const el = canvasRefs.current[id];
@@ -2254,6 +2157,7 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
       selectionColor: 'rgba(59, 130, 246, 0.15)',
       selectionBorderColor: '#3b82f6',
       selectionLineWidth: 2,
+      selection: true,
     });
 
     let hoveredObject: fabric.Object | null = null;
@@ -2303,6 +2207,7 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
         updateFloatingMenuPosition(canvas, activeObj);
 
         setOpacity(activeObj.opacity || 1);
+        syncImageDimensions(activeObj);
 
         if (activeObj.type === 'i-text' || activeObj.type === 'textbox') {
           const textObj = activeObj as fabric.IText;
@@ -2340,6 +2245,7 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
     canvas.on('object:scaling', () => {
       const object = canvas.getActiveObject();
       updateFloatingMenuPosition(canvas, object);
+      if (object) syncImageDimensions(object);
       if (object && pdfTextMasks.current.has(object)) {
         updatePdfTextMasks(canvas, object);
       }
@@ -2350,6 +2256,7 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
       if (!object) return;
 
       updateFloatingMenuPosition(canvas, object);
+      syncImageDimensions(object);
       if (pdfTextMasks.current.has(object)) {
         updatePdfTextMasks(canvas, object);
       }
@@ -2359,9 +2266,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
       const object = event.target;
       if (!object || (object.type !== 'i-text' && object.type !== 'textbox')) return;
 
-      // IMPORTANT: never remove the original-PDF mask when the user
-      // deletes all characters. The mask is what hides the old PDF text.
-      // It must remain until the whole text object is deleted.
       if (pdfTextMasks.current.has(object)) {
         updatePdfTextMasks(canvas, object);
       }
@@ -2371,8 +2275,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
       const object = event.target;
       if (!object) return;
 
-      // For imported PDF text, deletion means: remove the editable text
-      // but KEEP its original erase mask so the old PDF text stays hidden.
       if (preservePdfMaskOnDelete.current.has(object)) {
         preservePdfMaskOnDelete.current.delete(object);
         pdfTextMasks.current.delete(object);
@@ -2413,9 +2315,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
     pages.forEach((page) => initCanvas(page.id, page.width, page.height));
   }, [pages]);
 
-  // ------------------------------------------------------------
-  // Projects: autosave, restore, sidebar navigation
-  // ------------------------------------------------------------
   const PERSIST_PROPS = ['pdfId', 'pdfBounds', 'pdfMaskColor', 'pdfMaskFor'];
 
   const refreshProjects = async () => {
@@ -2426,7 +2325,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
     }
   };
 
-  // Removes the temporary blue hover outline so it is not saved with the page.
   const cleanPageJson = (json: any) => {
     if (Array.isArray(json?.objects)) {
       json.objects.forEach((o: any) => {
@@ -2457,7 +2355,7 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
     const pageData: ProjectPage[] = [];
     for (const page of currentPages) {
       const canvas = fabricCanvases.current[page.id];
-      if (!canvas) return; // canvases are not ready yet
+      if (!canvas) return;
       pageData.push({
         id: page.id,
         width: page.width,
@@ -2505,13 +2403,11 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
     }, 2000);
   };
 
-  // Called by canvas events. Ignored while a PDF is importing or a project is restoring.
   const scheduleAutosave = () => {
     if (importingRef.current || restoringRef.current > 0 || resettingRef.current) return;
     queueSave();
   };
 
-  // After loading a saved project, reconnect edited-PDF text objects with their erase masks.
   const rebuildPdfMaps = (canvas: fabric.Canvas) => {
     const objects = canvas.getObjects();
     const masksById = new Map<string, fabric.Rect[]>();
@@ -2535,7 +2431,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
     });
   };
 
-  // Disposes every page canvas so a different document can be shown.
   const resetWorkspace = () => {
     if (autosaveTimer.current) {
       clearTimeout(autosaveTimer.current);
@@ -2577,7 +2472,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
     setProjectTitle(title);
   };
 
-  // Create Blank Canvas Project
   const startBlankProject = async () => {
     await saveProject();
     resetWorkspace();
@@ -2647,7 +2541,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
       refreshProjects();
       return;
     }
-    // uploads / text / elements
     setView('editor');
     setActiveTab(item);
   };
@@ -2667,18 +2560,16 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
     };
   }, []);
 
-  // Add Page dynamically
   const addNewPage = () => {
     const newId = `page-${pages.length + 1}`;
     setPages([...pages, { id: newId, width: 595.28, height: 841.89 }]);
   };
 
-  // PDF File Importer & Text Extractor
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target;
     const file = input.files?.[0];
     if (!file) return;
-    input.value = ''; // allows choosing the same file again later
+    input.value = '';
 
     try {
       await saveProject();
@@ -2707,169 +2598,152 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
 
       setTimeout(async () => {
         try {
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const renderScale = 4;
-          const viewport = page.getViewport({ scale: renderScale });
-          const pageViewport = page.getViewport({ scale: 1 });
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const renderScale = 4;
+            const viewport = page.getViewport({ scale: renderScale });
+            const pageViewport = page.getViewport({ scale: 1 });
 
-          const tempCanvas = document.createElement('canvas');
-          const context = tempCanvas.getContext('2d', { willReadFrequently: true })!;
-          context.imageSmoothingEnabled = true;
-          context.imageSmoothingQuality = 'high';
-          tempCanvas.height = viewport.height;
-          tempCanvas.width = viewport.width;
+            const tempCanvas = document.createElement('canvas');
+            const context = tempCanvas.getContext('2d', { willReadFrequently: true })!;
+            context.imageSmoothingEnabled = true;
+            context.imageSmoothingQuality = 'high';
+            tempCanvas.height = viewport.height;
+            tempCanvas.width = viewport.width;
 
-          await page.render({ canvasContext: context, viewport }).promise;
+            await page.render({ canvasContext: context, viewport }).promise;
 
-          const imgData = tempCanvas.toDataURL('image/png');
-          const fCanvas = fabricCanvases.current[`page-${i}`];
+            const imgData = tempCanvas.toDataURL('image/png');
+            const fCanvas = fabricCanvases.current[`page-${i}`];
 
-          if (fCanvas) {
-            const img = await fabric.Image.fromURL(imgData);
-            img.set({
-              scaleX: fCanvas.width! / img.width!,
-              scaleY: fCanvas.height! / img.height!,
-              originX: 'left',
-              originY: 'top',
-            });
-            fCanvas.backgroundImage = img;
-            fCanvas.requestRenderAll();
-
-            const textContent = await page.getTextContent();
-            const pdfStyles = (textContent as any).styles || {};
-
-            textContent.items.forEach((item: any) => {
-              if (!('str' in item) || !('transform' in item)) return;
-              const textItem = item as PdfTextItemLike & { fontName?: string; height?: number };
-              if (!textItem.str.trim()) return;
-
-              const [textX, textY] = pageViewport.convertToViewportPoint(
-                textItem.transform[4],
-                textItem.transform[5],
-              );
-              const fontSize = Math.max(
-                6,
-                Math.hypot(textItem.transform[2], textItem.transform[3]) || textItem.height || 14,
-              );
-              const textTop = textY - fontSize * 0.82;
-              const textWidth = Math.max(
-                fontSize,
-                textItem.width || textItem.str.length * fontSize * 0.55,
-              );
-              const angle = Math.atan2(textItem.transform[1], textItem.transform[0]) * (180 / Math.PI);
-
-              // Preserve the PDF's font information instead of creating every
-              // imported text as normal Helvetica.
-              //
-              // pdf.js gives internal font ids (e.g. "g_d0_f1") in textItem.fontName
-              // and often only a generic family ("sans-serif" / "serif") in styles.
-              // The real embedded font name (e.g. "ABCDEF+Arial-BoldMT") lives in
-              // page.commonObjs, so we read it from there.
-              const rawFontName = String(textItem.fontName || '');
-              const fontInfo = rawFontName ? pdfStyles[rawFontName] : undefined;
-
-              let loadedFont: any = null;
-              let realFontName = rawFontName;
-              try {
-                if (rawFontName && page.commonObjs.has(rawFontName)) {
-                  loadedFont = page.commonObjs.get(rawFontName);
-                  realFontName = String(loadedFont?.name || loadedFont?.fallbackName || rawFontName);
-                }
-              } catch {
-                /* font not resolved, fall back to generic info below */
-              }
-
-              const fontNameLower = realFontName.toLowerCase();
-              const genericFamily = String(fontInfo?.fontFamily || '').toLowerCase();
-
-              // IMPORTANT: check "sans" BEFORE "serif". The word "sans-serif"
-              // contains "serif", so checking serif first turned every font
-              // into Times New Roman.
-              let fontFamily = 'Arial';
-              if (
-                loadedFont?.isMonospace ||
-                /courier|mono|consolas|monaco/.test(fontNameLower) ||
-                genericFamily.includes('monospace')
-              ) {
-                fontFamily = 'Courier New';
-              } else if (/sans|arial|helvetica|calibri|verdana|tahoma|roboto|segoe|open/.test(fontNameLower)) {
-                fontFamily = 'Arial';
-              } else if (
-                loadedFont?.isSerifFont ||
-                /times|serif|roman|cambria|georgia|garamond|palatino|book/.test(fontNameLower)
-              ) {
-                fontFamily = 'Times New Roman';
-              } else if (genericFamily.includes('sans')) {
-                fontFamily = 'Arial';
-              } else if (genericFamily.includes('serif')) {
-                fontFamily = 'Times New Roman';
-              }
-
-              const fontWeight = loadedFont?.bold || /bold|black|heavy|semibold|demibold/.test(fontNameLower)
-                ? 'bold'
-                : 'normal';
-              const fontStyle = loadedFont?.italic || /italic|oblique/.test(fontNameLower)
-                ? 'italic'
-                : 'normal';
-
-              // Do NOT sample the center of the text. That pixel is often a
-              // glyph and therefore becomes black. Sample the surrounding PDF
-              // background instead.
-              const maskColor = estimateBackgroundColor(fCanvas, {
-                left: textX,
-                top: textTop,
-                width: textWidth,
-                height: fontSize * 1.15,
-              });
-
-              const text = new fabric.IText(textItem.str, {
-                left: textX,
-                top: textTop,
+            if (fCanvas) {
+              const img = await fabric.Image.fromURL(imgData);
+              img.set({
+                scaleX: fCanvas.width! / img.width!,
+                scaleY: fCanvas.height! / img.height!,
                 originX: 'left',
                 originY: 'top',
-                fontSize,
-                fontFamily,
-                fontWeight,
-                fontStyle,
-                fill: 'rgba(0, 0, 0, 0)',
-                opacity: 1,
-                padding: 0,
-                angle,
               });
+              fCanvas.backgroundImage = img;
+              fCanvas.requestRenderAll();
 
-              // Keep imported PDF text visually stable when it becomes
-              // editable. Fabric's font metrics can differ slightly from the
-              // PDF renderer, so match the original extracted text width.
-              text.initDimensions();
-              if (text.width && text.width > 0) {
-                text.set({ scaleX: textWidth / text.width });
-              }
+              const textContent = await page.getTextContent();
+              const pdfStyles = (textContent as any).styles || {};
 
-              pdfTextMaskColors.current.set(text, maskColor);
-              pdfTextBounds.current.set(text, {
-                left: textX,
-                top: textTop,
-                width: textWidth,
-                height: fontSize * 1.15,
-                angle,
+              textContent.items.forEach((item: any) => {
+                if (!('str' in item) || !('transform' in item)) return;
+                const textItem = item as PdfTextItemLike & { fontName?: string; height?: number };
+                if (!textItem.str.trim()) return;
+
+                const [textX, textY] = pageViewport.convertToViewportPoint(
+                  textItem.transform[4],
+                  textItem.transform[5],
+                );
+                const fontSize = Math.max(
+                  6,
+                  Math.hypot(textItem.transform[2], textItem.transform[3]) || textItem.height || 14,
+                );
+                const textTop = textY - fontSize * 0.82;
+                const textWidth = Math.max(
+                  fontSize,
+                  textItem.width || textItem.str.length * fontSize * 0.55,
+                );
+                const angle = Math.atan2(textItem.transform[1], textItem.transform[0]) * (180 / Math.PI);
+
+                const rawFontName = String(textItem.fontName || '');
+                const fontInfo = rawFontName ? pdfStyles[rawFontName] : undefined;
+
+                let loadedFont: any = null;
+                let realFontName = rawFontName;
+                try {
+                  if (rawFontName && page.commonObjs.has(rawFontName)) {
+                    loadedFont = page.commonObjs.get(rawFontName);
+                    realFontName = String(loadedFont?.name || loadedFont?.fallbackName || rawFontName);
+                  }
+                } catch {
+                  /* font not resolved */
+                }
+
+                const fontNameLower = realFontName.toLowerCase();
+                const genericFamily = String(fontInfo?.fontFamily || '').toLowerCase();
+
+                let fontFamily = 'Arial';
+                if (
+                  loadedFont?.isMonospace ||
+                  /courier|mono|consolas|monaco/.test(fontNameLower) ||
+                  genericFamily.includes('monospace')
+                ) {
+                  fontFamily = 'Courier New';
+                } else if (/sans|arial|helvetica|calibri|verdana|tahoma|roboto|segoe|open/.test(fontNameLower)) {
+                  fontFamily = 'Arial';
+                } else if (
+                  loadedFont?.isSerifFont ||
+                  /times|serif|roman|cambria|georgia|garamond|palatino|book/.test(fontNameLower)
+                ) {
+                  fontFamily = 'Times New Roman';
+                } else if (genericFamily.includes('sans')) {
+                  fontFamily = 'Arial';
+                } else if (genericFamily.includes('serif')) {
+                  fontFamily = 'Times New Roman';
+                }
+
+                const fontWeight = loadedFont?.bold || /bold|black|heavy|semibold|demibold/.test(fontNameLower)
+                  ? 'bold'
+                  : 'normal';
+                const fontStyle = loadedFont?.italic || /italic|oblique/.test(fontNameLower)
+                  ? 'italic'
+                  : 'normal';
+
+                const maskColor = estimateBackgroundColor(fCanvas, {
+                  left: textX,
+                  top: textTop,
+                  width: textWidth,
+                  height: fontSize * 1.15,
+                });
+
+                const text = new fabric.IText(textItem.str, {
+                  left: textX,
+                  top: textTop,
+                  originX: 'left',
+                  originY: 'top',
+                  fontSize,
+                  fontFamily,
+                  fontWeight,
+                  fontStyle,
+                  fill: 'rgba(0, 0, 0, 0)',
+                  opacity: 1,
+                  padding: 0,
+                  angle,
+                });
+
+                text.initDimensions();
+                if (text.width && text.width > 0) {
+                  text.set({ scaleX: textWidth / text.width });
+                }
+
+                pdfTextMaskColors.current.set(text, maskColor);
+                pdfTextBounds.current.set(text, {
+                  left: textX,
+                  top: textTop,
+                  width: textWidth,
+                  height: fontSize * 1.15,
+                  angle,
+                });
+                (text as any).pdfId = `pt-${Math.random().toString(36).slice(2, 10)}`;
+                (text as any).pdfBounds = {
+                  left: textX,
+                  top: textTop,
+                  width: textWidth,
+                  height: fontSize * 1.15,
+                  angle,
+                };
+                (text as any).pdfMaskColor = maskColor;
+                fCanvas.add(text);
               });
-              // Saved with the project so edited text can be restored after reload.
-              (text as any).pdfId = `pt-${Math.random().toString(36).slice(2, 10)}`;
-              (text as any).pdfBounds = {
-                left: textX,
-                top: textTop,
-                width: textWidth,
-                height: fontSize * 1.15,
-                angle,
-              };
-              (text as any).pdfMaskColor = maskColor;
-              fCanvas.add(text);
-            });
-            fCanvas.requestRenderAll();
+              fCanvas.requestRenderAll();
 
+            }
           }
-        }
         } finally {
           importingRef.current = false;
           queueSave();
@@ -2882,7 +2756,34 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
     }
   };
 
-  // Image File Importer
+  // Upload New Image Layer
+  // const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const file = e.target.files?.[0];
+  //   if (!file || !activeCanvas) return;
+
+  //   const reader = new FileReader();
+  //   reader.onload = (event) => {
+  //     const imgObj = new Image();
+  //     imgObj.src = event.target?.result as string;
+  //     imgObj.onload = () => {
+  //       const image = new fabric.Image(imgObj, {
+  //         left: 150,
+  //         top: 150,
+  //         cornerColor: '#8b5cf6',
+  //         cornerStyle: 'circle',
+  //         selectable:true,
+  //         evented:true,
+  //       });
+  //       image.scaleToWidth(250);
+  //       activeCanvas.add(image);
+  //       activeCanvas.bringObjectToFront(image);
+  //       activeCanvas.setActiveObject(image);
+  //       activeCanvas.renderAll();
+  //     };
+  //   };
+  //   reader.readAsDataURL(file);
+  // };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !activeCanvas) return;
@@ -2897,14 +2798,78 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
           top: 150,
           cornerColor: '#8b5cf6',
           cornerStyle: 'circle',
+          selectable: true,
+          evented: true,
         });
         image.scaleToWidth(250);
         activeCanvas.add(image);
-        activeCanvas.setActiveObject(image);
-        activeCanvas.renderAll();
+        activeCanvas.bringObjectToFront(image); // Front par layen
+        activeCanvas.setActiveObject(image);   // Auto-select karein
+        activeCanvas.requestRenderAll();
       };
     };
     reader.readAsDataURL(file);
+  };
+
+
+
+  // ------------------------------------------------------------
+  // NEW FUNCTIONALITY: Replace Image & Resize Logic
+  // ------------------------------------------------------------
+  const handleReplaceImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeCanvas || !selectedObject || selectedObject.type !== 'image') return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const imgObj = new Image();
+      imgObj.src = event.target?.result as string;
+      imgObj.onload = () => {
+        const oldImg = selectedObject as fabric.Image;
+        const currentLeft = oldImg.left || 0;
+        const currentTop = oldImg.top || 0;
+        const currentAngle = oldImg.angle || 0;
+        const targetWidth = Math.round((oldImg.width || 0) * (oldImg.scaleX || 1));
+        const targetHeight = Math.round((oldImg.height || 0) * (oldImg.scaleY || 1));
+
+        const newImage = new fabric.Image(imgObj, {
+          left: currentLeft,
+          top: currentTop,
+          angle: currentAngle,
+          cornerColor: '#8b5cf6',
+          cornerStyle: 'circle',
+        });
+
+        // Maintain dimensions during replacement
+        newImage.scaleX = targetWidth / (newImage.width || 1);
+        newImage.scaleY = targetHeight / (newImage.height || 1);
+
+        activeCanvas.remove(oldImg);
+        activeCanvas.add(newImage);
+        activeCanvas.setActiveObject(newImage);
+        activeCanvas.renderAll();
+        setSelectedObject(newImage);
+        syncImageDimensions(newImage);
+      };
+    };
+    reader.readAsDataURL(file);
+    e.target.value = ''; // Reset input
+  };
+
+  const handleDimensionChange = (width: number, height: number) => {
+    if (!activeCanvas || !selectedObject || selectedObject.type !== 'image') return;
+
+    const img = selectedObject as fabric.Image;
+    if (img.width && img.height) {
+      img.set({
+        scaleX: width / img.width,
+        scaleY: height / img.height,
+      });
+      img.setCoords();
+      activeCanvas.requestRenderAll();
+      setImgWidth(width);
+      setImgHeight(height);
+    }
   };
 
   // Toolbar Element Insertion Methods
@@ -2916,8 +2881,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
       fontSize: 24,
       fontFamily: 'Helvetica',
       fill: '#1e293b',
-      // New text is transparent by default so it does not create an
-      // artificial white rectangle over the original PDF.
       textBackgroundColor: 'transparent',
       padding: 0,
       cornerColor: '#8b5cf6',
@@ -2966,7 +2929,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
     activeCanvas.renderAll();
   };
 
-  // Canvas Action Functions
   const duplicateObject = async () => {
     if (!activeCanvas || !selectedObject) return;
     const cloned = await selectedObject.clone();
@@ -2987,9 +2949,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
     const pdfMasks = pdfTextMasks.current.get(selectedObject);
 
     if (pdfMasks?.length) {
-      // IMPORTANT: deleting an imported PDF text object must NOT delete its
-      // erase mask. The mask is what hides the original text baked into the
-      // background PDF image.
       preservePdfMaskOnDelete.current.add(selectedObject);
       pdfMasks.forEach((mask) => {
         mask.set({ selectable: false, evented: false });
@@ -3030,8 +2989,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
 
     selectedObject.set(key as keyof fabric.Object, value);
 
-    // Changing font size, family, weight, etc. changes the rendered bounds.
-    // Keep the original PDF area masked and resize the current-text mask.
     if (pdfTextMasks.current.has(selectedObject)) {
       updatePdfTextMasks(activeCanvas, selectedObject);
     }
@@ -3137,121 +3094,164 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
         {/* Dynamic Context Control Bar */}
         {hasDocument && view === 'editor' && (
           <div className="pdf-editor-context-tools flex items-center gap-1.5 bg-blue-50 px-3 py-1 rounded-xl border border-blue-100 shadow-inner">
-            <select
-              value={fontFamily}
-              onChange={(e) => {
-                setFontFamily(e.target.value);
-                applyTextStyle('fontFamily', e.target.value);
-              }}
-              className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer pr-1"
-            >
-              <option value="Helvetica">Helvetica</option>
-              <option value="Arial">Arial</option>
-              <option value="Times New Roman">Times New Roman</option>
-              <option value="Courier">Courier</option>
-              <option value="Courier New">Courier New</option>
-              <option value="Impact">Impact</option>
-            </select>
+            {/* Show controls conditionally: Image controls vs Text controls */}
+            {selectedObject && selectedObject.type === 'image' ? (
+              <div className="flex items-center gap-3">
+                {/* Image Replace Button */}
+                <button
+                  onClick={() => replaceFileInputRef.current?.click()}
+                  className="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-semibold hover:bg-blue-700 transition"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" /> Replace Image
+                </button>
+                <input
+                  type="file"
+                  ref={replaceFileInputRef}
+                  accept="image/*"
+                  onChange={handleReplaceImage}
+                  className="hidden"
+                />
 
-            <div className="h-4 w-[1px] bg-slate-300 mx-1" />
+                <div className="h-4 w-[1px] bg-slate-300" />
 
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => {
-                  const newSize = Math.max(8, fontSize - 2);
-                  setFontSize(newSize);
-                  applyTextStyle('fontSize', newSize);
-                }}
-                className="w-5 h-5 flex items-center justify-center hover:bg-slate-200 rounded text-slate-700 font-bold text-xs"
-              >
-                -
-              </button>
-              <span className="text-xs font-bold w-6 text-center text-slate-700">{fontSize}</span>
-              <button
-                onClick={() => {
-                  const newSize = fontSize + 2;
-                  setFontSize(newSize);
-                  applyTextStyle('fontSize', newSize);
-                }}
-                className="w-5 h-5 flex items-center justify-center hover:bg-slate-200 rounded text-slate-700 font-bold text-xs"
-              >
-                +
-              </button>
-            </div>
+                {/* Image Resolution / Dimensions Control */}
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                  <span>W:</span>
+                  <input
+                    type="number"
+                    value={imgWidth}
+                    onChange={(e) => handleDimensionChange(Number(e.target.value), imgHeight)}
+                    className="w-16 px-1.5 py-0.5 border rounded border-slate-300 text-xs text-center focus:outline-none focus:border-blue-500"
+                  />
+                  <span>H:</span>
+                  <input
+                    type="number"
+                    value={imgHeight}
+                    onChange={(e) => handleDimensionChange(imgWidth, Number(e.target.value))}
+                    className="w-16 px-1.5 py-0.5 border rounded border-slate-300 text-xs text-center focus:outline-none focus:border-blue-500"
+                  />
+                  <span className="text-slate-400">px</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                <select
+                  value={fontFamily}
+                  onChange={(e) => {
+                    setFontFamily(e.target.value);
+                    applyTextStyle('fontFamily', e.target.value);
+                  }}
+                  className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer pr-1"
+                >
+                  <option value="Helvetica">Helvetica</option>
+                  <option value="Arial">Arial</option>
+                  <option value="Times New Roman">Times New Roman</option>
+                  <option value="Courier">Courier</option>
+                  <option value="Courier New">Courier New</option>
+                  <option value="Impact">Impact</option>
+                </select>
 
-            <div className="h-4 w-[1px] bg-slate-300 mx-1" />
+                <div className="h-4 w-[1px] bg-slate-300 mx-1" />
 
-            {/* Text Color Picker */}
-            <label className="cursor-pointer relative p-1 hover:bg-slate-200 rounded" title="Text Color">
-              <Palette className="w-4 h-4 text-slate-700" />
-              <input
-                type="color"
-                value={textColor}
-                onChange={(e) => {
-                  setTextColor(e.target.value);
-                  applyTextStyle('fill', e.target.value);
-                }}
-                className="opacity-0 absolute inset-0 cursor-pointer"
-              />
-            </label>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => {
+                      const newSize = Math.max(8, fontSize - 2);
+                      setFontSize(newSize);
+                      applyTextStyle('fontSize', newSize);
+                    }}
+                    className="w-5 h-5 flex items-center justify-center hover:bg-slate-200 rounded text-slate-700 font-bold text-xs"
+                  >
+                    -
+                  </button>
+                  <span className="text-xs font-bold w-6 text-center text-slate-700">{fontSize}</span>
+                  <button
+                    onClick={() => {
+                      const newSize = fontSize + 2;
+                      setFontSize(newSize);
+                      applyTextStyle('fontSize', newSize);
+                    }}
+                    className="w-5 h-5 flex items-center justify-center hover:bg-slate-200 rounded text-slate-700 font-bold text-xs"
+                  >
+                    +
+                  </button>
+                </div>
 
-            {/* Background Color Picker */}
-            <label className="cursor-pointer relative p-1 hover:bg-slate-200 rounded" title="Highlight Color">
-              <Highlighter className="w-4 h-4 text-slate-700" />
-              <input
-                type="color"
-                value={bgColor}
-                onChange={(e) => {
-                  setBgColor(e.target.value);
-                  applyTextStyle('textBackgroundColor', e.target.value);
-                }}
-                className="opacity-0 absolute inset-0 cursor-pointer"
-              />
-            </label>
+                <div className="h-4 w-[1px] bg-slate-300 mx-1" />
 
-            <div className="h-4 w-[1px] bg-slate-300 mx-1" />
+                {/* Text Color Picker */}
+                <label className="cursor-pointer relative p-1 hover:bg-slate-200 rounded" title="Text Color">
+                  <Palette className="w-4 h-4 text-slate-700" />
+                  <input
+                    type="color"
+                    value={textColor}
+                    onChange={(e) => {
+                      setTextColor(e.target.value);
+                      applyTextStyle('fill', e.target.value);
+                    }}
+                    className="opacity-0 absolute inset-0 cursor-pointer"
+                  />
+                </label>
 
-            {/* Text Alignments */}
-            <button onClick={() => applyTextStyle('textAlign', 'left')} className="p-1 hover:bg-slate-200 rounded text-slate-700">
-              <AlignLeft className="w-4 h-4" />
-            </button>
-            <button onClick={() => applyTextStyle('textAlign', 'center')} className="p-1 hover:bg-slate-200 rounded text-slate-700">
-              <AlignCenter className="w-4 h-4" />
-            </button>
-            <button onClick={() => applyTextStyle('textAlign', 'right')} className="p-1 hover:bg-slate-200 rounded text-slate-700">
-              <AlignRight className="w-4 h-4" />
-            </button>
+                {/* Background Color Picker */}
+                <label className="cursor-pointer relative p-1 hover:bg-slate-200 rounded" title="Highlight Color">
+                  <Highlighter className="w-4 h-4 text-slate-700" />
+                  <input
+                    type="color"
+                    value={bgColor}
+                    onChange={(e) => {
+                      setBgColor(e.target.value);
+                      applyTextStyle('textBackgroundColor', e.target.value);
+                    }}
+                    className="opacity-0 absolute inset-0 cursor-pointer"
+                  />
+                </label>
 
-            <div className="h-4 w-[1px] bg-slate-300 mx-1" />
+                <div className="h-4 w-[1px] bg-slate-300 mx-1" />
 
-            {/* Font Weight Toggles */}
-            <button
-              onClick={() => {
-                setIsBold(!isBold);
-                applyTextStyle('fontWeight', !isBold ? 'bold' : 'normal');
-              }}
-              className={`p-1 rounded ${isBold ? 'bg-blue-100 text-blue-800' : 'hover:bg-blue-50 text-slate-700'}`}
-            >
-              <Bold className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => {
-                setIsItalic(!isItalic);
-                applyTextStyle('fontStyle', !isItalic ? 'italic' : 'normal');
-              }}
-              className={`p-1 rounded ${isItalic ? 'bg-blue-100 text-blue-800' : 'hover:bg-blue-50 text-slate-700'}`}
-            >
-              <Italic className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => {
-                setIsUnderline(!isUnderline);
-                applyTextStyle('underline', !isUnderline);
-              }}
-              className={`p-1 rounded ${isUnderline ? 'bg-blue-100 text-blue-800' : 'hover:bg-blue-50 text-slate-700'}`}
-            >
-              <Underline className="w-4 h-4" />
-            </button>
+                {/* Text Alignments */}
+                <button onClick={() => applyTextStyle('textAlign', 'left')} className="p-1 hover:bg-slate-200 rounded text-slate-700">
+                  <AlignLeft className="w-4 h-4" />
+                </button>
+                <button onClick={() => applyTextStyle('textAlign', 'center')} className="p-1 hover:bg-slate-200 rounded text-slate-700">
+                  <AlignCenter className="w-4 h-4" />
+                </button>
+                <button onClick={() => applyTextStyle('textAlign', 'right')} className="p-1 hover:bg-slate-200 rounded text-slate-700">
+                  <AlignRight className="w-4 h-4" />
+                </button>
+
+                <div className="h-4 w-[1px] bg-slate-300 mx-1" />
+
+                {/* Font Weight Toggles */}
+                <button
+                  onClick={() => {
+                    setIsBold(!isBold);
+                    applyTextStyle('fontWeight', !isBold ? 'bold' : 'normal');
+                  }}
+                  className={`p-1 rounded ${isBold ? 'bg-blue-100 text-blue-800' : 'hover:bg-blue-50 text-slate-700'}`}
+                >
+                  <Bold className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => {
+                    setIsItalic(!isItalic);
+                    applyTextStyle('fontStyle', !isItalic ? 'italic' : 'normal');
+                  }}
+                  className={`p-1 rounded ${isItalic ? 'bg-blue-100 text-blue-800' : 'hover:bg-blue-50 text-slate-700'}`}
+                >
+                  <Italic className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => {
+                    setIsUnderline(!isUnderline);
+                    applyTextStyle('underline', !isUnderline);
+                  }}
+                  className={`p-1 rounded ${isUnderline ? 'bg-blue-100 text-blue-800' : 'hover:bg-blue-50 text-slate-700'}`}
+                >
+                  <Underline className="w-4 h-4" />
+                </button>
+              </>
+            )}
           </div>
         )}
 
@@ -3271,7 +3271,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
 
       {/* BODY CONTENT */}
       <div className="pdf-editor-body flex flex-1 overflow-hidden relative flex-col md:flex-row">
-        {/* SIDEBAR NAVIGATION (Canva-style rail with open/close toggle) */}
         <UtilAiEditorSidebar
           open={sidebarOpen}
           active={railActive}
@@ -3279,71 +3278,68 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
           onSelect={handleSidebarSelect}
         />
 
-        {/* SIDEBAR EXTENDED PANELS */}
         {panelVisible && (
-        <div className="pdf-editor-panel shrink-0 w-72 p-5 overflow-y-auto bg-white border-r border-blue-100 z-10 shadow-sm">
-          {activeTab === 'uploads' && (
-            <div className="flex flex-col gap-4">
-              <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Import Document</h3>
+          <div className="pdf-editor-panel shrink-0 w-72 p-5 overflow-y-auto bg-white border-r border-blue-100 z-10 shadow-sm">
+            {activeTab === 'uploads' && (
+              <div className="flex flex-col gap-4">
+                <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Import Document</h3>
 
-              {/* PDF Import Card */}
-              <label className="border-2 border-dashed border-blue-300 hover:border-blue-500 bg-blue-50/60 p-5 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition text-center shadow-sm">
-                <Upload className="w-8 h-8 text-blue-600 mb-2 animate-bounce" />
-                <span className="text-xs font-bold text-blue-900">Upload PDF File</span>
-                <span className="text-[10px] text-blue-600 mt-1">Extract text & make pages canvas-ready</span>
-                <input type="file" accept="application/pdf" onChange={handlePdfUpload} className="hidden" />
-              </label>
+                <label className="border-2 border-dashed border-blue-300 hover:border-blue-500 bg-blue-50/60 p-5 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition text-center shadow-sm">
+                  <Upload className="w-8 h-8 text-blue-600 mb-2 animate-bounce" />
+                  <span className="text-xs font-bold text-blue-900">Upload PDF File</span>
+                  <span className="text-[10px] text-blue-600 mt-1">Extract text & make pages canvas-ready</span>
+                  <input type="file" accept="application/pdf" onChange={handlePdfUpload} className="hidden" />
+                </label>
 
-              <div className="h-[1px] bg-slate-100 my-1" />
+                <div className="h-[1px] bg-slate-100 my-1" />
 
-              {/* Image Import Card */}
-              <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Add Media</h3>
-              <label className="border border-slate-200 hover:border-slate-300 bg-slate-50 p-4 rounded-xl flex flex-col items-center justify-center cursor-pointer transition text-center">
-                <ImageIcon className="w-6 h-6 text-slate-500 mb-1" />
-                <span className="text-xs font-semibold text-slate-700">Upload Image</span>
-                <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-              </label>
-            </div>
-          )}
+                <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Add Media</h3>
+                <label className="border border-slate-200 hover:border-slate-300 bg-slate-50 p-4 rounded-xl flex flex-col items-center justify-center cursor-pointer transition text-center">
+                  <ImageIcon className="w-6 h-6 text-slate-500 mb-1" />
+                  <span className="text-xs font-semibold text-slate-700">Upload Image</span>
+                  <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                </label>
+              </div>
+            )}
 
-          {activeTab === 'text' && (
-            <div className="flex flex-col gap-3">
-              <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Add Text Boxes</h3>
-              <button
-                onClick={addTextBox}
-                className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold py-3 rounded-xl flex items-center justify-center gap-2 text-xs transition shadow-sm"
-              >
-                <Plus className="w-4 h-4" /> Add Text Layer
-              </button>
-            </div>
-          )}
-
-          {activeTab === 'elements' && (
-            <div className="flex flex-col gap-3">
-              <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Insert Shapes</h3>
-              <div className="grid grid-cols-2 gap-2">
+            {activeTab === 'text' && (
+              <div className="flex flex-col gap-3">
+                <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Add Text Boxes</h3>
                 <button
-                  onClick={() => addShape('rect')}
-                  className="bg-slate-50 hover:bg-slate-100 border border-slate-200 p-3 rounded-xl flex flex-col items-center gap-1 text-slate-700 text-xs font-medium"
+                  onClick={addTextBox}
+                  className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold py-3 rounded-xl flex items-center justify-center gap-2 text-xs transition shadow-sm"
                 >
-                  <Square className="w-5 h-5 text-blue-600" /> Rectangle
-                </button>
-                <button
-                  onClick={() => addShape('circle')}
-                  className="bg-slate-50 hover:bg-slate-100 border border-slate-200 p-3 rounded-xl flex flex-col items-center gap-1 text-slate-700 text-xs font-medium"
-                >
-                  <Circle className="w-5 h-5 text-blue-500" /> Circle
-                </button>
-                <button
-                  onClick={() => addShape('line')}
-                  className="bg-slate-50 hover:bg-slate-100 border border-slate-200 p-3 rounded-xl flex flex-col items-center gap-1 text-slate-700 text-xs font-medium col-span-2"
-                >
-                  <ArrowRight className="w-5 h-5 text-blue-500" /> Line / Divider
+                  <Plus className="w-4 h-4" /> Add Text Layer
                 </button>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+
+            {activeTab === 'elements' && (
+              <div className="flex flex-col gap-3">
+                <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Insert Shapes</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => addShape('rect')}
+                    className="bg-slate-50 hover:bg-slate-100 border border-slate-200 p-3 rounded-xl flex flex-col items-center gap-1 text-slate-700 text-xs font-medium"
+                  >
+                    <Square className="w-5 h-5 text-blue-600" /> Rectangle
+                  </button>
+                  <button
+                    onClick={() => addShape('circle')}
+                    className="bg-slate-50 hover:bg-slate-100 border border-slate-200 p-3 rounded-xl flex flex-col items-center gap-1 text-slate-700 text-xs font-medium"
+                  >
+                    <Circle className="w-5 h-5 text-blue-500" /> Circle
+                  </button>
+                  <button
+                    onClick={() => addShape('line')}
+                    className="bg-slate-50 hover:bg-slate-100 border border-slate-200 p-3 rounded-xl flex flex-col items-center gap-1 text-slate-700 text-xs font-medium col-span-2"
+                  >
+                    <ArrowRight className="w-5 h-5 text-blue-500" /> Line / Divider
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {/* WORKSPACE ENGINE AREA */}
@@ -3377,7 +3373,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
                 </div>
               ))}
 
-              {/* CANVA ADD PAGE CONTROL */}
               <button
                 onClick={addNewPage}
                 className="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-bold px-6 py-3 rounded-full shadow-lg transition my-4 text-xs"
@@ -3388,7 +3383,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
           )}
         </main>
 
-        {/* HOME + PROJECTS PAGES (separate files) */}
         {view === 'home' && (
           <UtilAiHome
             projects={projects}
@@ -3408,7 +3402,7 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
           />
         )}
 
-        {/* CANVA PURPLE FLOATING CONTEXT MENU (Shown on selecting objects) */}
+        {/* FLOATING CONTEXT MENU */}
         {view === 'editor' && selectedObject && floatingMenuPos && isFloatingToolbarVisible && (
           <div
             onMouseEnter={() => setIsFloatingToolbarVisible(true)}
@@ -3421,29 +3415,24 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
             }}
             className="bg-blue-600 text-white rounded-full shadow-2xl flex items-center px-3 py-1.5 gap-1 z-50 animate-in fade-in zoom-in-95 duration-150 border border-blue-400"
           >
-            {/* Move Control Indicator */}
-              <button className="p-1.5 hover:bg-blue-700 rounded-full text-blue-100 hover:text-white" title="Move Object">
+            <button className="p-1.5 hover:bg-blue-700 rounded-full text-blue-100 hover:text-white" title="Move Object">
               <Move className="w-4 h-4" />
             </button>
 
-            {/* Duplicate Button */}
             <button onClick={duplicateObject} className="p-1.5 hover:bg-blue-700 rounded-full text-blue-100 hover:text-white" title="Duplicate">
               <Copy className="w-4 h-4" />
             </button>
 
-            {/* Rotate Button */}
             <button onClick={rotateObject} className="p-1.5 hover:bg-blue-700 rounded-full text-blue-100 hover:text-white" title="Rotate 45°">
               <RotateCw className="w-4 h-4" />
             </button>
 
-            {/* Lock / Unlock */}
             <button onClick={toggleLock} className="p-1.5 hover:bg-blue-700 rounded-full text-blue-100 hover:text-white" title="Lock Position">
               {selectedObject.lockMovementX ? <Lock className="w-4 h-4 text-amber-300" /> : <Unlock className="w-4 h-4" />}
             </button>
 
             <div className="h-4 w-[1px] bg-blue-400 my-auto mx-1" />
 
-            {/* Delete Button */}
             <button onClick={deleteObject} className="p-1.5 hover:bg-blue-800 rounded-full text-red-200 hover:text-red-100" title="Delete">
               <Trash2 className="w-4 h-4" />
             </button>
@@ -3513,7 +3502,6 @@ export default function UtilAiPdfEditor({ tool }: { tool?: { slug?: string } }) 
         </div>
       )}
 
-      {/* Floating AI chat: fixed at the bottom-right, independent of the layout */}
       <UtilAiChatBot />
     </div>
   );
