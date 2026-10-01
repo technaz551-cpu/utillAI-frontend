@@ -16,7 +16,7 @@ const contactItems = [
   },
   {
     title: "Phone",
-    value: "+61 400 000 000",
+    value: "+923056013835",
     description: "Talk directly with our support team.",
     icon: Phone,
   },

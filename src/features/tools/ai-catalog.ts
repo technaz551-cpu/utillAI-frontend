@@ -40,11 +40,16 @@ export const AI_TOOLS: ToolMeta[] = [
   {
     id: "human-summarizer",
     slug: "human-summarizer",
-    name: "Humanize & Detect",
+    name: "Humanize Text",
     category_slug: "ai",
     processing_type: "client",
-    short_description: "Detect AI-like writing, rewrite it in plainer language, and summarize it — all in one pass.",
-    long_description: "One tool for three jobs: a heuristic AI-likelihood score, rule-based humanizing of stiff phrases, and an extractive summary of the rewritten text.",
+  
+  short_description:
+    "Rewrite AI-like or overly formal text in clearer, more natural language.",
+
+  long_description:
+    "A simple rule-based text humanizer that replaces stiff, overly formal, and repetitive phrases with clearer and more natural wording while preserving the original meaning.",
+
     how_to_use: ["Paste long or AI-sounding text", "Choose how many summary sentences to keep", "Click Process", "Read the score, humanized text, and summary"],
     features: ["AI-likelihood meter", "Rule-based humanizing", "Extractive summary", "Copy each result separately", "Private — processed locally"],
     faq: [
@@ -53,9 +58,73 @@ export const AI_TOOLS: ToolMeta[] = [
       { question: "Will this bypass AI detectors?", answer: "No. Humanizing only simplifies wording for readability." },
     ],
     related_tools: ["text-summarizer", "text-cleaner", "text-analyzer"],
-    seo_title: "Humanize & Detect — AI Likelihood, Humanize, Summarize",
-    meta_description: "Detect AI-like writing, humanize stiff phrasing, and summarize text in your browser. Free and private.",
+    seo_title: "Humanize Text, Humanize, Summarize",
+    meta_description: "Humanize AI-like writing, humanize stiff phrasing, and summarize text in your browser. Free and private.",
   },
+  
+//   {
+//   id: "humanize-text",
+//   slug: "humanize-text",
+//   name: "Humanize Text",
+//   category_slug: "ai",
+//   processing_type: "client",
+
+//   short_description:
+//     "Rewrite AI-like or overly formal text in clearer, more natural language.",
+
+//   long_description:
+//     "A simple rule-based text humanizer that replaces stiff, overly formal, and repetitive phrases with clearer and more natural wording while preserving the original meaning.",
+
+//   how_to_use: [
+//     "Paste the text you want to humanize",
+//     "Click Process",
+//     "Review the rewritten text",
+//     "Copy the humanized result"
+//   ],
+
+//   features: [
+//     "Rewrites stiff phrasing",
+//     "Simplifies overly formal language",
+//     "Preserves the original meaning",
+//     "Runs locally in your browser",
+//     "No text is sent to a server"
+//   ],
+
+//   faq: [
+//     privacyFaq,
+//     {
+//       question: "Does this detect AI-generated text?",
+//       answer:
+//         "No. This tool only rewrites text using predefined language transformations. It does not determine whether text was written by AI."
+//     },
+//     {
+//       question: "Does humanizing guarantee that AI detectors will not detect the text?",
+//       answer:
+//         "No. The tool is designed to make wording more natural and readable, but it cannot guarantee how another AI-detection system will classify the result."
+//     },
+//     {
+//       question: "Will the meaning of my text change?",
+//       answer:
+//         "The tool is designed to preserve the original meaning while simplifying or replacing stiff phrases, but you should review the result before using it."
+//     }
+//   ],
+
+//   related_tools: [
+//     "text-summarizer",
+//     "text-cleaner",
+//     "text-analyzer",
+//     "ai-likelihood-detector"
+//   ],
+
+//   seo_title:
+//     "Humanize Text Online — Make AI-Like Writing More Natural",
+
+//   meta_description:
+//     "Humanize text by replacing stiff and overly formal phrasing with clearer, more natural language. Free, private, and processed locally in your browser."
+// },
+
+  
+  
   {
     id: "text-analyzer",
     slug: "text-analyzer",
