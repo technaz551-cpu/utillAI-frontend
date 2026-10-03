@@ -1,12 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import { File as NodeFile } from "node:buffer";
+import {
+  Agent,
+  fetch as upstreamFetch,
+  FormData as UpstreamFormData,
+} from "undici";
 
 export const runtime = "nodejs";
 
 const AI_SERVER_URL =
   process.env.BIREFNET_API_URL ||
-  "http://127.0.0.1:8002";
+  "http://127.0.0.1:8001";
 
 const MAX_FILE_SIZE = 15 * 1024 * 1024;
+const INFERENCE_TIMEOUT_MS = 30 * 60 * 1000;
+const upstreamAgent = new Agent({
+  connectTimeout: 10_000,
+  headersTimeout: INFERENCE_TIMEOUT_MS,
+  bodyTimeout: INFERENCE_TIMEOUT_MS,
+});
 
 const ALLOWED_TYPES = new Set([
   "image/jpeg",
@@ -83,23 +95,26 @@ export async function POST(
      */
 
     const backendFormData =
-      new FormData();
+      new UpstreamFormData();
 
     backendFormData.append(
       "file",
-      file,
+      new NodeFile(
+        [Buffer.from(await file.arrayBuffer())],
+        file.name,
+        { type: file.type }
+      ),
       file.name
     );
 
-    const backendResponse =
-      await fetch(
-        `${AI_SERVER_URL}/remove-background`,
-        {
-          method: "POST",
-          body: backendFormData,
-          cache: "no-store",
-        }
-      );
+    const backendResponse = await upstreamFetch(
+      `${AI_SERVER_URL}/remove-background`,
+      {
+        method: "POST",
+        body: backendFormData,
+        dispatcher: upstreamAgent,
+      }
+    );
 
     /*
      * ---------------------------------------------------------
@@ -122,8 +137,10 @@ export async function POST(
         )
       ) {
         try {
-          const data =
-            await backendResponse.json();
+          const data = (await backendResponse.json()) as {
+            detail?: string;
+            message?: string;
+          };
 
           backendMessage =
             data?.detail ||
@@ -171,10 +188,11 @@ export async function POST(
      * ---------------------------------------------------------
      */
 
-    const resultBlob =
-      await backendResponse.blob();
+    const imageBytes = new Uint8Array(
+      await backendResponse.arrayBuffer()
+    );
 
-    if (!resultBlob.size) {
+    if (!imageBytes.byteLength) {
       return NextResponse.json(
         {
           success: false,
@@ -192,7 +210,7 @@ export async function POST(
      */
 
     return new NextResponse(
-      resultBlob,
+      imageBytes,
       {
         status: 200,
         headers: {
@@ -200,7 +218,7 @@ export async function POST(
             "image/png",
 
           "Content-Length":
-            resultBlob.size.toString(),
+            imageBytes.byteLength.toString(),
 
           "Cache-Control":
             "no-store, no-cache, must-revalidate",
@@ -216,11 +234,32 @@ export async function POST(
     if (
       error instanceof TypeError
     ) {
+      const causeCode =
+        typeof error.cause === "object" &&
+        error.cause !== null &&
+        "code" in error.cause
+          ? error.cause.code
+          : undefined;
+
+      if (
+        causeCode === "UND_ERR_HEADERS_TIMEOUT" ||
+        causeCode === "UND_ERR_BODY_TIMEOUT"
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "BiRefNet CPU processing exceeded the 30-minute request limit.",
+          },
+          { status: 504 }
+        );
+      }
+
       return NextResponse.json(
         {
           success: false,
           message:
-            "Unable to connect to the BiRefNet server. Make sure the Python server is running on port 8002.",
+            `Unable to connect to the BiRefNet server at ${AI_SERVER_URL}. Make sure the Python backend is running.`,
         },
         { status: 502 }
       );

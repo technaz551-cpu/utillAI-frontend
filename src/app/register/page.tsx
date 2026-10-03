@@ -1,37 +1,46 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { setStoredUser } from "@/lib/auth";
+import { registerWithPassword } from "@/lib/auth";
 import { btn } from "@/lib/utils";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setError("");
 
     if (!name.trim() || !email.trim() || !password.trim()) {
       setError("Please fill in all fields.");
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long.");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long.");
       return;
     }
 
-    setStoredUser({
-      id: `user_${Date.now()}`,
-      name: name.trim(),
-      email: email.trim(),
-      token: `demo_${Date.now()}`,
-    });
-
-    window.location.href = "/";
+    setIsSubmitting(true);
+    try {
+      await registerWithPassword(name.trim(), email.trim(), password);
+      router.push("/");
+    } catch (authError) {
+      setError(
+        authError instanceof Error
+          ? authError.message
+          : "Unable to create your account. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -77,7 +86,9 @@ export default function RegisterPage() {
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 
-          <button type="submit" className={btn("primary") + " mt-2 w-full !justify-center !rounded-full"}>Create account</button>
+          <button type="submit" disabled={isSubmitting} className={btn("primary") + " mt-2 w-full !justify-center !rounded-full disabled:cursor-not-allowed disabled:opacity-60"}>
+            {isSubmitting ? "Creating account..." : "Create account"}
+          </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-[var(--muted)]">
