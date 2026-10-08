@@ -34,15 +34,13 @@ import {
 } from "@/features/tools/developertools/developer-catalog";
 
 import type { ToolMeta } from "@/features/tools/client-processors";
+import { API_BASE } from "@/lib/api-config";
 
 /* =========================================================
    APP CONFIG
 ========================================================= */
 
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:8001/api/v1";
-  
+export { API_BASE } from "@/lib/api-config";
 
 export const SITE_NAME = "UTILAI";
 

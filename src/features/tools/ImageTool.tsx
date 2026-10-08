@@ -997,6 +997,7 @@ import {
 } from "react";
 
 import type { ToolMeta } from "@/features/tools/client-processors";
+import { API_BASE } from "@/lib/api-config";
 
 type Props = {
   tool: ToolMeta;
@@ -1034,10 +1035,6 @@ type ImageToolMode =
 | NEXT_PUBLIC_API_URL=http://localhost:8001/api/v1
 |
 */
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:8001/api/v1";
 
 /*
 |--------------------------------------------------------------------------

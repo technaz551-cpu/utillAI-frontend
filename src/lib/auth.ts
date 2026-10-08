@@ -1,3 +1,5 @@
+import { API_BASE } from "@/lib/api-config";
+
 export type AuthUser = {
   id: string;
   name: string;
@@ -6,9 +8,6 @@ export type AuthUser = {
 };
 
 const AUTH_KEY = "utilai_auth_user";
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:8001/api/v1";
 
 type AuthResponse = {
   success?: boolean;
