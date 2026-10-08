@@ -8,9 +8,11 @@ import {
 
 export const runtime = "nodejs";
 
-const AI_SERVER_URL =
-  process.env.BIREFNET_API_URL ||
-  "http://127.0.0.1:8001";
+const configuredBackendUrl =
+  process.env.BIREFNET_API_URL?.trim() ||
+  process.env.NEXT_PUBLIC_API_URL?.trim()?.replace(/\/api\/v1\/?$/i, "");
+const AI_SERVER_URL = configuredBackendUrl
+  ?.replace(/\/+$/, "");
 
 const MAX_FILE_SIZE = 15 * 1024 * 1024;
 const INFERENCE_TIMEOUT_MS = 30 * 60 * 1000;
@@ -30,6 +32,17 @@ export async function POST(
   request: NextRequest
 ) {
   try {
+    if (!AI_SERVER_URL) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Background removal backend URL is not configured. Set BIREFNET_API_URL or NEXT_PUBLIC_API_URL.",
+        },
+        { status: 503 }
+      );
+    }
+
     /*
      * ---------------------------------------------------------
      * Read uploaded file
@@ -259,7 +272,7 @@ export async function POST(
         {
           success: false,
           message:
-            `Unable to connect to the BiRefNet server at ${AI_SERVER_URL}. Make sure the Python backend is running.`,
+            `Unable to connect to the background removal backend at ${AI_SERVER_URL}.`,
         },
         { status: 502 }
       );
