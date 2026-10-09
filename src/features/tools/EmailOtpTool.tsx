@@ -234,12 +234,12 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import { btn, card, inputClass } from "@/lib/utils";
+import { inputClass } from "@/lib/utils";
 import type {
   ToolMeta,
   ToolStat,
 } from "@/features/tools/client-processors";
-import { INTERNET_PROCESSORS } from "@/features/tools/internet-processors";
+import { API_BASE } from "@/lib/api-config";
 
 type EmailOtpAction =
   | "generate-random-email"
@@ -267,7 +267,7 @@ const CHOICES: Array<{
   {
     id: "verify-otp",
     name: "Verify OTP",
-    hint: "Check an OTP generated in this browser.",
+    hint: "Check an OTP generated in this session.",
     icon: ShieldCheck,
   },
 ];
@@ -316,6 +316,9 @@ export function EmailOtpTool({
   const [userOtp, setUserOtp] =
     useState("");
 
+  const [verificationToken, setVerificationToken] =
+    useState("");
+
   const [output, setOutput] =
     useState("");
 
@@ -334,7 +337,8 @@ export function EmailOtpTool({
     action === "generate-random-email" ||
     action === "generate-otp" ||
     (action === "verify-otp" &&
-      userOtp.trim().length > 0);
+      userOtp.trim().length > 0 &&
+      verificationToken.length > 0);
 
   useEffect(() => {
     setAction(null);
@@ -343,6 +347,7 @@ export function EmailOtpTool({
     setOtpLength("6");
     setExpirySeconds("300");
     setUserOtp("");
+    setVerificationToken("");
     setOutput("");
     setStats(null);
     setError("");
@@ -363,55 +368,94 @@ export function EmailOtpTool({
     if (!keepResult) {
       setOutput("");
       setStats(null);
+      if (next !== "verify-otp") {
+        setVerificationToken("");
+      }
     }
   };
 
   const run = async () => {
     if (!action || !canRun) return;
 
-    const processor =
-      INTERNET_PROCESSORS[action];
-
-    if (!processor) {
-      setError(
-        "Tool processor not implemented"
-      );
-      setStatus("error");
-      return;
-    }
-
     setStatus("processing");
     setError("");
 
     try {
-      const result =
-        await Promise.resolve(
-          processor("", {
-            domain,
-            usernameLength,
-            otpLength,
-            expirySeconds,
-            userOtp,
-          })
+      const options =
+        action === "generate-random-email"
+          ? { domain, usernameLength }
+          : action === "generate-otp"
+            ? { otpLength, expirySeconds }
+            : { verificationToken };
+      const response = await fetch(
+        `${API_BASE}/tools/internet/${action}/execute`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            input: action === "verify-otp" ? userOtp : "",
+            options,
+          }),
+        },
+      );
+      const submitted = await response.json();
+      if (
+        !response.ok ||
+        !submitted.success ||
+        !submitted.data?.job_id
+      ) {
+        throw new Error(
+          submitted.message ||
+            "The tool request could not be submitted.",
         );
-
-      if (result.error) {
-        setError(result.error);
-        setOutput("");
-        setStats(null);
-        setStatus("error");
-      } else {
-        setOutput(result.output);
-        setStats(
-          result.stats?.length
-            ? result.stats
-            : null
-        );
-        setStatus("success");
       }
+
+      const deadline = Date.now() + 2 * 60 * 1000;
+      while (Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        const jobResponse = await fetch(
+          `${API_BASE}/tools/jobs/${submitted.data.job_id}`,
+        );
+        const job = await jobResponse.json();
+        if (!jobResponse.ok || !job.success || !job.data) {
+          throw new Error(
+            job.message || "Could not read tool job status.",
+          );
+        }
+        if (job.data.status === "failed") {
+          throw new Error(
+            job.data.error || "Tool processing failed.",
+          );
+        }
+        if (job.data.status === "completed") {
+          const result = job.data.result;
+          if (!result?.success) {
+            throw new Error(
+              result?.error ||
+                result?.message ||
+                "Tool processing failed.",
+            );
+          }
+          setOutput(String(result.output ?? ""));
+          setStats(
+            Array.isArray(result.stats) ? result.stats : null,
+          );
+          if (
+            action === "generate-otp" &&
+            typeof result.verificationToken === "string"
+          ) {
+            setVerificationToken(result.verificationToken);
+          }
+          setStatus("success");
+          return;
+        }
+      }
+      throw new Error("Timed out waiting for processing to finish.");
     } catch (e) {
       setError(
-        (e as Error).message
+        e instanceof Error
+          ? e.message
+          : "An unexpected error occurred."
       );
       setStatus("error");
     }
@@ -424,6 +468,7 @@ export function EmailOtpTool({
     setOtpLength("6");
     setExpirySeconds("300");
     setUserOtp("");
+    setVerificationToken("");
     setOutput("");
     setStats(null);
     setError("");
@@ -489,7 +534,7 @@ export function EmailOtpTool({
             <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
               Generate random email addresses,
               create OTPs, or verify an existing
-              OTP directly in your browser.
+              OTP using the UTILAI Python backend.
             </p>
           </div>
         </div>
@@ -514,13 +559,13 @@ export function EmailOtpTool({
 
             <div>
               <p className="text-sm font-semibold text-[var(--foreground)]">
-                Browser-based processing
+                Backend processing
               </p>
 
               <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-                Your input is processed locally
-                in your browser and is not sent
-                to our servers.
+                Email and OTP requests are sent to
+                the UTILAI Python backend. The signed
+                expiry token stays in this browser session.
               </p>
             </div>
           </div>
@@ -1006,7 +1051,7 @@ export function EmailOtpTool({
           </div>
 
           <span className="text-[11px] text-[var(--muted)]">
-            Processed in your browser
+            Processed by the UTILAI Python backend
           </span>
 
         </div>

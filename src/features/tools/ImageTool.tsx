@@ -1000,6 +1000,7 @@ import {
 } from "react";
 
 import type { ToolMeta } from "@/features/tools/client-processors";
+import { API_BASE } from "@/lib/api";
 
 if (typeof window !== "undefined") {
   pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -1894,6 +1895,96 @@ export function ImageTool({ tool }: Props) {
         return;
       }
 
+      if (tool.processing_type === "server") {
+        try {
+          setStatus("processing");
+          setError("");
+          const form = new FormData();
+          form.append("files", file, file.name);
+          const options = {
+            format: format === "jpeg" ? "jpg" : format,
+            quality,
+            width: width.trim() || undefined,
+            height: height.trim() || undefined,
+            aspectRatio: cropRatio,
+            angle: rotation,
+            direction: flipV ? "vertical" : "horizontal",
+            flipHorizontal: flipH,
+            flipVertical: flipV,
+          };
+          const submissionResponse = await fetch(
+            `${API_BASE}/tools/image/${tool.slug}/process`,
+            {
+              method: "POST",
+              headers: { "X-Tool-Options": JSON.stringify(options) },
+              body: form,
+            },
+          );
+          const submission = await submissionResponse.json();
+          if (!submissionResponse.ok || !submission.success || !submission.data?.job_id) {
+            throw new Error(submission.message || "The image could not be submitted.");
+          }
+
+          const jobId: string = submission.data.job_id;
+          const deadline = Date.now() + 2 * 60 * 1000;
+          while (Date.now() < deadline) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            const jobResponse = await fetch(`${API_BASE}/tools/jobs/${jobId}`);
+            const job = await jobResponse.json();
+            if (!jobResponse.ok || !job.success || !job.data) {
+              throw new Error(job.message || "Could not read image job status.");
+            }
+            if (job.data.status === "failed") {
+              throw new Error(job.data.error || "Image processing failed.");
+            }
+            if (job.data.status === "completed") {
+              const result = job.data.result;
+              if (result?.success === false) {
+                throw new Error(result.error || "Image processing failed.");
+              }
+              const resultResponse = await fetch(
+                `${API_BASE}/tools/jobs/${jobId}/download`,
+              );
+              if (!resultResponse.ok) {
+                throw new Error("The processed image could not be downloaded.");
+              }
+              const blob = await resultResponse.blob();
+              const disposition = resultResponse.headers.get("content-disposition") || "";
+              const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1]
+                || `${file.name.replace(/\.[^/.]+$/, "")}-processed.${format === "jpeg" ? "jpg" : format}`;
+              if (resultUrlRef.current) {
+                URL.revokeObjectURL(resultUrlRef.current);
+              }
+              const url = URL.createObjectURL(blob);
+              resultUrlRef.current = url;
+              setResultUrl(url);
+              setResultName(filename);
+              setResultSize(blob.size);
+              if (blob.type.startsWith("image/")) {
+                const bitmap = await createImageBitmap(blob);
+                setResultWidth(bitmap.width);
+                setResultHeight(bitmap.height);
+                bitmap.close();
+              } else {
+                setResultWidth(0);
+                setResultHeight(0);
+              }
+              setStatus("done");
+              return;
+            }
+          }
+          throw new Error("Timed out waiting for image processing to finish.");
+        } catch (err) {
+          setStatus("error");
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Unable to process the selected image.",
+          );
+        }
+        return;
+      }
+
       /*
       |--------------------------------------------------------------------------
       | AI TOOL
@@ -2295,7 +2386,7 @@ export function ImageTool({ tool }: Props) {
 
               <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
                 {tool.short_description ||
-                  "Process your image directly in your browser."}
+                  "Process your image through the UTILAI Python backend."}
               </p>
 
             </div>
@@ -2307,7 +2398,7 @@ export function ImageTool({ tool }: Props) {
               "inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold",
               isBackgroundRemover
                 ? "border-blue-200 bg-blue-50 text-blue-700"
-                : "border-emerald-200 bg-emerald-50 text-emerald-700",
+                : "border-blue-200 bg-blue-50 text-blue-700",
             ].join(" ")}
           >
             {isBackgroundRemover ? (
@@ -2318,7 +2409,7 @@ export function ImageTool({ tool }: Props) {
             ) : (
               <>
                 <ShieldCheck className="h-4 w-4" />
-                Private & browser-based
+                Python backend processing
               </>
             )}
           </div>

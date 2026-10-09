@@ -10,7 +10,7 @@ export const localDeveloperTools: ToolMeta[] = [
     short_description: "Format and beautify JSON data",
     category: "developer",
     category_slug: "developer",
-    processing_type: "client",
+    processing_type: "server",
     seo_title: "JSON Formatter - Free Online JSON Tool",
     meta_description:
       "Format and beautify JSON data online with our free JSON Formatter.",
@@ -24,7 +24,7 @@ export const localDeveloperTools: ToolMeta[] = [
     short_description: "Validate JSON syntax",
     category: "developer",
     category_slug: "developer",
-    processing_type: "client",
+    processing_type: "server",
     seo_title: "JSON Validator - Free Online JSON Validator",
     meta_description:
       "Validate JSON syntax online with our free JSON Validator.",
@@ -38,7 +38,7 @@ export const localDeveloperTools: ToolMeta[] = [
     short_description: "Encode and decode Base64 text",
     category: "developer",
     category_slug: "developer",
-    processing_type: "client",
+    processing_type: "server",
     seo_title: "Base64 Encoder & Decoder - Free Online Tool",
     meta_description:
       "Encode and decode Base64 text online with this free Base64 tool.",
@@ -52,7 +52,7 @@ export const localDeveloperTools: ToolMeta[] = [
     short_description: "Encode and decode URL text",
     category: "developer",
     category_slug: "developer",
-    processing_type: "client",
+    processing_type: "server",
     seo_title: "URL Encoder & Decoder - Free Online Tool",
     meta_description:
       "Encode and decode URL text online with this free URL Encoder and Decoder.",
@@ -66,7 +66,7 @@ export const localDeveloperTools: ToolMeta[] = [
     short_description: "Generate unique UUIDs",
     category: "developer",
     category_slug: "developer",
-    processing_type: "client",
+    processing_type: "server",
     seo_title: "UUID Generator - Free Online UUID Tool",
     meta_description:
       "Generate unique UUIDs online with this free UUID Generator.",
@@ -80,7 +80,7 @@ export const localDeveloperTools: ToolMeta[] = [
     short_description: "Generate SHA hashes from text",
     category: "developer",
     category_slug: "developer",
-    processing_type: "client",
+    processing_type: "server",
     seo_title: "Hash Generator - Free Online Hash Tool",
     meta_description:
       "Generate SHA hashes from text with this free online Hash Generator.",
@@ -94,7 +94,7 @@ export const localDeveloperTools: ToolMeta[] = [
     short_description: "Decode JWT header and payload",
     category: "developer",
     category_slug: "developer",
-    processing_type: "client",
+    processing_type: "server",
     seo_title: "JWT Decoder - Free Online JWT Tool",
     meta_description:
       "Decode JWT headers and payloads online with this free JWT Decoder.",
@@ -108,7 +108,7 @@ export const localDeveloperTools: ToolMeta[] = [
     short_description: "Convert Unix timestamps to dates",
     category: "developer",
     category_slug: "developer",
-    processing_type: "client",
+    processing_type: "server",
     seo_title: "Unix Timestamp Converter - Free Online Tool",
     meta_description:
       "Convert Unix timestamps to readable dates with this free online tool.",
@@ -129,4 +129,3 @@ export function getDeveloperTool(
     (tool) => tool.slug === slug
   );
 }
-

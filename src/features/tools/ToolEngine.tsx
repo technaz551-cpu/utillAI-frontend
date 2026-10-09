@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { btn, card, inputClass } from "@/lib/utils";
+import { API_BASE } from "@/lib/api";
 
 import {
   CLIENT_PROCESSORS,
@@ -205,16 +206,54 @@ export function ToolEngine({ tool }: Props) {
     setStatus("processing");
     setError("");
 
-    const processor =
-      CLIENT_PROCESSORS[tool.slug];
-
-    if (!processor) {
-      setError("Tool processor not implemented");
-      setStatus("error");
-      return;
-    }
-
     try {
+      if (isServer) {
+        const response = await fetch(
+          `${API_BASE}/tools/${tool.category_slug}/${tool.slug}/execute`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ input, options }),
+          },
+        );
+        const submitted = await response.json();
+        if (!response.ok || !submitted.success || !submitted.data?.job_id) {
+          throw new Error(submitted.message || "The tool request could not be submitted.");
+        }
+
+        const deadline = Date.now() + 2 * 60 * 1000;
+        while (Date.now() < deadline) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          const jobResponse = await fetch(
+            `${API_BASE}/tools/jobs/${submitted.data.job_id}`,
+          );
+          const job = await jobResponse.json();
+          if (!jobResponse.ok || !job.success || !job.data) {
+            throw new Error(job.message || "Could not read tool job status.");
+          }
+          if (job.data.status === "failed") {
+            throw new Error(job.data.error || "Tool processing failed.");
+          }
+          if (job.data.status === "completed") {
+            const result = job.data.result;
+            if (!result?.success) {
+              throw new Error(result?.error || result?.message || "Tool processing failed.");
+            }
+            setOutput(String(result.output ?? ""));
+            setStats(Array.isArray(result.stats) ? result.stats : null);
+            setSections(Array.isArray(result.sections) ? result.sections : null);
+            setMeter(result.meter ?? null);
+            setStatus("success");
+            return;
+          }
+        }
+        throw new Error("Timed out waiting for processing to finish.");
+      }
+
+      const processor = CLIENT_PROCESSORS[tool.slug];
+      if (!processor) {
+        throw new Error("Tool processor not implemented.");
+      }
       const result = await Promise.resolve(
         processor(input, options)
       );
@@ -258,8 +297,10 @@ export function ToolEngine({ tool }: Props) {
     }
   }, [
     input,
+    isServer,
     options,
     tool.slug,
+    tool.category_slug,
   ]);
 
   /* =======================================================
@@ -294,12 +335,13 @@ export function ToolEngine({ tool }: Props) {
     // Continue into the generic Internet UI below.
   }
 
-  if (DEVELOPER_TOOL_SLUGS.has(tool.slug)) {
+  if (DEVELOPER_TOOL_SLUGS.has(tool.slug) && !isServer) {
     return <DeveloperTool slug={tool.slug} />;
   }
 
   if (
     isServer &&
+    (tool.category_slug === "pdf" || tool.category_slug === "image") &&
     tool.slug !== "compress-image"
   ) {
     return <ServerFileTool tool={tool} />;

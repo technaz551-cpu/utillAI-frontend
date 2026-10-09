@@ -1576,6 +1576,7 @@ import {
 } from "lucide-react";
 
 import type { ToolMeta } from "@/features/tools/client-processors";
+import { API_BASE } from "@/lib/api";
 
 import {
   organizePdf,
@@ -1645,12 +1646,60 @@ function useRunner() {
       setStatus("error");
     }
   };
+  const runServer = async (
+    slug: string,
+    file: File,
+    options: Record<string, unknown>,
+  ) => run(async () => {
+    const form = new FormData();
+    form.append("files", file, file.name);
+    form.append("options_json", JSON.stringify(options));
+    const submissionResponse = await fetch(
+      `${API_BASE}/tools/pdf/${slug}/process`,
+      { method: "POST", body: form },
+    );
+    const submission = await submissionResponse.json();
+    if (!submissionResponse.ok || !submission.success || !submission.data?.job_id) {
+      throw new Error(submission.message || "The PDF could not be submitted.");
+    }
+    const jobId: string = submission.data.job_id;
+    const deadline = Date.now() + 2 * 60 * 1000;
+    while (Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const jobResponse = await fetch(`${API_BASE}/tools/jobs/${jobId}`);
+      const job = await jobResponse.json();
+      if (!jobResponse.ok || !job.success || !job.data) {
+        throw new Error(job.message || "Could not read PDF job status.");
+      }
+      if (job.data.status === "failed") {
+        throw new Error(job.data.error || "PDF processing failed.");
+      }
+      if (job.data.status === "completed") {
+        if (job.data.result?.success === false) {
+          throw new Error(job.data.result.error || "PDF processing failed.");
+        }
+        const resultResponse = await fetch(`${API_BASE}/tools/jobs/${jobId}/download`);
+        if (!resultResponse.ok) {
+          throw new Error("The processed PDF could not be downloaded.");
+        }
+        const disposition = resultResponse.headers.get("content-disposition") || "";
+        const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1]
+          || `${slug}-result.pdf`;
+        return {
+          blob: await resultResponse.blob(),
+          filename,
+          note: job.data.result?.note,
+        };
+      }
+    }
+    throw new Error("Timed out waiting for PDF processing to finish.");
+  });
   const reset = () => {
     setResult(null);
     setStatus("idle");
     setError("");
   };
-  return { status, error, result, run, reset, setError };
+  return { status, error, result, run, runServer, reset, setError };
 }
 
 /** Prepress crop marks in the four corners of a positioned parent */
@@ -2217,7 +2266,7 @@ export function OrganizeTool({ tool }: { tool: ToolMeta }) {
               label="Save organized PDF"
               busy={r.status === "processing"}
               disabled={!items.length}
-              onRun={() => r.run(() => organizePdf(file, items, num))}
+              onRun={() => r.runServer("organize-pdf", file, { items, numbering: num })}
               onClear={reset}
             />
           </>
@@ -2394,7 +2443,7 @@ export function RotateCropTool({ tool }: { tool: ToolMeta }) {
             <Actions
               label="Apply and save"
               busy={r.status === "processing"}
-              onRun={() => r.run(() => rotateCropPdf(file, rot, crop))}
+              onRun={() => r.runServer("rotate-crop-pdf", file, { rotations: rot, crop })}
               onClear={reset}
             />
           </>
@@ -2550,8 +2599,7 @@ export function WatermarkTool({ tool }: { tool: ToolMeta }) {
         : wmKind === "text"
           ? { kind: "text", text, fontSize, opacity, rotation: angle, color }
           : { kind: "image", dataUrl: wmImg, widthPct: wmImgW, opacity, rotation: angle };
-    r.run(() =>
-      watermarkPdf(file, {
+    r.runServer("watermark-pdf", file, {
         watermark: { action: wmAction, options: wmOptions },
         signature: {
           action: sigAction,
@@ -2559,8 +2607,7 @@ export function WatermarkTool({ tool }: { tool: ToolMeta }) {
             ? { dataUrl: sigImg, pages: sigPages, position: sigPos, widthPct: sigW }
             : undefined,
         },
-      }),
-    );
+      });
   };
 
   const total = thumbs.length;
@@ -3022,9 +3069,12 @@ export function ProtectTool({ tool }: { tool: ToolMeta }) {
               busy={r.status === "processing"}
               disabled={!pw || mismatch || pw !== pw2}
               onRun={() =>
-                r.run(() =>
-                  protectPdf(file, { userPassword: pw, allowPrint, allowCopy, allowModify }),
-                )
+                r.runServer("protect-pdf", file, {
+                  userPassword: pw,
+                  allowPrint,
+                  allowCopy,
+                  allowModify,
+                })
               }
               onClear={reset}
             />
@@ -3146,7 +3196,7 @@ export function MetadataTool({ tool }: { tool: ToolMeta }) {
             <Actions
               label="Save metadata"
               busy={r.status === "processing"}
-              onRun={() => r.run(() => writeMetadata(file, form))}
+              onRun={() => r.runServer("pdf-metadata", file, form)}
               onClear={reset}
             />
           </>

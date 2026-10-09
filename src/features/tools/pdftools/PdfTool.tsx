@@ -26,7 +26,7 @@ import {
 
 import type { ToolMeta } from "@/features/tools/client-processors";
 
-import { processPdf } from "@/features/tools/pdf-processors";
+import { API_BASE } from "@/lib/api";
 
 // NEW: naye tools (organize, rotate+crop, watermark+sign, protect, metadata)
 import {
@@ -136,6 +136,55 @@ function getFileIcon(file: File) {
   );
 }
 
+async function processPdfOnServer(
+  slug: string,
+  files: File[],
+  options: Record<string, unknown>,
+): Promise<{ blob: Blob; filename: string }> {
+  const form = new FormData();
+  files.forEach((file) => form.append("files", file));
+  const response = await fetch(
+    `${API_BASE}/tools/pdf/${slug}/process`,
+    {
+      method: "POST",
+      headers: { "X-Tool-Options": JSON.stringify(options) },
+      body: form,
+    },
+  );
+  const submission = await response.json();
+  if (!response.ok || !submission.success || !submission.data?.job_id) {
+    throw new Error(submission.message || "The PDF could not be submitted.");
+  }
+
+  const jobId: string = submission.data.job_id;
+  const deadline = Date.now() + 2 * 60 * 1000;
+  while (Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const jobResponse = await fetch(`${API_BASE}/tools/jobs/${jobId}`);
+    const job = await jobResponse.json();
+    if (!jobResponse.ok || !job.success || !job.data) {
+      throw new Error(job.message || "Could not read PDF job status.");
+    }
+    if (job.data.status === "failed") {
+      throw new Error(job.data.error || "PDF processing failed.");
+    }
+    if (job.data.status === "completed") {
+      const resultResponse = await fetch(
+        `${API_BASE}/tools/jobs/${jobId}/download`,
+      );
+      if (!resultResponse.ok) {
+        throw new Error("The processed file could not be downloaded.");
+      }
+      const blob = await resultResponse.blob();
+      const disposition = resultResponse.headers.get("content-disposition") || "";
+      const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1]
+        || `${slug}-result.${files.length > 1 ? "zip" : slug === "jpg-to-pdf" || slug === "merge-pdf" || slug === "compress-pdf" ? "pdf" : options.format === "png" ? "png" : options.format === "webp" ? "webp" : "jpg"}`;
+      return { blob, filename };
+    }
+  }
+  throw new Error("Timed out waiting for PDF processing to finish.");
+}
+
 /*
  * ============================================================
  * ROUTER (NEW) - slug ke hisaab se sahi tool dikhata hai.
@@ -193,23 +242,28 @@ function BasicPdfTool({ tool }: { tool: ToolMeta }) {
 
   const [action, setAction] = useState<PdfAction | null>(null);
 
+  const isMergeSplit = MERGE_SPLIT.has(tool.slug);
+
+  const isConvert = CONVERT.has(tool.slug);
+
   const accept = useMemo(() => {
+    if (isConvert) {
+      return action === "jpg-to-pdf" ? ".jpg,.jpeg,.png" : ".pdf";
+    }
     if (tool.accepted_formats?.length) {
       return tool.accepted_formats.map((format) => `.${format}`).join(",");
     }
 
     return ".pdf";
-  }, [tool.accepted_formats]);
-
-  const isMergeSplit = MERGE_SPLIT.has(tool.slug);
-
-  const isConvert = CONVERT.has(tool.slug);
+  }, [action, isConvert, tool.accepted_formats]);
 
   const multiple = MULTI_FILE.has(tool.slug);
 
-  const acceptsMultipleFiles = isConvert
-    ? action === "jpg-to-pdf" || action === null
-    : multiple;
+  const acceptsMultipleFiles = isMergeSplit
+    ? action === "merge"
+    : isConvert
+      ? action === "jpg-to-pdf" || action === null
+      : multiple;
 
   const images = files.filter(isImageFile);
 
@@ -391,7 +445,7 @@ function BasicPdfTool({ tool }: { tool: ToolMeta }) {
     setResultUrl("");
 
     try {
-      const result = await processPdf(slug, input, {
+      const result = await processPdfOnServer(slug, input, {
         quality,
         format: splitFormat,
       });

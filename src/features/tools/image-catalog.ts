@@ -199,9 +199,9 @@ export const IMAGE_TOOL_SLUGS = new Set([
 ]);
 
 const browserPrivacyFaq = {
-  question: "Is my image uploaded to a server?",
+  question: "How is my image processed?",
   answer:
-    "No. Browser-based image tools process your image locally on your device.",
+    "Your image is uploaded to the UTILAI Python backend for processing. Do not upload files you are not comfortable sending to the service.",
 };
 
 const aiPrivacyFaq = {
@@ -216,10 +216,10 @@ export const IMAGE_TOOLS: ToolMeta[] = [
     slug: "image-converter",
     name: "Image Converter",
     category_slug: "image",
-    processing_type: "client",
+    processing_type: "server",
     short_description: "Convert images between JPG, PNG and WebP.",
     long_description:
-      "Upload a JPG, PNG, WebP, GIF or BMP and convert it to another format in your browser.",
+      "Upload a JPG, PNG, WebP, GIF or BMP to the UTILAI Python backend and convert it to another format.",
     how_to_use: [
       "Drop an image or click to upload",
       "Choose the output format",
@@ -229,7 +229,7 @@ export const IMAGE_TOOLS: ToolMeta[] = [
     features: [
       "JPG, PNG and WebP output",
       "Quality control for lossy formats",
-      "Private — processed locally",
+      "Processed by the UTILAI Python backend",
     ],
     faq: [
       browserPrivacyFaq,
@@ -241,7 +241,7 @@ export const IMAGE_TOOLS: ToolMeta[] = [
     related_tools: ["jpg-to-png", "png-to-jpg", "webp-converter"],
     seo_title: "Image Converter — JPG, PNG and WebP",
     meta_description:
-      "Convert images between JPG, PNG and WebP in your browser. Free, private, no upload required.",
+      "Convert images between JPG, PNG and WebP using the UTILAI Python backend.",
     accepted_formats: ["jpg", "jpeg", "png", "webp", "gif", "bmp"],
   },
 
@@ -250,19 +250,19 @@ export const IMAGE_TOOLS: ToolMeta[] = [
     slug: "jpg-to-png",
     name: "JPG to PNG",
     category_slug: "image",
-    processing_type: "client",
+    processing_type: "server",
     short_description: "Convert JPG images to PNG format.",
     how_to_use: [
       "Upload a JPG image",
       "Click Process",
       "Download the PNG",
     ],
-    features: ["Lossless PNG output", "Private — processed locally"],
+    features: ["Lossless PNG output", "Processed by the UTILAI Python backend"],
     faq: [browserPrivacyFaq],
     related_tools: ["png-to-jpg", "image-converter"],
     seo_title: "JPG to PNG — Convert JPG Images Online",
     meta_description:
-      "Convert JPG images to PNG in your browser. Free and private.",
+      "Convert JPG images to PNG using the UTILAI Python backend.",
     accepted_formats: ["jpg", "jpeg"],
   },
 
@@ -271,7 +271,7 @@ export const IMAGE_TOOLS: ToolMeta[] = [
     slug: "png-to-jpg",
     name: "PNG to JPG",
     category_slug: "image",
-    processing_type: "client",
+    processing_type: "server",
     short_description: "Convert PNG images to JPG format.",
     how_to_use: [
       "Upload a PNG image",
@@ -281,13 +281,13 @@ export const IMAGE_TOOLS: ToolMeta[] = [
     features: [
       "Quality control",
       "White background for transparency",
-      "Private — processed locally",
+      "Processed by the UTILAI Python backend",
     ],
     faq: [browserPrivacyFaq],
     related_tools: ["jpg-to-png", "compress-image"],
     seo_title: "PNG to JPG — Convert PNG Images Online",
     meta_description:
-      "Convert PNG images to JPG in your browser. Free and private.",
+      "Convert PNG images to JPG using the UTILAI Python backend.",
     accepted_formats: ["png"],
   },
 
@@ -296,7 +296,7 @@ export const IMAGE_TOOLS: ToolMeta[] = [
     slug: "webp-converter",
     name: "WebP Converter",
     category_slug: "image",
-    processing_type: "client",
+    processing_type: "server",
     short_description: "Convert images to and from WebP format.",
     how_to_use: [
       "Upload a JPG, PNG or WebP image",
@@ -306,13 +306,13 @@ export const IMAGE_TOOLS: ToolMeta[] = [
     features: [
       "To and from WebP",
       "Quality control",
-      "Private — processed locally",
+      "Processed by the UTILAI Python backend",
     ],
     faq: [browserPrivacyFaq],
     related_tools: ["image-converter", "jpg-to-png"],
     seo_title: "WebP Converter — Convert to and from WebP",
     meta_description:
-      "Convert images to and from WebP in your browser. Free and private.",
+      "Convert images to and from WebP using the UTILAI Python backend.",
     accepted_formats: ["webp", "jpg", "jpeg", "png"],
   },
 
@@ -321,7 +321,7 @@ export const IMAGE_TOOLS: ToolMeta[] = [
     slug: "compress-image",
     name: "Compress Image",
     category_slug: "image",
-    processing_type: "client",
+    processing_type: "server",
     short_description: "Compress JPG, PNG and WebP images online.",
     how_to_use: [
       "Upload an image",
@@ -331,13 +331,13 @@ export const IMAGE_TOOLS: ToolMeta[] = [
     features: [
       "Quality slider",
       "JPG, PNG and WebP",
-      "Private — processed locally",
+      "Processed by the UTILAI Python backend",
     ],
     faq: [browserPrivacyFaq],
     related_tools: ["resize-image", "image-converter"],
     seo_title: "Compress Image — Reduce Image File Size",
     meta_description:
-      "Compress JPG, PNG and WebP images in your browser. Free and private.",
+      "Compress JPG, PNG and WebP images using the UTILAI Python backend.",
     accepted_formats: ["jpg", "jpeg", "png", "webp"],
   },
 
@@ -346,7 +346,7 @@ export const IMAGE_TOOLS: ToolMeta[] = [
     slug: "resize-image",
     name: "Resize Image",
     category_slug: "image",
-    processing_type: "client",
+    processing_type: "server",
     short_description: "Resize images to exact dimensions.",
     how_to_use: [
       "Upload an image",
@@ -356,13 +356,13 @@ export const IMAGE_TOOLS: ToolMeta[] = [
     features: [
       "Keeps aspect ratio",
       "JPG, PNG and WebP",
-      "Private — processed locally",
+      "Processed by the UTILAI Python backend",
     ],
     faq: [browserPrivacyFaq],
     related_tools: ["compress-image", "crop-image"],
     seo_title: "Resize Image — Change Image Dimensions",
     meta_description:
-      "Resize images in your browser while keeping aspect ratio. Free and private.",
+      "Resize images while keeping their aspect ratio using the UTILAI Python backend.",
     accepted_formats: ["jpg", "jpeg", "png", "webp"],
   },
 
@@ -371,7 +371,7 @@ export const IMAGE_TOOLS: ToolMeta[] = [
     slug: "crop-image",
     name: "Crop Image",
     category_slug: "image",
-    processing_type: "client",
+    processing_type: "server",
     short_description: "Crop images to a selected aspect ratio.",
     how_to_use: [
       "Upload an image",
@@ -381,13 +381,13 @@ export const IMAGE_TOOLS: ToolMeta[] = [
     features: [
       "1:1, 4:3, 16:9 and 3:2",
       "Center crop",
-      "Private — processed locally",
+      "Processed by the UTILAI Python backend",
     ],
     faq: [browserPrivacyFaq],
     related_tools: ["resize-image", "compress-image"],
     seo_title: "Crop Image — Crop to Aspect Ratio",
     meta_description:
-      "Crop images to common aspect ratios in your browser. Free and private.",
+      "Crop images to common aspect ratios using the UTILAI Python backend.",
     accepted_formats: ["jpg", "jpeg", "png", "webp"],
   },
 
@@ -396,7 +396,7 @@ export const IMAGE_TOOLS: ToolMeta[] = [
     slug: "rotate-image",
     name: "Rotate Image",
     category_slug: "image",
-    processing_type: "client",
+    processing_type: "server",
     short_description: "Rotate images 90°, 180° or 270°.",
     how_to_use: [
       "Upload an image",
@@ -405,13 +405,13 @@ export const IMAGE_TOOLS: ToolMeta[] = [
     ],
     features: [
       "90°, 180° and 270°",
-      "Private — processed locally",
+      "Processed by the UTILAI Python backend",
     ],
     faq: [browserPrivacyFaq],
     related_tools: ["flip-image", "crop-image"],
     seo_title: "Rotate Image — Rotate 90, 180 or 270 Degrees",
     meta_description:
-      "Rotate images in your browser. Free and private.",
+      "Rotate images using the UTILAI Python backend.",
     accepted_formats: ["jpg", "jpeg", "png", "webp"],
   },
 
@@ -420,7 +420,7 @@ export const IMAGE_TOOLS: ToolMeta[] = [
     slug: "flip-image",
     name: "Flip Image",
     category_slug: "image",
-    processing_type: "client",
+    processing_type: "server",
     short_description: "Flip images horizontally or vertically.",
     how_to_use: [
       "Upload an image",
@@ -429,13 +429,13 @@ export const IMAGE_TOOLS: ToolMeta[] = [
     ],
     features: [
       "Horizontal and vertical flip",
-      "Private — processed locally",
+      "Processed by the UTILAI Python backend",
     ],
     faq: [browserPrivacyFaq],
     related_tools: ["rotate-image", "crop-image"],
     seo_title: "Flip Image — Mirror Horizontally or Vertically",
     meta_description:
-      "Flip images horizontally or vertically in your browser. Free and private.",
+      "Flip images horizontally or vertically using the UTILAI Python backend.",
     accepted_formats: ["jpg", "jpeg", "png", "webp"],
   },
 
