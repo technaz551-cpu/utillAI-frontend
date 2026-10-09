@@ -1926,7 +1926,7 @@ export function ImageTool({ tool }: Props) {
           }
 
           const jobId: string = submission.data.job_id;
-          const deadline = Date.now() + 2 * 60 * 1000;
+          const deadline = Date.now() + 30 * 60 * 1000;
           while (Date.now() < deadline) {
             await new Promise((resolve) => setTimeout(resolve, 1000));
             const jobResponse = await fetch(`${API_BASE}/tools/jobs/${jobId}`);
