@@ -571,7 +571,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { Search, ArrowRight, Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { fetchCategories } from "@/lib/api";
 import { NavigationMenu } from "./NavigationMenu";
+
+type HeaderCategory = {
+  slug: string;
+  name: string;
+};
 
 const navItems = [
   { label: "Home", href: "/" },
@@ -588,6 +594,40 @@ export function Header() {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [categories, setCategories] = useState<HeaderCategory[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadCategories() {
+      const data = await fetchCategories();
+
+      if (!mounted || !Array.isArray(data)) {
+        return;
+      }
+
+      setCategories(
+        data.flatMap((category) => {
+          if (
+            typeof category.slug !== "string" ||
+            category.slug.trim() === "" ||
+            typeof category.name !== "string" ||
+            category.name.trim() === ""
+          ) {
+            return [];
+          }
+
+          return [{ slug: category.slug, name: category.name }];
+        }),
+      );
+    }
+
+    void loadCategories();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // Page change hone par mobile menu band ho jaye
   useEffect(() => {
@@ -723,7 +763,9 @@ export function Header() {
       {mobileMenuOpen && (
         <div className="max-h-[calc(100dvh-4rem)] overflow-y-auto bg-white px-4 py-4 shadow-lg sm:max-h-[calc(100dvh-72px)] sm:px-6 sm:py-5 lg:hidden">
           <nav className="mx-auto flex max-w-2xl flex-col gap-1">
-            {navItems.map((item) => (
+            {navItems
+              .filter((item) => item.label !== "Categories")
+              .map((item) => (
               <Link
                 key={item.label}
                 href={item.href}
@@ -737,6 +779,24 @@ export function Header() {
                 {item.label}
               </Link>
             ))}
+
+            <div className="mt-2 border-t border-blue-100 pt-4">
+              <p className="px-4 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                Browse categories
+              </p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {categories.map((category) => (
+                  <Link
+                    key={category.slug}
+                    href={`/tools/${category.slug}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-semibold text-[#35506F] transition hover:border-blue-100 hover:bg-blue-50 hover:text-[#1769E0]"
+                  >
+                    {category.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
 
             {/* Mobile search */}
             <div className="mt-3 border-t border-blue-100 pt-4">

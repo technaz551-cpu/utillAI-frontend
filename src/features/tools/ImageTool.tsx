@@ -972,10 +972,13 @@
 
 "use client";
 
+import * as pdfjsLib from "pdfjs-dist";
+import { PDFDocument } from "pdf-lib";
 import {
   CheckCircle2,
   Download,
   FileImage,
+  FileText,
   FlipHorizontal,
   FlipVertical,
   Image as ImageIcon,
@@ -997,13 +1000,19 @@ import {
 } from "react";
 
 import type { ToolMeta } from "@/features/tools/client-processors";
-import { API_BASE } from "@/lib/api-config";
+
+if (typeof window !== "undefined") {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.min.js",
+    import.meta.url,
+  ).toString();
+}
 
 type Props = {
   tool: ToolMeta;
 };
 
-type OutputFormat = "jpeg" | "png" | "webp";
+type OutputFormat = "jpeg" | "png" | "webp" | "pdf";
 
 type CropRatio =
   | "free"
@@ -1064,6 +1073,8 @@ function formatLabel(format: OutputFormat) {
 }
 
 function mimeFor(format: OutputFormat) {
+  if (format === "pdf") return "application/pdf";
+
   if (format === "jpeg") return "image/jpeg";
 
   if (format === "png") return "image/png";
@@ -1075,6 +1086,34 @@ function extFor(format: OutputFormat) {
   if (format === "jpeg") return "jpg";
 
   return format;
+}
+
+async function renderPdfPage(
+  pdf: pdfjsLib.PDFDocumentProxy,
+  pageNumber: number,
+): Promise<Blob> {
+  const page = await pdf.getPage(pageNumber);
+  const viewport = page.getViewport({ scale: 1.5 });
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.ceil(viewport.width);
+  canvas.height = Math.ceil(viewport.height);
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    throw new Error("Unable to prepare the PDF page preview.");
+  }
+
+  await page.render({ canvasContext: context, viewport }).promise;
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) =>
+        blob
+          ? resolve(blob)
+          : reject(new Error("Unable to render the PDF page.")),
+      "image/png",
+    );
+  });
 }
 
 function defaultFormat(slug: string): OutputFormat {
@@ -1222,6 +1261,9 @@ export function ImageTool({ tool }: Props) {
   const [resultHeight, setResultHeight] =
     useState(0);
 
+  const [resultName, setResultName] =
+    useState("");
+
   const [status, setStatus] =
     useState<Status>("idle");
 
@@ -1237,6 +1279,9 @@ export function ImageTool({ tool }: Props) {
     useState(82);
 
   const [width, setWidth] =
+    useState("");
+
+  const [height, setHeight] =
     useState("");
 
   const [cropRatio, setCropRatio] =
@@ -1275,6 +1320,10 @@ export function ImageTool({ tool }: Props) {
   */
 
   const acceptedFormats = useMemo(() => {
+    if (isBackgroundRemover) {
+      return "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp,.pdf";
+    }
+
     if (!tool.accepted_formats?.length) {
       return "image/jpeg,image/png,image/webp";
     }
@@ -1310,7 +1359,7 @@ export function ImageTool({ tool }: Props) {
         return item;
       })
       .join(",");
-  }, [tool.accepted_formats]);
+  }, [isBackgroundRemover, tool.accepted_formats]);
 
   /*
   |--------------------------------------------------------------------------
@@ -1319,10 +1368,10 @@ export function ImageTool({ tool }: Props) {
   */
 
   const formatLocked =
-    isFormatLocked(tool.slug);
+    isFormatLocked(tool.slug) &&
+    !isBackgroundRemover;
 
   const showQuality =
-    !isBackgroundRemover &&
     (format === "jpeg" ||
       format === "webp");
 
@@ -1354,16 +1403,27 @@ export function ImageTool({ tool }: Props) {
   */
 
   const chooseFile = useCallback(
-    (selectedFile: File | null) => {
+    async (selectedFile: File | null) => {
       if (!selectedFile) return;
 
+      const isPdf =
+        selectedFile.type === "application/pdf" ||
+        selectedFile.name.toLowerCase().endsWith(".pdf");
+      const isSupportedImage = [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+      ].includes(selectedFile.type);
+
       if (
-        !selectedFile.type.startsWith(
-          "image/"
-        )
+        isBackgroundRemover
+          ? !isPdf && !isSupportedImage
+          : !selectedFile.type.startsWith("image/")
       ) {
         setError(
-          "Please select a valid image file."
+          isBackgroundRemover
+            ? "Please choose a JPG, PNG, WEBP, or PDF file."
+            : "Please select a valid image file."
         );
 
         setStatus("error");
@@ -1383,10 +1443,27 @@ export function ImageTool({ tool }: Props) {
         );
       }
 
-      const url =
-        URL.createObjectURL(
-          selectedFile
+      let url: string;
+      try {
+        if (isPdf) {
+          const pdf = await pdfjsLib.getDocument({
+            data: await selectedFile.arrayBuffer(),
+          }).promise;
+          const firstPagePreview = await renderPdfPage(pdf, 1);
+          url = URL.createObjectURL(firstPagePreview);
+          await pdf.destroy();
+        } else {
+          url = URL.createObjectURL(selectedFile);
+        }
+      } catch (previewError) {
+        setError(
+          previewError instanceof Error
+            ? previewError.message
+            : "Unable to preview the selected file.",
         );
+        setStatus("error");
+        return;
+      }
 
       previewUrlRef.current = url;
 
@@ -1403,12 +1480,14 @@ export function ImageTool({ tool }: Props) {
       setResultWidth(0);
 
       setResultHeight(0);
+      setResultName("");
 
       setStatus("idle");
 
       setError("");
 
       setWidth("");
+      setHeight("");
 
       setRotation(0);
 
@@ -1416,14 +1495,11 @@ export function ImageTool({ tool }: Props) {
 
       setFlipV(false);
 
-      if (
-        tool.slug ===
-        "background-remover"
-      ) {
+      if (isBackgroundRemover) {
         setFormat("png");
       }
     },
-    [tool.slug]
+    [isBackgroundRemover]
   );
 
   /*
@@ -1516,11 +1592,15 @@ export function ImageTool({ tool }: Props) {
 
     setResultHeight(0);
 
+    setResultName("");
+
     setStatus("idle");
 
     setError("");
 
     setWidth("");
+
+    setHeight("");
 
     setRotation(0);
 
@@ -1538,74 +1618,223 @@ export function ImageTool({ tool }: Props) {
   | AI BACKGROUND REMOVER
   |--------------------------------------------------------------------------
   */
+  const requestBackgroundRemoval = async (
+    inputFile: File,
+  ): Promise<Blob> => {
+    const formData = new FormData();
+    formData.append("file", inputFile, inputFile.name);
+
+    const response = await fetch("/api/tools/background-remover", {
+      method: "POST",
+      body: formData,
+    });
+    const contentType = response.headers.get("content-type") || "";
+
+    if (!response.ok) {
+      let message = "Background removal failed. Please try again.";
+
+      if (contentType.includes("application/json")) {
+        const data = await response.json();
+        message = data?.message || data?.detail || message;
+      } else {
+        const text = await response.text();
+        if (text) message = text;
+      }
+
+      throw new Error(message);
+    }
+
+    if (!contentType.startsWith("image/")) {
+      throw new Error("The AI server did not return an image.");
+    }
+
+    const blob = await response.blob();
+    if (!blob.size) {
+      throw new Error("The server returned an empty image.");
+    }
+
+    return blob;
+  };
+
+  const formatBackgroundOutput = async (
+    png: Blob,
+    outputFormat: Exclude<OutputFormat, "pdf">,
+  ) => {
+    const sourceUrl = URL.createObjectURL(png);
+
+    try {
+      const image = await loadImage(sourceUrl);
+      const requestedWidth = Number(width);
+      const requestedHeight = Number(height);
+
+      if (
+        (width.trim() && (!Number.isInteger(requestedWidth) || requestedWidth < 1)) ||
+        (height.trim() && (!Number.isInteger(requestedHeight) || requestedHeight < 1))
+      ) {
+        throw new Error("Width and height must be positive whole numbers.");
+      }
+
+      const outputWidth = requestedWidth
+        ? requestedWidth
+        : requestedHeight
+          ? Math.round(image.naturalWidth * (requestedHeight / image.naturalHeight))
+          : image.naturalWidth;
+      const outputHeight = requestedHeight
+        ? requestedHeight
+        : requestedWidth
+          ? Math.round(image.naturalHeight * (requestedWidth / image.naturalWidth))
+          : image.naturalHeight;
+      const canvas = document.createElement("canvas");
+      canvas.width = outputWidth;
+      canvas.height = outputHeight;
+
+      const context = canvas.getContext("2d");
+      if (!context) {
+        throw new Error("Unable to resize the processed image.");
+      }
+
+      if (outputFormat === "jpeg") {
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, outputWidth, outputHeight);
+      }
+      context.drawImage(image, 0, 0, outputWidth, outputHeight);
+
+      const mimeType = mimeFor(outputFormat);
+      const outputBlob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (blob) =>
+            blob
+              ? resolve(blob)
+              : reject(new Error("Unable to export the requested image format.")),
+          mimeType,
+          outputFormat === "png" ? undefined : quality / 100,
+        );
+      });
+
+      if (outputBlob.type !== mimeType) {
+        throw new Error(`This browser cannot export ${formatLabel(outputFormat)}.`);
+      }
+
+      return {
+        blob: outputBlob,
+        width: outputWidth,
+        height: outputHeight,
+      };
+    } finally {
+      URL.revokeObjectURL(sourceUrl);
+    }
+  };
+
   const processBackgroundRemoval = async () => {
     if (!file) {
-      setError("Please upload an image first.");
+      setError("Please upload an image or PDF first.");
       setStatus("error");
       return;
     }
+
+    let pdf: pdfjsLib.PDFDocumentProxy | null = null;
 
     try {
       setStatus("processing");
       setError("");
 
-      const formData = new FormData();
-      formData.append("file", file, file.name);
+      const isPdf =
+        file.type === "application/pdf" ||
+        file.name.toLowerCase().endsWith(".pdf");
+      const sourceImages: File[] = [];
 
-      const response = await fetch(
-        "/api/tools/background-remover",
-        {
-          method: "POST",
-          body: formData,
+      if (isPdf) {
+        pdf = await pdfjsLib.getDocument({
+          data: await file.arrayBuffer(),
+        }).promise;
+
+        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+          const pageBlob = await renderPdfPage(pdf, pageNumber);
+          sourceImages.push(
+            new File([pageBlob], `${file.name}-page-${pageNumber}.png`, {
+              type: "image/png",
+            }),
+          );
         }
-      );
+      } else {
+        sourceImages.push(file);
+      }
 
-      const contentType =
-        response.headers.get("content-type") || "";
+      const processedPngs: Blob[] = [];
+      for (const sourceImage of sourceImages) {
+        processedPngs.push(
+          await requestBackgroundRemoval(sourceImage),
+        );
+      }
 
-      if (!response.ok) {
-        let message =
-          "Background removal failed. Please try again.";
+      let outputBlob: Blob;
+      let outputWidth: number;
+      let outputHeight: number;
 
-        if (contentType.includes("application/json")) {
-          try {
-            const data = await response.json();
+      if (format === "pdf") {
+        const outputPdf = await PDFDocument.create();
+        let firstPageDimensions: { width: number; height: number } | null =
+          null;
 
-            message =
-              data?.message ||
-              data?.detail ||
-              message;
-          } catch {
-            // Keep default message.
-          }
+        for (const processedPng of processedPngs) {
+          const resized = await formatBackgroundOutput(processedPng, "png");
+          firstPageDimensions ??= {
+            width: resized.width,
+            height: resized.height,
+          };
+          const embeddedImage = await outputPdf.embedPng(
+            await resized.blob.arrayBuffer(),
+          );
+          const page = outputPdf.addPage([
+            resized.width,
+            resized.height,
+          ]);
+          page.drawImage(embeddedImage, {
+            x: 0,
+            y: 0,
+            width: resized.width,
+            height: resized.height,
+          });
+        }
+
+        const savedPdf = await outputPdf.save();
+        const pdfArrayBuffer = new Uint8Array(savedPdf).buffer as ArrayBuffer;
+        outputBlob = new Blob([pdfArrayBuffer], {
+          type: "application/pdf",
+        });
+        outputWidth = firstPageDimensions?.width ?? 0;
+        outputHeight = firstPageDimensions?.height ?? 0;
+      } else {
+        const images = [];
+
+        for (const processedPng of processedPngs) {
+          images.push(
+            await formatBackgroundOutput(processedPng, format),
+          );
+        }
+
+        outputWidth = images[0].width;
+        outputHeight = images[0].height;
+
+        if (images.length > 1) {
+          const { default: JSZip } = await import("jszip");
+          const zip = new JSZip();
+          const extension = extFor(format);
+
+          images.forEach((image, index) => {
+            zip.file(
+              `${file.name.replace(/\.[^/.]+$/, "")}-page-${String(index + 1).padStart(3, "0")}.${extension}`,
+              image.blob,
+            );
+          });
+
+          outputBlob = await zip.generateAsync({ type: "blob" });
         } else {
-          try {
-            const text = await response.text();
-
-            if (text) {
-              message = text;
-            }
-          } catch {
-            // Keep default message.
-          }
+          outputBlob = images[0].blob;
         }
-
-        throw new Error(message);
       }
-
-      if (!contentType.startsWith("image/")) {
-        throw new Error(
-          "The AI server did not return an image."
-        );
-      }
-
-      const blob = await response.blob();
-
-      if (!blob.size) {
-        throw new Error(
-          "The server returned an empty image."
-        );
-      }
+      await pdf?.destroy();
+      pdf = null;
 
       if (resultUrlRef.current) {
         URL.revokeObjectURL(
@@ -1613,28 +1842,26 @@ export function ImageTool({ tool }: Props) {
         );
       }
 
-      const url = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(outputBlob);
 
       resultUrlRef.current = url;
 
-      const resultImage = await loadImage(url);
-
       setResultUrl(url);
 
-      setResultSize(blob.size);
-
-      setResultWidth(
-        resultImage.naturalWidth
+      setResultSize(outputBlob.size);
+      setResultWidth(outputWidth);
+      setResultHeight(outputHeight);
+      setResultName(
+        format === "pdf"
+          ? `${file.name.replace(/\.[^/.]+$/, "")}-background-removed.pdf`
+          : isPdf && processedPngs.length > 1
+            ? `${file.name.replace(/\.[^/.]+$/, "")}-background-removed-pages.zip`
+            : `${file.name.replace(/\.[^/.]+$/, "")}-background-removed.${extFor(format)}`,
       );
-
-      setResultHeight(
-        resultImage.naturalHeight
-      );
-
-      setFormat("png");
 
       setStatus("done");
     } catch (err) {
+      await pdf?.destroy();
       console.error(
         "Background removal error:",
         err
@@ -1896,6 +2123,10 @@ export function ImageTool({ tool }: Props) {
           canvas.height
         );
 
+          setResultName(
+            `${file.name.replace(/\.[^/.]+$/, "")}-toolmerge.${extFor(format)}`,
+          );
+
         setStatus("done");
       } catch (err) {
         console.error(err);
@@ -1931,11 +2162,6 @@ export function ImageTool({ tool }: Props) {
           ""
         );
 
-      const extension =
-        isBackgroundRemover
-          ? "png"
-          : extFor(format);
-
       const link =
         document.createElement(
           "a"
@@ -1944,10 +2170,9 @@ export function ImageTool({ tool }: Props) {
       link.href =
         resultUrl;
 
-      link.download =
-        isBackgroundRemover
-          ? `${originalName}-background-removed.png`
-          : `${originalName}-toolmerge.${extension}`;
+      link.download = isBackgroundRemover
+        ? resultName
+        : resultName || `${originalName}-toolmerge.${extFor(format)}`;
 
       document.body.appendChild(
         link
@@ -1957,6 +2182,10 @@ export function ImageTool({ tool }: Props) {
 
       link.remove();
     };
+
+  const canPreviewResult =
+    !isBackgroundRemover ||
+    /\.(jpe?g|png|webp)$/i.test(resultName);
 
   /*
   |--------------------------------------------------------------------------
@@ -2186,7 +2415,7 @@ export function ImageTool({ tool }: Props) {
               <FileImage className="h-4 w-4" />
 
               {isBackgroundRemover
-                ? "JPG · PNG · WEBP"
+                ? "JPG · PNG · WEBP · PDF"
                 : "JPG · PNG · WEBP"}
             </div>
 
@@ -2205,7 +2434,12 @@ export function ImageTool({ tool }: Props) {
               <div className="flex min-w-0 items-center gap-3">
 
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
-                  <FileImage className="h-5 w-5" />
+                  {file.type === "application/pdf" ||
+                  file.name.toLowerCase().endsWith(".pdf") ? (
+                    <FileText className="h-5 w-5" />
+                  ) : (
+                    <FileImage className="h-5 w-5" />
+                  )}
                 </div>
 
                 <div className="min-w-0">
@@ -2335,8 +2569,7 @@ export function ImageTool({ tool }: Props) {
                           </p>
 
                           <p className="mt-1 text-xs leading-5 text-blue-700/80">
-                            Automatic subject segmentation
-                            with transparent PNG output.
+                            Automatic subject segmentation. Choose the output format and dimensions below.
                           </p>
 
                         </div>
@@ -2345,32 +2578,105 @@ export function ImageTool({ tool }: Props) {
 
                     </div>
 
-                    <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+                      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                        Input formats
+                      </p>
+                      <p className="text-sm font-semibold text-slate-700">
+                        JPG · PNG · WEBP · PDF
+                      </p>
+                    </div>
 
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                          Input
-                        </p>
-
-                        <p className="mt-1 text-sm font-bold text-slate-700">
-                          JPG / PNG / WEBP
-                        </p>
-
+                    <div className="mt-4">
+                      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                        Output format
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        {(["png", "jpeg", "webp", "pdf"] as OutputFormat[]).map(
+                          (item) => (
+                            <button
+                              key={item}
+                              type="button"
+                              onClick={() => {
+                                setFormat(item);
+                                setResultUrl(null);
+                                setStatus("idle");
+                              }}
+                              className={`rounded-xl border px-3 py-2.5 text-sm font-bold transition ${
+                                format === item
+                                  ? "border-blue-500 bg-blue-500 text-white shadow-md shadow-blue-500/20"
+                                  : "border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
+                              }`}
+                            >
+                              {formatLabel(item)}
+                            </button>
+                          ),
+                        )}
                       </div>
+                    </div>
 
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                          Output
-                        </p>
-
-                        <p className="mt-1 text-sm font-bold text-slate-700">
-                          Transparent PNG
-                        </p>
-
+                    {format !== "pdf" && showQuality && (
+                      <div className="mt-4">
+                        <div className="mb-2 flex items-center justify-between">
+                          <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                            Quality
+                          </label>
+                          <span className="rounded-lg bg-blue-50 px-2 py-1 text-xs font-bold text-blue-600">
+                            {quality}%
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="10"
+                          max="100"
+                          value={quality}
+                          onChange={(event) =>
+                            setQuality(Number(event.target.value))
+                          }
+                          className="w-full accent-blue-500"
+                        />
                       </div>
+                    )}
 
+                    <div className="mt-4">
+                      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                        Output dimensions
+                      </p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <label className="text-xs font-semibold text-slate-500">
+                          Width (px)
+                          <input
+                            type="number"
+                            min="1"
+                            value={width}
+                            onChange={(event) => {
+                              setWidth(event.target.value);
+                              setResultUrl(null);
+                              setStatus("idle");
+                            }}
+                            placeholder="Original"
+                            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                          />
+                        </label>
+                        <label className="text-xs font-semibold text-slate-500">
+                          Height (px)
+                          <input
+                            type="number"
+                            min="1"
+                            value={height}
+                            onChange={(event) => {
+                              setHeight(event.target.value);
+                              setResultUrl(null);
+                              setStatus("idle");
+                            }}
+                            placeholder="Original"
+                            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                          />
+                        </label>
+                      </div>
+                      <p className="mt-1.5 text-[11px] text-slate-400">
+                        Leave both blank to keep the original size. Set one dimension to keep the original proportions.
+                      </p>
                     </div>
 
                     <button
@@ -2841,9 +3147,10 @@ export function ImageTool({ tool }: Props) {
                         </p>
 
                         <p className="text-xs text-slate-500">
-                          {resultWidth} ×{" "}
-                          {resultHeight}
-                          px ·{" "}
+                          {resultWidth > 0 && resultHeight > 0
+                            ? `${resultWidth} × ${resultHeight}px · `
+                            : ""}
+                          {resultName ? `${formatLabel(format)} · ` : ""}
                           {formatSize(
                             resultSize
                           )}
@@ -2863,7 +3170,7 @@ export function ImageTool({ tool }: Props) {
                       <Download className="h-4 w-4" />
 
                       {isBackgroundRemover
-                        ? "Download PNG"
+                        ? `Download ${resultName.toLowerCase().endsWith(".zip") ? "ZIP" : formatLabel(format)}`
                         : `Download ${formatLabel(
                           format
                         )}`}
@@ -2881,24 +3188,36 @@ export function ImageTool({ tool }: Props) {
 
                       <p className="text-xs font-semibold text-slate-500">
                         {isBackgroundRemover
-                          ? "AI result · Transparent background"
+                          ? `AI result · ${formatLabel(format)}${format === "png" ? " · Transparent background" : ""}`
                           : "Processed image"}
                       </p>
 
                     </div>
 
                     <div className="flex min-h-[280px] items-center justify-center rounded-2xl bg-[linear-gradient(45deg,#f1f5f9_25%,transparent_25%),linear-gradient(-45deg,#f1f5f9_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#f1f5f9_75%),linear-gradient(-45deg,transparent_75%,#f1f5f9_75%)] bg-[length:24px_24px] bg-[position:0_0,0_12px,12px_-12px,-12px_0] p-5">
-
-                      <img
-                        src={resultUrl}
-                        alt={
-                          isBackgroundRemover
-                            ? "Background removed image"
-                            : "Processed image preview"
-                        }
-                        className="max-h-[420px] max-w-full rounded-xl object-contain shadow-lg"
-                      />
-
+                      {canPreviewResult ? (
+                        <img
+                          src={resultUrl}
+                          alt={
+                            isBackgroundRemover
+                              ? "Background removed image"
+                              : "Processed image preview"
+                          }
+                          className="max-h-[420px] max-w-full rounded-xl object-contain shadow-lg"
+                        />
+                      ) : (
+                        <div className="text-center">
+                          <FileText className="mx-auto h-12 w-12 text-blue-500" />
+                          <p className="mt-3 text-sm font-semibold text-slate-700">
+                            {resultName}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {format === "pdf"
+                              ? "Your processed pages are ready in a PDF."
+                              : "Your processed pages are ready in a ZIP archive."}
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                   </div>

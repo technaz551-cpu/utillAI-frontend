@@ -6,7 +6,10 @@ import { PDFDocument, StandardFonts, rgb, degrees } from "pdf-lib";
 import type { ExportPageInput } from "./pdfeditor/pdf-shapes";
 
 if (typeof window !== "undefined") {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+        "pdfjs-dist/build/pdf.worker.min.js",
+        import.meta.url
+    ).toString();
 }
 
 /* ------------------------------------------------------------------ */
@@ -16,13 +19,13 @@ if (typeof window !== "undefined") {
 export async function processPdf(
     slug: string,
     files: File[],
-    options: { quality?: number } = {}
+    options: { quality?: number; format?: "png" | "jpeg" | "webp" } = {}
 ) {
     switch (slug) {
         case "merge-pdf":
             return await mergePdfs(files);
         case "split-pdf":
-            return await splitPdf(files[0]);
+            return await splitPdf(files[0], options.format || "jpeg", options.quality || 80);
         case "jpg-to-pdf":
             return await jpgToPdf(files);
         case "pdf-to-jpg":
@@ -109,33 +112,75 @@ async function mergePdfs(files: File[]) {
     };
 }
 
-async function splitPdf(file: File) {
+async function splitPdf(
+    file: File,
+    format: "png" | "jpeg" | "webp",
+    quality: number
+) {
     const bytes = await file.arrayBuffer();
-    const pdf = await PDFDocument.load(bytes);
+    const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+    const extension = format === "jpeg" ? "jpg" : format;
+    const baseName = file.name.replace(/\.pdf$/i, "");
+    const pages: Blob[] = [];
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+        pages.push(await renderPageToImage(pdf, i, format, quality));
+    }
+
+    if (pages.length === 1) {
+        return {
+            blob: pages[0],
+            filename: `${baseName}-page-001.${extension}`,
+        };
+    }
+
     const { default: JSZip } = await import("jszip");
     const zip = new JSZip();
 
-    for (let i = 0; i < pdf.getPageCount(); i++) {
-        const singlePagePdf = await PDFDocument.create();
-        const [copiedPage] = await singlePagePdf.copyPages(pdf, [i]);
-        singlePagePdf.addPage(copiedPage);
-        const pdfBytes = await singlePagePdf.save();
+    pages.forEach((page, index) => {
         zip.file(
-            `page-${String(i + 1).padStart(3, "0")}.pdf`,
-            new Blob([new Uint8Array(pdfBytes)])
+            `${baseName}-page-${String(index + 1).padStart(3, "0")}.${extension}`,
+            page
         );
-    }
+    });
 
-    const zipBlob = await zip.generateAsync({ type: "blob" });
     return {
-        blob: zipBlob,
-        filename: `${file.name.replace(".pdf", "")}-pages.zip`,
+        blob: await zip.generateAsync({ type: "blob" }),
+        filename: `${baseName}-pages.zip`,
     };
 }
 
-function toBlobFromUint8(bytes: Uint8Array): Blob {
-    const arrayBuffer = new Uint8Array(bytes).buffer as ArrayBuffer;
-    return new Blob([arrayBuffer]);
+async function renderPageToImage(
+    pdf: pdfjsLib.PDFDocumentProxy,
+    pageNum: number,
+    format: "png" | "jpeg" | "webp",
+    quality: number
+): Promise<Blob> {
+    const page = await pdf.getPage(pageNum);
+    const viewport = page.getViewport({ scale: 2 });
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.ceil(viewport.width);
+    canvas.height = Math.ceil(viewport.height);
+
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Failed to get canvas context");
+
+    await page.render({ canvasContext: context, viewport }).promise;
+
+    const mimeType = `image/${format}`;
+    const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+            (result) => (result ? resolve(result) : reject(new Error("Image export failed"))),
+            mimeType,
+            format === "png" ? undefined : quality / 100
+        );
+    });
+
+    if (blob.type !== mimeType) {
+        throw new Error(`This browser cannot export ${format.toUpperCase()} images.`);
+    }
+
+    return blob;
 }
 
 async function jpgToPdf(files: File[]) {

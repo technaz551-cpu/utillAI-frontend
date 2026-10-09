@@ -455,18 +455,18 @@ export function ToolEngine({ tool }: Props) {
             INPUT SECTION LABEL
         ================================================= */}
 
-        <div className="mb-3 flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-500">
-            <Settings2 className="h-3.5 w-3.5" />
+        <div className="mb-4 flex items-center gap-3 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-white px-4 py-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500 text-white shadow-sm shadow-blue-500/20">
+            <Settings2 className="h-4 w-4" />
           </div>
 
           <div>
             <p className="text-sm font-semibold text-slate-800">
-              Tool Options
+              Input & settings
             </p>
 
             <p className="text-xs text-slate-500">
-              Configure your input before processing
+              Enter your data and configure the result.
             </p>
           </div>
         </div>
@@ -764,8 +764,8 @@ export function ToolEngine({ tool }: Props) {
         {needsTextarea && (
           <div className="mb-5">
             <div className="mb-2 flex items-center justify-between">
-              <label className="text-sm font-medium text-slate-700">
-                Input
+              <label className="text-sm font-semibold text-slate-800">
+                Your input
               </label>
 
               <span className="text-xs text-slate-400">
@@ -782,7 +782,7 @@ export function ToolEngine({ tool }: Props) {
                 tool.slug
               )}
               rows={8}
-              className={`${inputClass} min-h-[180px] resize-y rounded-xl border-slate-200 bg-white font-mono text-sm shadow-sm transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10`}
+              className={`${inputClass} min-h-[200px] resize-y rounded-2xl border-slate-200 bg-slate-50/70 p-4 font-mono text-sm shadow-inner transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10`}
             />
           </div>
         )}
@@ -893,7 +893,7 @@ export function ToolEngine({ tool }: Props) {
                     </div>
 
                     <span className="text-sm font-semibold text-slate-800">
-                      Result
+                      Output
                     </span>
                   </div>
 
@@ -917,7 +917,7 @@ export function ToolEngine({ tool }: Props) {
                 </div>
 
                 <pre
-                  className={`max-h-96 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-700 whitespace-pre-wrap ${
+                  className={`max-h-96 overflow-auto rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-5 text-sm leading-relaxed text-slate-700 whitespace-pre-wrap shadow-inner ${
                     tool.slug === "text-summarizer"
                       ? ""
                       : "font-mono"

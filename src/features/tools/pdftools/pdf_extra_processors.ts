@@ -513,7 +513,10 @@ export async function renderThumbs(
   const pdfjs: any = await import("pdfjs-dist");
   // pdf-processors.ts pehle se "/pdf.worker.min.mjs" set karta hai; yahan sirf fallback.
   if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-    pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+    pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+      "pdfjs-dist/build/pdf.worker.min.js",
+      import.meta.url,
+    ).toString();
   }
 
   const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() })

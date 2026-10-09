@@ -450,19 +450,22 @@ export const IMAGE_TOOLS: ToolMeta[] = [
     category_slug: "image",
     processing_type: "server",
     short_description:
-      "Remove image backgrounds automatically using AI.",
+      "Remove backgrounds from images or PDF pages, choose output dimensions and export format.",
     long_description:
-      "Remove backgrounds from images using the UtilAI BiRefNet AI model and download the result as a transparent PNG.",
+      "Remove backgrounds with the UtilAI BiRefNet AI model. Upload JPG, PNG, WEBP or PDF files, set output dimensions and export as PNG, JPG, WEBP or PDF.",
     how_to_use: [
-      "Upload a JPG, PNG or WebP image",
+      "Upload a JPG, PNG, WEBP or PDF file",
+      "Choose an output format and optional width and height",
       "Click Remove Background",
-      "Wait while the AI model processes your image",
-      "Preview and download the transparent PNG",
+      "Wait while the AI model processes your image or PDF pages",
+      "Preview and download the result",
     ],
     features: [
       "AI-powered background removal",
       "BiRefNet model",
-      "Transparent PNG output",
+      "PNG, JPG, WEBP and PDF output",
+      "Custom output dimensions",
+      "PDF page processing",
       "Automatic subject segmentation",
       "High-quality background removal",
     ],
@@ -476,7 +479,7 @@ export const IMAGE_TOOLS: ToolMeta[] = [
       {
         question: "What format will I receive?",
         answer:
-          "The processed image is returned as a transparent PNG.",
+          "Choose PNG, JPG, WEBP or PDF before processing. Multiple PDF pages exported as images are bundled in a ZIP file.",
       },
     ],
     related_tools: [
@@ -486,8 +489,8 @@ export const IMAGE_TOOLS: ToolMeta[] = [
     ],
     seo_title: "AI Background Remover — Remove Image Background",
     meta_description:
-      "Remove image backgrounds automatically with AI using UtilAI BiRefNet. Download transparent PNG images.",
-    accepted_formats: ["jpg", "jpeg", "png", "webp"],
+      "Remove image or PDF backgrounds with UtilAI BiRefNet. Set output dimensions and download PNG, JPG, WEBP or PDF.",
+    accepted_formats: ["jpg", "jpeg", "png", "webp", "pdf"],
   },
 ];
 
