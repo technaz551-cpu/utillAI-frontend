@@ -2683,7 +2683,10 @@ export function ImageTool({ tool }: Props) {
                         Output format
                       </p>
                       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                        {(["png", "jpeg", "webp", "pdf"] as OutputFormat[]).map(
+                        {(isBackgroundRemover
+                          ? (["png", "webp", "pdf"] as OutputFormat[])
+                          : (["png", "jpeg", "webp", "pdf"] as OutputFormat[])
+                        ).map(
                           (item) => (
                             <button
                               key={item}
