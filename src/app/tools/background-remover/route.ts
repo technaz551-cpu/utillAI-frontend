@@ -15,7 +15,7 @@ const AI_SERVER_URL = configuredBackendUrl
   ?.replace(/\/+$/, "");
 
 const MAX_FILE_SIZE = 15 * 1024 * 1024;
-const INFERENCE_TIMEOUT_MS = 30 * 60 * 1000;
+const INFERENCE_TIMEOUT_MS = 2 * 60 * 1000;
 const upstreamAgent = new Agent({
   connectTimeout: 10_000,
   headersTimeout: INFERENCE_TIMEOUT_MS,

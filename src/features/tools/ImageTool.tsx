@@ -1619,9 +1619,44 @@ export function ImageTool({ tool }: Props) {
   | AI BACKGROUND REMOVER
   |--------------------------------------------------------------------------
   */
+  const MAX_UPLOAD_DIMENSION = 2000;
+
+  const downscaleForUpload = async (file: File): Promise<File> => {
+    if (file.type === "application/pdf") return file;
+
+    const bitmap = await loadImage(URL.createObjectURL(file));
+    const { naturalWidth: w, naturalHeight: h } = bitmap;
+    const maxDim = Math.max(w, h);
+
+    if (maxDim <= MAX_UPLOAD_DIMENSION) return file;
+
+    const scale = MAX_UPLOAD_DIMENSION / maxDim;
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(w * scale);
+    canvas.height = Math.round(h * scale);
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error("Downscale failed"))),
+        "image/jpeg",
+        0.92,
+      );
+    });
+
+    return new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+      type: "image/jpeg",
+    });
+  };
+
   const requestBackgroundRemoval = async (
     inputFile: File,
   ): Promise<Blob> => {
+    const fileToUpload = await downscaleForUpload(inputFile);
     const formData = new FormData();
     formData.append("file", inputFile, inputFile.name);
 
@@ -2770,6 +2805,7 @@ export function ImageTool({ tool }: Props) {
                       </div>
                       <p className="mt-1.5 text-[11px] text-slate-400">
                         Leave both blank to keep the original size. Set one dimension to keep the original proportions.
+                        Images larger than 2000&nbsp;px are downscaled for faster processing.
                       </p>
                     </div>
 
