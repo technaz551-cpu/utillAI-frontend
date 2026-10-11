@@ -546,6 +546,9 @@ export async function apiFetch<T>(
           "application/json",
         ...init?.headers,
       },
+      next: {
+        revalidate: 300,
+      },
     }
   );
 

@@ -22,8 +22,12 @@ export default async function HomePage() {
     ...INTERNET_TOOLS,
   ];
 
-  const categories = await apiFetch<any[]>("/categories").catch(() => fallbackCategories);
-  const popular = await apiFetch<any[]>("/tools/popular").catch(() => fallbackTools.slice(0, 6));
+  const [categories, popular] = await Promise.all([
+    apiFetch<any[]>("/categories").catch(() => fallbackCategories),
+    apiFetch<any[]>("/tools?popular=true").catch(
+      () => fallbackTools.slice(0, 6),
+    ),
+  ]);
 
   return (
     <HomePageClient
