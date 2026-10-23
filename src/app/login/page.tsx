@@ -1,13 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { loginWithPassword } from "@/lib/auth";
 import { btn } from "@/lib/utils";
 
-export default function LoginPage() {
+const SEO_PLATFORM_HOME = "/tools/seo/platform";
+
+function safeRedirectPath(next: string | null): string {
+  if (next && next.startsWith("/") && !next.startsWith("//")) {
+    return next;
+  }
+  return SEO_PLATFORM_HOME;
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -25,12 +35,12 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       await loginWithPassword(email.trim(), password);
-      router.push("/");
+      router.push(safeRedirectPath(searchParams.get("next")));
     } catch (authError) {
       setError(
         authError instanceof Error
           ? authError.message
-          : "Unable to sign in. Please try again."
+          : "Unable to sign in. Please try again.",
       );
     } finally {
       setIsSubmitting(false);
@@ -38,46 +48,74 @@ export default function LoginPage() {
   };
 
   return (
+    <div className="w-full max-w-md rounded-[32px] border border-[var(--border)] bg-white p-8 shadow-[var(--shadow-card)]">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-primary)]">
+        Welcome back
+      </p>
+      <h1 className="mt-3 text-3xl font-black tracking-[-0.06em] text-[var(--foreground)]">Login</h1>
+      <p className="mt-2 text-sm text-[var(--muted)]">Access your toolkit and saved workflows.</p>
+
+      <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+        <label className="block text-sm font-medium text-[var(--foreground)]">
+          Email
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="you@example.com"
+            className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-alt)] px-4 py-3 outline-none transition focus:border-[var(--brand-primary)]"
+          />
+        </label>
+
+        <label className="block text-sm font-medium text-[var(--foreground)]">
+          Password
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="••••••••"
+            className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-alt)] px-4 py-3 outline-none transition focus:border-[var(--brand-primary)]"
+          />
+        </label>
+
+        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className={
+            btn("primary") +
+            " mt-2 w-full !justify-center !rounded-full disabled:cursor-not-allowed disabled:opacity-60"
+          }
+        >
+          {isSubmitting ? "Signing in..." : "Login"}
+        </button>
+      </form>
+
+      <p className="mt-6 text-center text-sm text-[var(--muted)]">
+        Don’t have an account?{" "}
+        <Link href="/register" className="font-semibold text-[var(--brand-primary)]">
+          Sign up
+        </Link>
+      </p>
+    </div>
+  );
+}
+
+function LoginFormFallback() {
+  return (
+    <div className="w-full max-w-md rounded-[32px] border border-[var(--border)] bg-white p-8 shadow-[var(--shadow-card)]">
+      <p className="text-sm text-[var(--muted)]">Loading…</p>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
     <main className="section-shell flex items-center justify-center py-16 md:py-24">
-      <div className="w-full max-w-md rounded-[32px] border border-[var(--border)] bg-white p-8 shadow-[var(--shadow-card)]">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-primary)]">Welcome back</p>
-        <h1 className="mt-3 text-3xl font-black tracking-[-0.06em] text-[var(--foreground)]">Login</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">Access your toolkit and saved workflows.</p>
-
-        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-          <label className="block text-sm font-medium text-[var(--foreground)]">
-            Email
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@example.com"
-              className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-alt)] px-4 py-3 outline-none transition focus:border-[var(--brand-primary)]"
-            />
-          </label>
-
-          <label className="block text-sm font-medium text-[var(--foreground)]">
-            Password
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="••••••••"
-              className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-alt)] px-4 py-3 outline-none transition focus:border-[var(--brand-primary)]"
-            />
-          </label>
-
-          {error && <p className="text-sm text-red-600">{error}</p>}
-
-          <button type="submit" disabled={isSubmitting} className={btn("primary") + " mt-2 w-full !justify-center !rounded-full disabled:cursor-not-allowed disabled:opacity-60"}>
-            {isSubmitting ? "Signing in..." : "Login"}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-[var(--muted)]">
-          Don’t have an account? <Link href="/register" className="font-semibold text-[var(--brand-primary)]">Sign up</Link>
-        </p>
-      </div>
+      <Suspense fallback={<LoginFormFallback />}>
+        <LoginForm />
+      </Suspense>
     </main>
   );
 }

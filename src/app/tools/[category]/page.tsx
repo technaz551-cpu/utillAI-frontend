@@ -436,7 +436,20 @@ const pdfToolIcons: Record<string, React.ReactNode> = {
   "organize-pdf": <FileArchive className="h-5 w-5" />,
 };
 
+const SEO_PLATFORM_CARD: ToolCardData = {
+  slug: "seo-platform",
+  name: "SEO Platform",
+  category_slug: "seo",
+  short_description:
+    "Full dashboard: projects, Python-powered site audits, issues, health score, and integrations.",
+  destinationSlug: "platform",
+};
+
 function getCategoryTools(data: CategoryData): ToolCardData[] {
+  if (data.slug === "seo") {
+    const rest = data.tools.filter((t) => t.slug !== "seo-platform");
+    return [{ ...SEO_PLATFORM_CARD }, ...rest];
+  }
   if (data.slug !== "pdf") return data.tools;
 
   const pdfSlugs = new Set(
@@ -681,7 +694,11 @@ export default async function CategoryPage({ params }: Props) {
             ) : (
               <Link
                 key={tool.slug}
-                href={`/tools/${tool.category_slug}/${tool.destinationSlug ?? tool.slug}`}
+                href={
+                  tool.slug === "seo-platform"
+                    ? "/tools/seo/platform"
+                    : `/tools/${tool.category_slug}/${tool.destinationSlug ?? tool.slug}`
+                }
                 className={cardClassName}
               >
                 {cardContent}

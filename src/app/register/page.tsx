@@ -31,7 +31,7 @@ export default function RegisterPage() {
     setIsSubmitting(true);
     try {
       await registerWithPassword(name.trim(), email.trim(), password);
-      router.push("/");
+      router.push("/tools/seo/platform");
     } catch (authError) {
       setError(
         authError instanceof Error

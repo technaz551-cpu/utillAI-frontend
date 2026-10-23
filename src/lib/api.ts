@@ -819,21 +819,21 @@ export async function fetchCategory(
    FETCH ALL CATEGORIES
 ========================================================= */
 
-export async function fetchCategories() {
-  try {
-    const categories =
-      await apiFetch<
-        CategoryRecord[]
-      >("/categories");
+let categoriesRequest: Promise<CategoryRecord[]> | null = null;
 
-    return ensureLocalCategories(
-      Array.isArray(categories)
-        ? categories
-        : []
-    );
-  } catch {
-    return LOCAL_CATEGORIES;
+export function fetchCategories(): Promise<CategoryRecord[]> {
+  if (!categoriesRequest) {
+    categoriesRequest = (async () => {
+      try {
+        const categories = await apiFetch<CategoryRecord[]>("/categories");
+
+        return ensureLocalCategories(Array.isArray(categories) ? categories : []);
+      } catch {
+        return LOCAL_CATEGORIES;
+      }
+    })();
   }
+  return categoriesRequest;
 }
 
 /* =========================================================

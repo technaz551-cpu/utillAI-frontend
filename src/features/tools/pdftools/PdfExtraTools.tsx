@@ -1591,7 +1591,13 @@ import {
   type PageItem,
   type PdfMetadata,
   type ProcessResult,
+  prepareSignatureDataUrl,
+  scanExistingToolSignatures,
+  signaturePadLineWidth,
+  signaturePresetCoords,
+  type ExistingToolSignature,
   type SignatureOptions,
+  type SignaturePresetPosition,
   type WatermarkOptions,
 } from "./pdf_extra_processors";
 
@@ -2466,9 +2472,21 @@ function readAsDataUrl(f: File): Promise<string> {
   });
 }
 
-function SignaturePad({ onChange }: { onChange: (url: string) => void }) {
+function SignaturePad({
+  inkColor,
+  lineWeight,
+  onChange,
+}: {
+  inkColor: string;
+  lineWeight: number;
+  onChange: (url: string) => void;
+}) {
   const ref = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
+  const inkRef = useRef(inkColor);
+  const lineRef = useRef(lineWeight);
+  inkRef.current = inkColor;
+  lineRef.current = lineWeight;
 
   const pos = (e: React.PointerEvent) => {
     const c = ref.current!;
@@ -2483,9 +2501,10 @@ function SignaturePad({ onChange }: { onChange: (url: string) => void }) {
     ref.current!.setPointerCapture(e.pointerId);
     const ctx = ref.current!.getContext("2d")!;
     const { x, y } = pos(e);
-    ctx.lineWidth = 3;
+    ctx.lineWidth = signaturePadLineWidth(lineRef.current);
     ctx.lineCap = "round";
-    ctx.strokeStyle = "#0f1a2e";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = inkRef.current;
     ctx.beginPath();
     ctx.moveTo(x, y);
   };
@@ -2551,10 +2570,143 @@ export function WatermarkTool({ tool }: { tool: ToolMeta }) {
     "none" | "add" | "replace" | "remove"
   >("none");
   const [sigSrc, setSigSrc] = useState<"draw" | "upload">("draw");
+  const [sigRaw, setSigRaw] = useState("");
   const [sigImg, setSigImg] = useState("");
+  const [sigInk, setSigInk] = useState("#0f1a2e");
+  const [sigLineWeight, setSigLineWeight] = useState(3);
   const [sigPages, setSigPages] = useState<SignatureOptions["pages"]>("last");
-  const [sigPos, setSigPos] = useState<SignatureOptions["position"]>("bottom-right");
+  const [sigPos, setSigPos] = useState<SignaturePresetPosition>("bottom-right");
   const [sigW, setSigW] = useState(25);
+  const [sigXPct, setSigXPct] = useState(() =>
+    signaturePresetCoords("bottom-right", 25).xPct,
+  );
+  const [sigYPct, setSigYPct] = useState(() =>
+    signaturePresetCoords("bottom-right", 25).yPct,
+  );
+  const [sigAspect, setSigAspect] = useState(0.35);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const sigDrag = useRef<{ active: boolean; dx: number; dy: number }>({
+    active: false,
+    dx: 0,
+    dy: 0,
+  });
+  const [existingSigs, setExistingSigs] = useState<ExistingToolSignature[]>([]);
+  const [sigPopover, setSigPopover] = useState<ExistingToolSignature | null>(null);
+
+  useEffect(() => {
+    if (!file) {
+      setExistingSigs([]);
+      return;
+    }
+    let cancelled = false;
+    void scanExistingToolSignatures(file).then((found) => {
+      if (!cancelled) setExistingSigs(found);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [file]);
+
+  useEffect(() => {
+    setSigPopover(null);
+  }, [page]);
+
+  const sigBoxHeightPct = (pl: ExistingToolSignature) =>
+    pl.heightPct ?? pl.widthPct * 0.35 * (595 / 842);
+
+  const inferSigPagesFromExisting = (): SignatureOptions["pages"] => {
+    const pagesWithSig = [...new Set(existingSigs.map((s) => s.page))].sort(
+      (a, b) => a - b,
+    );
+    const last = thumbs.length - 1;
+    if (pagesWithSig.length === 1 && pagesWithSig[0] === 0) return "first";
+    if (pagesWithSig.length === 1 && pagesWithSig[0] === last) return "last";
+    if (
+      pagesWithSig.length === thumbs.length &&
+      pagesWithSig.every((p, i) => p === i)
+    ) {
+      return "all";
+    }
+    return "all";
+  };
+
+  const startChangeExistingSignature = (pl: ExistingToolSignature) => {
+    setSigPopover(null);
+    setSigAction("replace");
+    setSigW(Math.round(pl.widthPct));
+    setSigXPct(pl.xPct);
+    setSigYPct(pl.yPct);
+    setSigPages(inferSigPagesFromExisting());
+    setSigRaw("");
+  };
+
+  const deleteExistingSignature = () => {
+    if (!file) return;
+    setSigPopover(null);
+    setSigAction("remove");
+    r.runServer("watermark-pdf", file, {
+      watermark: { action: wmAction === "remove" ? "remove" : "none" },
+      signature: { action: "remove" },
+    });
+  };
+
+  useEffect(() => {
+    if (!sigRaw) {
+      setSigImg("");
+      return;
+    }
+    let cancelled = false;
+    void prepareSignatureDataUrl(sigRaw, {
+      inkColor: sigInk,
+      lineWeight: sigLineWeight,
+    }).then((url) => {
+      if (!cancelled) setSigImg(url);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [sigRaw, sigInk, sigLineWeight]);
+
+  useEffect(() => {
+    if (!sigImg) return;
+    const img = new Image();
+    img.onload = () => {
+      if (img.naturalWidth > 0) {
+        setSigAspect(img.naturalHeight / img.naturalWidth);
+      }
+    };
+    img.src = sigImg;
+  }, [sigImg]);
+
+  const clampSigCoords = (xPct: number, yPct: number, widthPct: number) => {
+    const heightPctOnPage = widthPct * sigAspect * (595 / 842);
+    return {
+      xPct: Math.max(0, Math.min(xPct, 100 - widthPct)),
+      yPct: Math.max(0, Math.min(yPct, 100 - heightPctOnPage)),
+    };
+  };
+
+  useEffect(() => {
+    const preset = signaturePresetCoords(sigPos, sigW);
+    const clamped = clampSigCoords(preset.xPct, preset.yPct, sigW);
+    setSigXPct(clamped.xPct);
+    setSigYPct(clamped.yPct);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- snap when quick preset changes
+  }, [sigPos]);
+
+  const moveSigFromPointer = (clientX: number, clientY: number) => {
+    const box = previewRef.current?.getBoundingClientRect();
+    if (!box) return;
+    const leftPx =
+      clientX - box.left - sigDrag.current.dx;
+    const bottomPx =
+      box.bottom - clientY - sigDrag.current.dy;
+    const xPct = (leftPx / box.width) * 100;
+    const yPct = (bottomPx / box.height) * 100;
+    const clamped = clampSigCoords(xPct, yPct, sigW);
+    setSigXPct(clamped.xPct);
+    setSigYPct(clamped.yPct);
+  };
 
   // nayi file aaye to page 1 se shuru
   useEffect(() => {
@@ -2590,7 +2742,7 @@ export function WatermarkTool({ tool }: { tool: ToolMeta }) {
   const invalid =
     (wmAction === "none" && sigAction === "none") ||
     (wmAction === "add" && (wmKind === "text" ? !text.trim() : !wmImg)) ||
-    (needsSig && !sigImg);
+    (needsSig && !sigRaw);
 
   const go = () => {
     const wmOptions: WatermarkOptions | undefined =
@@ -2599,15 +2751,31 @@ export function WatermarkTool({ tool }: { tool: ToolMeta }) {
         : wmKind === "text"
           ? { kind: "text", text, fontSize, opacity, rotation: angle, color }
           : { kind: "image", dataUrl: wmImg, widthPct: wmImgW, opacity, rotation: angle };
-    r.runServer("watermark-pdf", file, {
+    void (async () => {
+      const processedSig = needsSig
+        ? await prepareSignatureDataUrl(sigRaw, {
+            inkColor: sigInk,
+            lineWeight: sigLineWeight,
+          })
+        : "";
+      const clamped = clampSigCoords(sigXPct, sigYPct, sigW);
+      r.runServer("watermark-pdf", file, {
         watermark: { action: wmAction, options: wmOptions },
         signature: {
           action: sigAction,
           options: needsSig
-            ? { dataUrl: sigImg, pages: sigPages, position: sigPos, widthPct: sigW }
+            ? {
+                dataUrl: processedSig,
+                pages: sigPages,
+                position: sigPos,
+                xPct: clamped.xPct,
+                yPct: clamped.yPct,
+                widthPct: sigW,
+              }
             : undefined,
         },
       });
+    })();
   };
 
   const total = thumbs.length;
@@ -2615,13 +2783,7 @@ export function WatermarkTool({ tool }: { tool: ToolMeta }) {
     sigPages === "all" ||
     (sigPages === "first" && page === 0) ||
     (sigPages === "last" && page === total - 1);
-
-  const sigAlign =
-    sigPos === "bottom-left"
-      ? "left-[6%]"
-      : sigPos === "bottom-center"
-        ? "left-1/2 -translate-x-1/2"
-        : "right-[6%]";
+  const existingOnPage = existingSigs.filter((s) => s.page === page);
 
   // PDF points ko preview ke barabar scale karne ke liye: A4 width ~595pt ko 100% maan kar
   // `cqw` (container width unit) use hota hai, isliye preview kisi bhi size par same dikhta hai.
@@ -2635,6 +2797,7 @@ export function WatermarkTool({ tool }: { tool: ToolMeta }) {
           <div>
             {/* ---- live preview of the real page ---- */}
             <div
+              ref={previewRef}
               className="relative mx-auto w-full max-w-[420px] overflow-hidden rounded bg-white shadow-[0_10px_30px_rgba(15,26,46,.18)] ring-1 ring-slate-200"
               style={{ containerType: "inline-size" }}
             >
@@ -2677,12 +2840,94 @@ export function WatermarkTool({ tool }: { tool: ToolMeta }) {
                 </div>
               )}
 
+              {existingOnPage.map((pl) => (
+                <button
+                  key={`${pl.page}-${pl.xPct}-${pl.yPct}`}
+                  type="button"
+                  aria-label="Existing signature — change or remove"
+                  className="absolute z-[5] cursor-pointer rounded-sm border-2 border-dashed border-[#2547f0]/70 bg-[#2547f0]/[0.07] transition hover:bg-[#2547f0]/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#2547f0]"
+                  style={{
+                    left: `${pl.xPct}%`,
+                    bottom: `${pl.yPct}%`,
+                    width: `${pl.widthPct}%`,
+                    height: `${sigBoxHeightPct(pl)}%`,
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSigPopover(pl);
+                  }}
+                />
+              ))}
+
+              {sigPopover && sigPopover.page === page && (
+                <div
+                  className="absolute z-20 min-w-[168px] rounded-lg bg-white p-2 shadow-[0_8px_24px_rgba(15,26,46,.18)] ring-1 ring-slate-200"
+                  style={{
+                    left: `${Math.min(sigPopover.xPct, 72)}%`,
+                    bottom: `${Math.min(sigPopover.yPct + sigBoxHeightPct(sigPopover) + 2, 78)}%`,
+                  }}
+                >
+                  <p className="mb-2 px-1 text-[11px] font-medium text-slate-600">
+                    Signature on this page
+                  </p>
+                  <button
+                    type="button"
+                    className="mb-1 w-full rounded-md bg-[#eaf0ff] px-2 py-1.5 text-left text-xs font-semibold text-[#2547f0] hover:bg-[#dbe6ff]"
+                    onClick={() => startChangeExistingSignature(sigPopover)}
+                  >
+                    Change signature
+                  </button>
+                  <button
+                    type="button"
+                    className="mb-1 w-full rounded-md px-2 py-1.5 text-left text-xs font-semibold text-[#b0135a] hover:bg-[#fde8f1]"
+                    onClick={() => deleteExistingSignature()}
+                  >
+                    Delete signature
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full rounded-md px-2 py-1.5 text-left text-xs text-slate-500 hover:bg-slate-50"
+                    onClick={() => setSigPopover(null)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+
               {needsSig && sigImg && sigOnThisPage && (
                 <img
                   src={sigImg}
                   alt=""
-                  className={`pointer-events-none absolute bottom-[5%] ${sigAlign}`}
-                  style={{ width: `${sigW}%` }}
+                  draggable={false}
+                  className="absolute z-10 cursor-grab touch-none select-none active:cursor-grabbing"
+                  style={{
+                    left: `${sigXPct}%`,
+                    bottom: `${sigYPct}%`,
+                    width: `${sigW}%`,
+                  }}
+                  onPointerDown={(e) => {
+                    const el = e.currentTarget;
+                    const box = previewRef.current!.getBoundingClientRect();
+                    const rect = el.getBoundingClientRect();
+                    sigDrag.current = {
+                      active: true,
+                      dx: e.clientX - rect.left,
+                      dy: box.bottom - rect.bottom,
+                    };
+                    el.setPointerCapture(e.pointerId);
+                  }}
+                  onPointerMove={(e) => {
+                    if (!sigDrag.current.active) return;
+                    moveSigFromPointer(e.clientX, e.clientY);
+                  }}
+                  onPointerUp={(e) => {
+                    sigDrag.current.active = false;
+                    e.currentTarget.releasePointerCapture(e.pointerId);
+                  }}
+                  onPointerCancel={(e) => {
+                    sigDrag.current.active = false;
+                    e.currentTarget.releasePointerCapture(e.pointerId);
+                  }}
                 />
               )}
             </div>
@@ -2704,6 +2949,11 @@ export function WatermarkTool({ tool }: { tool: ToolMeta }) {
               {needsSig && sigImg && !sigOnThisPage && (
                 <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-500 ring-1 ring-slate-200">
                   Signature is not on this page
+                </span>
+              )}
+              {existingSigs.length > 0 && sigAction === "none" && (
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-[#2547f0] ring-1 ring-[#2547f0]/25">
+                  Tap the dashed box on a signature to change or delete it
                 </span>
               )}
             </div>
@@ -2854,7 +3104,7 @@ export function WatermarkTool({ tool }: { tool: ToolMeta }) {
                     value={sigSrc}
                     onChange={(s) => {
                       setSigSrc(s);
-                      setSigImg("");
+                      setSigRaw("");
                     }}
                     options={[
                       ["draw", "Draw it"],
@@ -2862,7 +3112,11 @@ export function WatermarkTool({ tool }: { tool: ToolMeta }) {
                     ]}
                   />
                   {sigSrc === "draw" ? (
-                    <SignaturePad onChange={setSigImg} />
+                    <SignaturePad
+                      inkColor={sigInk}
+                      lineWeight={sigLineWeight}
+                      onChange={setSigRaw}
+                    />
                   ) : (
                     <input
                       type="file"
@@ -2870,10 +3124,31 @@ export function WatermarkTool({ tool }: { tool: ToolMeta }) {
                       className={field}
                       onChange={async (e) => {
                         const f = e.target.files?.[0];
-                        if (f) setSigImg(await readAsDataUrl(f));
+                        if (f) setSigRaw(await readAsDataUrl(f));
                       }}
                     />
                   )}
+                  <div className="grid grid-cols-[1fr_auto] items-end gap-3">
+                    <Field label={`Line thickness: ${sigLineWeight}`}>
+                      <input
+                        type="range"
+                        min={1}
+                        max={10}
+                        value={sigLineWeight}
+                        onChange={(e) => setSigLineWeight(+e.target.value)}
+                        className="w-full accent-[#2547f0]"
+                      />
+                    </Field>
+                    <Field label="Ink color">
+                      <input
+                        type="color"
+                        aria-label="Signature ink color"
+                        value={sigInk}
+                        onChange={(e) => setSigInk(e.target.value)}
+                        className="h-9 w-10 rounded-lg border border-slate-200"
+                      />
+                    </Field>
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
                     <Field label="Pages">
                       <select
@@ -2888,12 +3163,12 @@ export function WatermarkTool({ tool }: { tool: ToolMeta }) {
                         <option value="all">All pages</option>
                       </select>
                     </Field>
-                    <Field label="Position">
+                    <Field label="Quick position">
                       <select
                         className={field}
                         value={sigPos}
                         onChange={(e) =>
-                          setSigPos(e.target.value as SignatureOptions["position"])
+                          setSigPos(e.target.value as SignaturePresetPosition)
                         }
                       >
                         <option value="bottom-right">Bottom right</option>
@@ -2902,13 +3177,23 @@ export function WatermarkTool({ tool }: { tool: ToolMeta }) {
                       </select>
                     </Field>
                   </div>
+                  <p className="text-xs text-slate-500">
+                    Drag the signature on the page preview to place it anywhere. White
+                    areas in uploaded images stay transparent on the PDF.
+                  </p>
                   <Field label={`Size: ${sigW}% of page width`}>
                     <input
                       type="range"
                       min={10}
                       max={60}
                       value={sigW}
-                      onChange={(e) => setSigW(+e.target.value)}
+                      onChange={(e) => {
+                        const next = +e.target.value;
+                        setSigW(next);
+                        const c = clampSigCoords(sigXPct, sigYPct, next);
+                        setSigXPct(c.xPct);
+                        setSigYPct(c.yPct);
+                      }}
                       className="w-full accent-[#2547f0]"
                     />
                   </Field>

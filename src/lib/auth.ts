@@ -9,19 +9,28 @@ export type AuthUser = {
 
 const AUTH_KEY = "utilai_auth_user";
 
+type AuthUserPayload = {
+  id?: string;
+  full_name?: string;
+  email?: string;
+};
+
 type AuthResponse = {
   success?: boolean;
   message?: string;
   detail?: string | { msg?: string }[];
   data?: {
     access_token?: string;
-    user?: {
-      id?: string;
-      full_name?: string;
-      email?: string;
-    };
-  };
+    user?: AuthUserPayload;
+  } & AuthUserPayload;
 };
+
+function userIdFromMePayload(data: AuthResponse["data"]): string | undefined {
+  if (!data) return undefined;
+  if (data.user?.id) return data.user.id;
+  if (typeof data.id === "string" && data.id.trim() !== "") return data.id;
+  return undefined;
+}
 
 async function submitAuth(
   endpoint: "login" | "register",
@@ -118,4 +127,37 @@ export function clearStoredUser() {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(AUTH_KEY);
   window.dispatchEvent(new Event("auth:state-change"));
+}
+
+let sessionValidation: Promise<boolean> | null = null;
+
+/** Returns false and clears storage if the token is missing, expired, or the user no longer exists (e.g. after in-memory DB reset). */
+export async function validateStoredSession(): Promise<boolean> {
+  const user = getStoredUser();
+  if (!user?.token) return false;
+
+  if (!sessionValidation) {
+    sessionValidation = (async () => {
+      try {
+        const response = await fetch(`${API_BASE}/auth/me`, {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        if (!response.ok) {
+          clearStoredUser();
+          return false;
+        }
+        const body = (await response.json().catch(() => null)) as AuthResponse | null;
+        if (!body?.success || !userIdFromMePayload(body.data)) {
+          clearStoredUser();
+          return false;
+        }
+        return true;
+      } catch {
+        return false;
+      } finally {
+        sessionValidation = null;
+      }
+    })();
+  }
+  return sessionValidation;
 }

@@ -480,9 +480,11 @@
 import {
   PDFArray,
   PDFDocument,
+  PDFHexString,
   PDFName,
   PDFPage,
   PDFStream,
+  PDFString,
   StandardFonts,
   degrees,
   rgb,
@@ -660,7 +662,107 @@ export async function rotateCropPdf(
 /* ------------------------------------------------------------------ */
 
 const MARK = PDFName.of("PdfToolMark");
+const UTILAI_SIG_META = PDFName.of("UtilAISigMeta");
 type MarkKind = "watermark" | "signature";
+
+export type ExistingToolSignature = {
+  page: number;
+  xPct: number;
+  yPct: number;
+  widthPct: number;
+  heightPct?: number;
+};
+
+function readSigMeta(doc: PDFDocument): ExistingToolSignature[] {
+  const ref = doc.catalog.get(UTILAI_SIG_META);
+  if (!ref) return [];
+  const value = doc.context.lookup(ref);
+  const raw =
+    value instanceof PDFString || value instanceof PDFHexString
+      ? value.decodeText()
+      : null;
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as ExistingToolSignature[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeSigMeta(doc: PDFDocument, items: ExistingToolSignature[]) {
+  doc.catalog.set(UTILAI_SIG_META, PDFString.of(JSON.stringify(items)));
+}
+
+function decodeStreamContents(stream: PDFStream): string {
+  return new TextDecoder("latin1").decode(stream.getContents());
+}
+
+function parseSignatureRectFromStream(
+  text: string,
+  pageWidth: number,
+  pageHeight: number,
+): Omit<ExistingToolSignature, "page"> | null {
+  const cm = text.match(
+    /([\d.+-]+)\s+0\s+0\s+([\d.+-]+)\s+([\d.+-]+)\s+([\d.+-]+)\s+cm[\s\S]{0,160}?Do/i,
+  );
+  if (!cm) return null;
+  const w = Math.abs(parseFloat(cm[1]));
+  const h = Math.abs(parseFloat(cm[2]));
+  const x = parseFloat(cm[3]);
+  const y = parseFloat(cm[4]);
+  if (![w, h, x, y].every(Number.isFinite)) return null;
+  return {
+    xPct: (x / pageWidth) * 100,
+    yPct: (y / pageHeight) * 100,
+    widthPct: (w / pageWidth) * 100,
+    heightPct: (h / pageHeight) * 100,
+  };
+}
+
+function scanMarkedSignatureFallback(doc: PDFDocument): ExistingToolSignature[] {
+  const out: ExistingToolSignature[] = [];
+  const pages = doc.getPages();
+  for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
+    const page = pages[pageIndex];
+    const { width, height } = page.getSize();
+    const contents = page.node.Contents();
+    if (!(contents instanceof PDFArray)) continue;
+    for (let i = 0; i < contents.size(); i++) {
+      const obj = doc.context.lookup(contents.get(i));
+      if (!(obj instanceof PDFStream)) continue;
+      const m = obj.dict.get(MARK);
+      if (!(m instanceof PDFName) || m.decodeText() !== "signature") continue;
+      const parsed = parseSignatureRectFromStream(
+        decodeStreamContents(obj),
+        width,
+        height,
+      );
+      out.push(
+        parsed
+          ? { page: pageIndex, ...parsed }
+          : {
+              page: pageIndex,
+              xPct: 69,
+              yPct: 5,
+              widthPct: 25,
+              heightPct: 8,
+            },
+      );
+    }
+  }
+  return out;
+}
+
+/** Tool-tagged signatures on a PDF (for click-to-edit in the UI). */
+export async function scanExistingToolSignatures(
+  file: File,
+): Promise<ExistingToolSignature[]> {
+  const doc = await load(file, false);
+  const fromMeta = readSigMeta(doc);
+  if (fromMeta.length) return fromMeta;
+  return scanMarkedSignatureFallback(doc);
+}
 
 export type WatermarkOptions =
   | {
@@ -679,12 +781,152 @@ export type WatermarkOptions =
       rotation: number;
     };
 
+export type SignaturePresetPosition =
+  | "bottom-right"
+  | "bottom-left"
+  | "bottom-center";
+
 export type SignatureOptions = {
   dataUrl: string; // PNG/JPG (draw ya upload)
   pages: "first" | "last" | "all";
-  position: "bottom-right" | "bottom-left" | "bottom-center";
+  /** @deprecated Presets — prefer xPct/yPct from the UI */
+  position?: SignaturePresetPosition;
+  /** Bottom-left corner: % from page left edge */
+  xPct: number;
+  /** Bottom-left corner: % from page bottom edge */
+  yPct: number;
   widthPct: number;
 };
+
+const SIG_MARGIN_PCT = 6;
+
+export function signaturePresetCoords(
+  position: SignaturePresetPosition,
+  widthPct: number,
+): { xPct: number; yPct: number } {
+  const yPct = 5;
+  switch (position) {
+    case "bottom-left":
+      return { xPct: SIG_MARGIN_PCT, yPct };
+    case "bottom-center":
+      return { xPct: (100 - widthPct) / 2, yPct };
+    default:
+      return { xPct: 100 - widthPct - SIG_MARGIN_PCT, yPct };
+  }
+}
+
+export type SignatureStyleOptions = {
+  /** Ink color (#rrggbb). Uploads and existing strokes are recolored. */
+  inkColor?: string;
+  /** 1 = thin, 10 = bold (stroke dilation for all signature sources) */
+  lineWeight?: number;
+};
+
+const parseHexColor = (hex: string) => {
+  const n = parseInt(hex.replace("#", ""), 16);
+  if (!Number.isFinite(n)) return { r: 15, g: 26, b: 46 };
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+};
+
+const isInkPixel = (r: number, g: number, b: number, a: number) =>
+  a >= 8 && !(r >= 245 && g >= 245 && b >= 245);
+
+/** Canvas pen width when drawing on the signature pad */
+export function signaturePadLineWidth(lineWeight: number) {
+  return Math.max(2, Math.min(14, 1 + lineWeight * 1.25));
+}
+
+function thickenInk(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  radius: number,
+  ink: { r: number; g: number; b: number },
+) {
+  if (radius <= 0) return;
+  const size = width * height;
+  const alpha = new Uint8Array(size);
+  for (let i = 0; i < size; i++) {
+    const o = i * 4;
+    alpha[i] = isInkPixel(data[o], data[o + 1], data[o + 2], data[o + 3])
+      ? data[o + 3]
+      : 0;
+  }
+  let current = alpha;
+  for (let pass = 0; pass < radius; pass++) {
+    const next = new Uint8Array(current);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = y * width + x;
+        if (current[i] === 0) continue;
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = x + dx;
+            const ny = y + dy;
+            if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+            const ni = ny * width + nx;
+            if (current[i] > next[ni]) next[ni] = current[i];
+          }
+        }
+      }
+    }
+    current = next;
+  }
+  for (let i = 0; i < size; i++) {
+    const o = i * 4;
+    if (current[i] > 0) {
+      data[o] = ink.r;
+      data[o + 1] = ink.g;
+      data[o + 2] = ink.b;
+      data[o + 3] = current[i];
+    } else if (isInkPixel(data[o], data[o + 1], data[o + 2], data[o + 3])) {
+      data[o + 3] = 0;
+    }
+  }
+}
+
+/** White knock-out, optional recolor, optional stroke thickening */
+export async function prepareSignatureDataUrl(
+  dataUrl: string,
+  style?: SignatureStyleOptions,
+): Promise<string> {
+  if (!dataUrl) return dataUrl;
+  const ink = parseHexColor(style?.inkColor ?? "#0f1a2e");
+  const lineWeight = Math.max(1, Math.min(10, style?.lineWeight ?? 1));
+  const radius = Math.max(0, Math.round(lineWeight - 1));
+
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const el = new Image();
+    el.onload = () => resolve(el);
+    el.onerror = () => reject(new Error("Couldn't read signature image."));
+    el.src = dataUrl;
+  });
+  const canvas = document.createElement("canvas");
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return dataUrl;
+  ctx.drawImage(img, 0, 0);
+  const { data, width, height } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const a = data[i + 3];
+    if (a > 0 && r >= 245 && g >= 245 && b >= 245) {
+      data[i + 3] = 0;
+      continue;
+    }
+    if (isInkPixel(r, g, b, a)) {
+      data[i] = ink.r;
+      data[i + 1] = ink.g;
+      data[i + 2] = ink.b;
+    }
+  }
+  thickenInk(data, width, height, radius, ink);
+  ctx.putImageData(new ImageData(data, width, height), 0, 0);
+  return canvas.toDataURL("image/png");
+}
 
 export type WatermarkJob = {
   watermark: { action: "none" | "add" | "remove"; options?: WatermarkOptions };
@@ -780,8 +1022,26 @@ async function addWatermark(doc: PDFDocument, wm: WatermarkOptions) {
   }
 }
 
+function resolveSignaturePlacement(
+  sig: SignatureOptions,
+  pageWidth: number,
+  pageHeight: number,
+  sigWidth: number,
+  sigHeight: number,
+) {
+  const wPct = (sigWidth / pageWidth) * 100;
+  const hPct = (sigHeight / pageHeight) * 100;
+  const xPct = Math.max(0, Math.min(sig.xPct, 100 - wPct));
+  const yPct = Math.max(0, Math.min(sig.yPct, 100 - hPct));
+  return {
+    x: (pageWidth * xPct) / 100,
+    y: (pageHeight * yPct) / 100,
+  };
+}
+
 async function addSignature(doc: PDFDocument, sig: SignatureOptions) {
-  const img = await embedImage(doc, sig.dataUrl);
+  const dataUrl = await prepareSignatureDataUrl(sig.dataUrl);
+  const img = await embedImage(doc, dataUrl);
   const pages = doc.getPages();
   const targets =
     sig.pages === "first"
@@ -790,21 +1050,31 @@ async function addSignature(doc: PDFDocument, sig: SignatureOptions) {
         ? [pages[pages.length - 1]]
         : pages;
 
-  for (const page of targets) {
-    const { width } = page.getSize();
+  const metaEntries: ExistingToolSignature[] = [];
+  for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
+    const page = pages[pageIndex];
+    if (!targets.includes(page)) continue;
+    const { width, height } = page.getSize();
     const w = (width * sig.widthPct) / 100;
     const h = (img.height / img.width) * w;
-    const margin = 36;
-    const x =
-      sig.position === "bottom-left"
-        ? margin
-        : sig.position === "bottom-center"
-          ? (width - w) / 2
-          : width - w - margin;
+    const { x, y } = resolveSignaturePlacement(sig, width, height, w, h);
     startMarked(page, "signature");
-    page.drawImage(img, { x, y: margin, width: w, height: h });
+    page.drawImage(img, { x, y, width: w, height: h });
     endMarked(page);
+    metaEntries.push({
+      page: pageIndex,
+      xPct: (x / width) * 100,
+      yPct: (y / height) * 100,
+      widthPct: (w / width) * 100,
+      heightPct: (h / height) * 100,
+    });
   }
+  const prior = readSigMeta(doc);
+  const targetPages = new Set(metaEntries.map((entry) => entry.page));
+  writeSigMeta(doc, [
+    ...prior.filter((entry) => !targetPages.has(entry.page)),
+    ...metaEntries,
+  ]);
 }
 
 export async function watermarkPdf(
@@ -824,6 +1094,7 @@ export async function watermarkPdf(
   }
   if (job.signature.action === "remove" || job.signature.action === "replace") {
     const n = stripMarked(doc, "signature");
+    writeSigMeta(doc, []);
     notes.push(
       n
         ? `${n} signature layer(s) remove hui.`

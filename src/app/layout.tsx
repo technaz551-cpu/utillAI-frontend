@@ -58,8 +58,7 @@
 
 import type { Metadata } from "next";
 
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
+import { SiteFooter, SiteHeader } from "@/components/layout/SiteChrome";
 // import { ThemeManager } from "@/components/settings/ThemeManager";
 import { Inter } from "next/font/google";
 
@@ -105,9 +104,9 @@ export default function RootLayout({
       >
         {/* <ThemeManager /> */}
 
-        <Header />
+        <SiteHeader />
         <main className="w-full min-h-screen">{children}</main>
-        <Footer />
+        <SiteFooter />
       </body>
     </html>
   );

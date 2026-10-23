@@ -327,6 +327,8 @@
 
 
 
+"use client";
+
 import Link from "next/link";
 import {
   ChevronRight,
@@ -338,6 +340,7 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { fetchCategories } from "@/lib/api";
 
@@ -346,42 +349,21 @@ type FooterCategory = {
   name: string;
 };
 
-async function getFooterCategories(): Promise<FooterCategory[]> {
-  try {
-    const data = await fetchCategories();
-
-    if (!Array.isArray(data)) {
-      return [];
-    }
-
-    return data
-      .filter(
-        (item): item is Record<string, unknown> =>
-          typeof item === "object" && item !== null,
-      )
-      .map((category) => ({
-        slug:
-          typeof category.slug === "string"
-            ? category.slug.trim()
-            : "",
-        name:
-          typeof category.name === "string"
-            ? category.name.trim()
-            : "",
-      }))
-      .filter(
-        (category) =>
-          category.slug !== "" &&
-          category.name !== "",
-      );
-  } catch (error) {
-    console.error(
-      "Failed to load footer categories:",
-      error,
-    );
-
+function normalizeFooterCategories(data: unknown): FooterCategory[] {
+  if (!Array.isArray(data)) {
     return [];
   }
+
+  return data
+    .filter(
+      (item): item is Record<string, unknown> =>
+        typeof item === "object" && item !== null,
+    )
+    .map((category) => ({
+      slug: typeof category.slug === "string" ? category.slug.trim() : "",
+      name: typeof category.name === "string" ? category.name.trim() : "",
+    }))
+    .filter((category) => category.slug !== "" && category.name !== "");
 }
 
 const quickLinks = [
@@ -416,10 +398,29 @@ const socialLinks = [
   },
 ];
 
-export async function Footer() {
-  const categories = await getFooterCategories();
-  const footerCategories =
-    categories.length > 0 ? categories.slice(0, 6) : fallbackCategories;
+export function Footer() {
+  const [footerCategories, setFooterCategories] =
+    useState<FooterCategory[]>(fallbackCategories);
+
+  useEffect(() => {
+    let mounted = true;
+
+    void fetchCategories()
+      .then((data) => {
+        if (!mounted) return;
+        const categories = normalizeFooterCategories(data);
+        setFooterCategories(
+          categories.length > 0 ? categories.slice(0, 6) : fallbackCategories,
+        );
+      })
+      .catch((error) => {
+        console.error("Failed to load footer categories:", error);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <footer className="relative mt-20 w-full overflow-hidden bg-slate-950 text-slate-300">
