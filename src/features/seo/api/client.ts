@@ -1,5 +1,5 @@
 import { API_BASE } from "@/lib/api-config";
-import { clearStoredUser, getStoredUser } from "@/lib/auth";
+import { clearStoredUser, getStoredUser, refreshSession } from "@/lib/auth";
 
 import type {
   DashboardCharts,
@@ -38,13 +38,20 @@ function parseErrorDetail(body: ApiEnvelope<unknown> | null, status: number): st
   return `Request failed (${status})`;
 }
 
-async function seoFetch<T>(path: string, init?: RequestInit): Promise<T> {
+async function seoFetch<T>(
+  path: string,
+  init?: RequestInit,
+  retried = false,
+): Promise<T> {
   const response = await fetch(`${API_BASE}/seo${path}`, {
     ...init,
     headers: { ...(init?.headers || {}), ...authHeaders() },
   });
   const body = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
   if (response.status === 401) {
+    if (!retried && (await refreshSession())) {
+      return seoFetch(path, init, true);
+    }
     clearStoredUser();
     throw new Error(parseErrorDetail(body, 401));
   }

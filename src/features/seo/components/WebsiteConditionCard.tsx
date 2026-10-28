@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, CheckCircle2, HelpCircle, ShieldAlert } from "lucide-react";
+import { AlertTriangle, CheckCircle2, HelpCircle, Loader2, ShieldAlert } from "lucide-react";
 
 import type { WebsiteCondition } from "@/features/seo/types";
 
@@ -33,6 +33,12 @@ const STATUS_STYLE: Record<
     text: "text-slate-800",
     icon: HelpCircle,
   },
+  scanning: {
+    bg: "bg-blue-50",
+    border: "border-blue-200",
+    text: "text-blue-950",
+    icon: Loader2,
+  },
 };
 
 const METRIC_STYLE: Record<string, string> = {
@@ -54,12 +60,16 @@ export function WebsiteConditionCard({
 
   const style = STATUS_STYLE[condition.overall_status] ?? STATUS_STYLE.unknown;
   const Icon = style.icon;
+  const isScanning = condition.overall_status === "scanning";
 
   return (
     <div className={`rounded-2xl border p-5 shadow-sm ${style.border} ${style.bg}`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 flex-1 gap-3">
-          <Icon className={`mt-0.5 h-8 w-8 shrink-0 ${style.text}`} aria-hidden />
+          <Icon
+            className={`mt-0.5 h-8 w-8 shrink-0 ${style.text} ${isScanning ? "animate-spin" : ""}`}
+            aria-hidden
+          />
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Website condition (right now)

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { fetchTool, fetchTools, SITE_URL } from "@/lib/api";
 import { ToolEngine } from "@/features/tools/ToolEngine";
@@ -46,6 +46,10 @@ export async function generateMetadata({
 
 export default async function ToolPage({ params }: Props) {
   const { category, tool: slug } = await params;
+
+  if (category === "seo" && slug === "seo-platform") {
+    redirect("/tools/seo/platform");
+  }
 
   const [tool, allTools] = await Promise.all([
     fetchTool(category, slug),

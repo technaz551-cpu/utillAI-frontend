@@ -11,7 +11,7 @@ import {
 } from "@/features/seo/api/client";
 import { SeoShell } from "@/features/seo/components/SeoShell";
 import type { SeoProject } from "@/features/seo/types";
-import { validateStoredSession } from "@/lib/auth";
+import { ensureValidSession } from "@/lib/auth";
 
 export function SeoPlatformHome() {
   const router = useRouter();
@@ -30,7 +30,7 @@ export function SeoPlatformHome() {
   };
 
   useEffect(() => {
-    void validateStoredSession().then((ok) => {
+    void ensureValidSession().then((ok) => {
       if (!ok) {
         router.replace("/login?next=/tools/seo/platform");
         return;
@@ -56,7 +56,9 @@ export function SeoPlatformHome() {
       <div className="grid gap-5 xl:grid-cols-3">
         <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm xl:col-span-1">
           <h2 className="text-lg font-bold text-slate-900">Add project</h2>
-          <p className="mt-1 text-sm text-slate-500">Start auditing a live website.</p>
+          <p className="mt-1 text-sm text-slate-500">
+            We start a site audit automatically so the dashboard shows health and current state.
+          </p>
           {error ? (
             <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
           ) : null}
@@ -79,7 +81,7 @@ export function SeoPlatformHome() {
               onClick={() => void add()}
               disabled={!name.trim() || !url.trim()}
             >
-              Create &amp; open dashboard
+              Create project &amp; scan site
             </button>
           </div>
         </div>

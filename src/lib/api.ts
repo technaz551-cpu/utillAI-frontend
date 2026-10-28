@@ -33,6 +33,13 @@ import {
   localDeveloperTools,
 } from "@/features/tools/developertools/developer-catalog";
 
+import {
+  SEO_CATEGORY,
+  getSeoTool,
+  localSeoToolsFiltered,
+  overlaySeoCategoryTools,
+} from "@/features/tools/seo-catalog";
+
 import type { ToolMeta } from "@/features/tools/client-processors";
 import { API_BASE } from "@/lib/api-config";
 
@@ -67,6 +74,7 @@ const LOCAL_CATEGORIES = [
   IMAGE_CATEGORY,
   INTERNET_CATEGORY,
   DEVELOPER_CATEGORY,
+  SEO_CATEGORY,
 ];
 
 /* =========================================================
@@ -135,7 +143,17 @@ function ensureLocalCategories(
     }
   }
 
-  return result;
+  return result.map((c) => {
+    if (c.slug === "seo" && Array.isArray(c.tools)) {
+      return {
+        ...c,
+        tools: overlaySeoCategoryTools(
+          c.tools as Array<Record<string, unknown>>,
+        ),
+      };
+    }
+    return c;
+  });
 }
 
 /* =========================================================
@@ -379,6 +397,10 @@ function overlayCategoryTools(
     );
   }
 
+  if (slug === "seo") {
+    return overlaySeoCategoryTools(tools);
+  }
+
   return tools;
 }
 
@@ -447,6 +469,10 @@ function mergeLocalTools(
     );
   }
 
+  if (!params?.category || params.category === "seo") {
+    result = mergeMissing(result, localSeoToolsFiltered(params));
+  }
+
   return overlayMergedAiTool(
     collapseMergedAiTools(
       collapseMergedPdfTools(
@@ -478,6 +504,7 @@ function localCatalogTools(
     ...localImageTools(params),
     ...localInternetTools(params),
     ...localDeveloperTools,
+    ...localSeoToolsFiltered(params),
   ];
 }
 
@@ -495,6 +522,7 @@ function getLocalTool(
     getImageTool(category, slug) ??
     getInternetTool(category, slug) ??
     getDeveloperTool(slug) ??
+    getSeoTool(slug) ??
     null
   );
 }
@@ -524,6 +552,10 @@ function getLocalCategory(
 
   if (slug === "developer") {
     return DEVELOPER_CATEGORY;
+  }
+
+  if (slug === "seo") {
+    return SEO_CATEGORY;
   }
 
   return null;

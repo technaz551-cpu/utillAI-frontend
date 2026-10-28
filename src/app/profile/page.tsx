@@ -2,19 +2,36 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Check, CircleHelp, ImagePlus, Languages, LogOut } from "lucide-react";
-import { clearStoredUser, getStoredUser, type AuthUser } from "@/lib/auth";
+import { Check, CircleHelp, ImagePlus, LogOut, Sparkles } from "lucide-react";
+import {
+  clearStoredUser,
+  ensureValidSession,
+  fetchUserProfile,
+  getStoredUser,
+  type AuthUser,
+  type UserProfile,
+} from "@/lib/auth";
 import { BACKGROUND_OPTIONS, getPreferences, setPreferences, type UserPreferences } from "@/lib/preferences";
 import { btn } from "@/lib/utils";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [preferences, setLocalPreferences] = useState<UserPreferences>(getPreferences());
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = getStoredUser();
-    setUser(storedUser);
-    if (!storedUser) window.location.href = "/login";
+    void (async () => {
+      const ok = await ensureValidSession();
+      if (!ok) {
+        window.location.href = "/login?next=/profile";
+        return;
+      }
+      setUser(getStoredUser());
+      const remote = await fetchUserProfile();
+      setProfile(remote);
+      setLoading(false);
+    })();
   }, []);
 
   const updatePreferences = (next: Partial<UserPreferences>) => {
@@ -35,8 +52,11 @@ export default function ProfilePage() {
     window.location.href = "/";
   };
 
-  if (!user) return null;
+  if (loading || !user) return null;
   const initials = user.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+  const memberSince = profile?.created_at
+    ? new Date(profile.created_at).toLocaleDateString()
+    : "—";
 
   return (
     <main className="section-shell py-12 md:py-16">
@@ -45,7 +65,7 @@ export default function ProfilePage() {
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--brand-primary)]">Account settings</p>
             <h1 className="mt-3 text-4xl font-black tracking-[-0.06em] text-[var(--foreground)]">Your profile</h1>
-            <p className="mt-2 text-[var(--muted)]">Personalize your UtilAI workspace.</p>
+            <p className="mt-2 text-[var(--muted)]">One account for tools, SEO platform, and saved preferences.</p>
           </div>
           <button type="button" onClick={signOut} className={btn("secondary") + " !rounded-full !px-4"}>
             <LogOut className="mr-2 h-4 w-4" /> Log out
@@ -67,13 +87,37 @@ export default function ProfilePage() {
                 </label>
               </div>
               <div>
-                <h2 className="text-xl font-bold text-[var(--foreground)]">{user.name}</h2>
+                <h2 className="text-xl font-bold text-[var(--foreground)]">{profile?.full_name || user.name}</h2>
                 <p className="mt-1 text-sm text-[var(--muted)]">{user.email}</p>
               </div>
             </div>
-            <div className="mt-8 rounded-2xl bg-[var(--surface-alt)] p-4 text-sm text-[var(--muted)]">
-              Your picture is stored in this browser and is not uploaded to the server.
-            </div>
+
+            <dl className="mt-8 space-y-3 text-sm">
+              <div className="flex justify-between gap-4 border-b border-[var(--border)] pb-2">
+                <dt className="text-[var(--muted)]">Plan</dt>
+                <dd className="font-semibold capitalize text-[var(--foreground)]">{profile?.plan || "free"}</dd>
+              </div>
+              <div className="flex justify-between gap-4 border-b border-[var(--border)] pb-2">
+                <dt className="text-[var(--muted)]">Role</dt>
+                <dd className="font-semibold capitalize text-[var(--foreground)]">{profile?.role || "user"}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-[var(--muted)]">Member since</dt>
+                <dd className="font-semibold text-[var(--foreground)]">{memberSince}</dd>
+              </div>
+            </dl>
+
+            <Link
+              href="/tools/seo/platform"
+              className="mt-6 flex items-center justify-center gap-2 rounded-2xl bg-[#4f46e5] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#4338ca]"
+            >
+              <Sparkles className="h-4 w-4" />
+              Open SEO Platform
+            </Link>
+
+            <p className="mt-4 rounded-2xl bg-[var(--surface-alt)] p-4 text-xs text-[var(--muted)]">
+              You stay signed in on this browser until you log out. Session renews automatically for up to 7 days.
+            </p>
           </section>
 
           <section className="rounded-[30px] border border-[var(--border)] bg-[var(--surface)] p-7 shadow-[var(--shadow-card)]">
@@ -81,27 +125,6 @@ export default function ProfilePage() {
               <h2 className="text-xl font-bold text-[var(--foreground)]">Workspace settings</h2>
               <p className="mt-1 text-sm text-[var(--muted)]">Personalize your language and background.</p>
             </div>
-
-            {/* <label className="mt-6 block text-sm font-semibold text-[var(--foreground)]">
-              <span className="flex items-center gap-2"><Languages className="h-4 w-4 text-[var(--brand-primary)]" /> Language</span>
-              <select
-                value={preferences.language}
-                onChange={(event) =>
-                  updatePreferences({
-                    language: event.target.value,
-                  })
-                }
-                className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-alt)] px-4 py-3 font-normal text-[var(--foreground)] outline-none focus:border-[var(--brand-primary)]"
-              >
-                <option value="en">English</option>
-                <option value="ur">Urdu</option>
-                <option value="es">Spanish</option>
-                <option value="ar">Arabic</option>
-                <option value="zh">Chinese</option>
-                <option value="ja">Japanese</option>
-                <option value="ko">Korean</option>
-              </select>
-            </label> */}
 
             <div className="mt-7 border-t border-[var(--border)] pt-6">
               <div className="flex items-center justify-between gap-3">

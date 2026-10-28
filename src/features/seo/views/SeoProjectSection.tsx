@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-import { validateStoredSession } from "@/lib/auth";
+import { ensureValidSession } from "@/lib/auth";
 
 import {
   getDashboardCharts,
@@ -42,7 +42,7 @@ export function SeoProjectSection({
   const pathname = usePathname();
 
   useEffect(() => {
-    void validateStoredSession().then((ok) => {
+    void ensureValidSession().then((ok) => {
       if (!ok) {
         router.replace(`/login?next=${encodeURIComponent(pathname)}`);
       }
@@ -61,6 +61,20 @@ export function SeoProjectSection({
       void getIntegrationStatus(projectId).then(setIntegrations).catch(() => {});
     }
   }, [projectId, section, refresh]);
+
+  useEffect(() => {
+    const inProgress =
+      summary?.audit_in_progress ||
+      summary?.last_audit_status === "pending" ||
+      summary?.last_audit_status === "running";
+    if (!inProgress) return;
+    const timer = setInterval(() => refresh(), 3000);
+    return () => clearInterval(timer);
+  }, [
+    summary?.audit_in_progress,
+    summary?.last_audit_status,
+    refresh,
+  ]);
 
   return (
     <SeoShell projectId={projectId} project={project} sectionSlug={section}>

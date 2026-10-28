@@ -106,7 +106,7 @@ export type WebsiteConditionMetric = {
 };
 
 export type WebsiteCondition = {
-  overall_status: "healthy" | "needs_attention" | "critical" | "unknown";
+  overall_status: "healthy" | "needs_attention" | "critical" | "unknown" | "scanning";
   overall_label: string;
   headline: string;
   audited_at: string | null;
@@ -138,6 +138,9 @@ export type DashboardSummary = {
   ai_brand_mentions?: number;
   ai_website_links?: number;
   website_condition?: WebsiteCondition | null;
+  audit_in_progress?: boolean;
+  audit_pages_crawled?: number;
+  audit_pages_target?: number;
 };
 
 export type ChartDataset = {

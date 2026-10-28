@@ -184,11 +184,39 @@ export function SeoOverviewPanel({
 
       <WebsiteConditionCard projectId={projectId} condition={summary?.website_condition} />
 
+      {summary?.audit_in_progress ? (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950">
+          <p className="font-semibold">First site scan running…</p>
+          <p className="mt-1 text-blue-900/90">
+            Crawled{" "}
+            <strong>{summary.audit_pages_crawled ?? summary.pages_crawled ?? 0}</strong>
+            {summary.audit_pages_target ? (
+              <>
+                {" "}
+                of <strong>{summary.audit_pages_target}</strong>
+              </>
+            ) : null}{" "}
+            pages. Health score and issues will appear here when the scan completes.
+          </p>
+        </div>
+      ) : null}
+
       <div className="grid gap-4 lg:grid-cols-5">
         <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm lg:col-span-2">
           <p className="text-xs font-semibold text-slate-500">Selected project</p>
           <p className="mt-1 text-lg font-bold text-slate-900">{project?.domain || "—"}</p>
-          <HealthRing score={summary?.health_score ?? null} />
+          <div className="mt-2">
+            <HealthRing
+              score={
+                summary?.audit_in_progress && summary.health_score == null
+                  ? null
+                  : summary?.health_score ?? null
+              }
+            />
+            {summary?.audit_in_progress && summary.health_score == null ? (
+              <p className="mt-2 text-xs font-medium text-blue-600">Calculating health…</p>
+            ) : null}
+          </div>
         </div>
         <KpiCard
           title="Total Crawled Pages"

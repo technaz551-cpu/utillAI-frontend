@@ -571,6 +571,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Search, ArrowRight, Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { AuthStatus } from "@/components/auth/AuthStatus";
 import { fetchCategories } from "@/lib/api";
 import { NavigationMenu } from "./NavigationMenu";
 
@@ -724,12 +725,7 @@ export function Header() {
             <Search size={17} strokeWidth={2.2} />
           </button>
 
-          <Link
-            href="/login"
-            className="flex h-10 items-center rounded-full border border-blue-100 bg-white px-4 text-[13px] font-semibold text-[#35506F] shadow-sm transition-all duration-200 hover:border-blue-200 hover:bg-blue-50 hover:text-[#1769E0] xl:px-5"
-          >
-            Sign In
-          </Link>
+          <AuthStatus />
 
           <Link
             href="/register"
@@ -828,19 +824,17 @@ export function Header() {
             </div>
 
             {/* Mobile actions */}
-            <div className="mt-3 flex flex-col gap-2 border-t border-blue-100 pt-4 min-[400px]:flex-row">
-              <Link
-                href="/login"
+            <div className="mt-3 flex flex-col gap-2 border-t border-blue-100 pt-4">
+              <div
+                className="flex justify-center"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex flex-1 items-center justify-center rounded-xl border border-blue-100 px-4 py-3 text-sm font-semibold text-[#35506F]"
               >
-                Sign In
-              </Link>
-
+                <AuthStatus />
+              </div>
               <Link
                 href="/register"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#1769E0] px-4 py-3 text-sm font-semibold text-white"
+                className="flex items-center justify-center gap-2 rounded-xl bg-[#1769E0] px-4 py-3 text-sm font-semibold text-white"
               >
                 Get Started
                 <ArrowRight size={15} />

@@ -496,6 +496,7 @@ import {
 } from "react";
 import { ChevronDown } from "lucide-react";
 import { fetchCategories } from "@/lib/api";
+import { seoToolHref } from "@/features/tools/seo-catalog";
 
 type NavItem = {
   label: string;
@@ -864,10 +865,10 @@ export function NavigationMenu({
                                             <span className="absolute left-0 top-[7px] h-1.5 w-1.5 rounded-full bg-[#1769E0]" />
 
                                             <Link
-                                              href={`/tools/${
-                                                tool.category_slug ||
-                                                category.slug
-                                              }/${tool.slug}`}
+                                              href={seoToolHref(
+                                                category.slug,
+                                                tool,
+                                              )}
                                               onClick={() =>
                                                 setOpenMenu(
                                                   null

@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
-import { loginWithPassword } from "@/lib/auth";
+import { Suspense, useEffect, useState } from "react";
+import { ensureValidSession, getStoredUser, loginWithPassword } from "@/lib/auth";
 import { btn } from "@/lib/utils";
 
 const SEO_PLATFORM_HOME = "/tools/seo/platform";
@@ -22,6 +22,16 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (getStoredUser()) {
+      void ensureValidSession().then((ok) => {
+        if (ok) {
+          router.replace(safeRedirectPath(searchParams.get("next")));
+        }
+      });
+    }
+  }, [router, searchParams]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

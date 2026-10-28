@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, ChevronDown, Menu, Search, Sparkles } from "lucide-react";
+import { Bell, ChevronDown, Home, Menu, Search, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { listProjects } from "@/features/seo/api/client";
@@ -12,7 +12,7 @@ import {
   type SeoSectionSlug,
 } from "@/features/seo/navigation";
 import type { SeoProject } from "@/features/seo/types";
-import { getStoredUser } from "@/lib/auth";
+import { getStoredUser, type AuthUser } from "@/lib/auth";
 
 function navHref(projectId: string | undefined, slug: string): string {
   if (slug === "projects-home" || slug === "overview") {
@@ -49,7 +49,14 @@ export function SeoShell({
   const [mobileNav, setMobileNav] = useState(false);
   const [projects, setProjects] = useState<SeoProject[]>([]);
   const [quickSearch, setQuickSearch] = useState("");
-  const user = getStoredUser();
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    const sync = () => setUser(getStoredUser());
+    sync();
+    window.addEventListener("auth:state-change", sync);
+    return () => window.removeEventListener("auth:state-change", sync);
+  }, []);
 
   const runQuickSearch = () => {
     const q = quickSearch.trim().toLowerCase();
@@ -107,14 +114,32 @@ export function SeoShell({
           mobileNav ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex h-16 items-center gap-2 border-b border-white/10 px-5">
+        <Link
+          href="/"
+          onClick={() => setMobileNav(false)}
+          className="flex h-16 items-center gap-2 border-b border-white/10 px-5 transition hover:bg-white/5"
+          title="Back to UtilAI home"
+        >
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#4f46e5]">
             <Sparkles className="h-5 w-5 text-white" />
           </span>
-          <span className="text-lg font-bold tracking-tight text-white">UTILAI</span>
-        </div>
+          <div className="min-w-0">
+            <span className="block text-lg font-bold tracking-tight text-white">UTILAI</span>
+            <span className="block truncate text-[10px] font-medium uppercase tracking-wider text-slate-500">
+              Main site home
+            </span>
+          </div>
+        </Link>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4">
+          <Link
+            href="/"
+            onClick={() => setMobileNav(false)}
+            className="mb-4 flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm font-medium text-slate-200 transition hover:border-[#4f46e5]/50 hover:bg-white/10 hover:text-white"
+          >
+            <Home className="h-4 w-4 shrink-0 text-[#818cf8]" />
+            Back to Home
+          </Link>
           {SEO_SIDEBAR_GROUPS.map((group) => (
             <div key={group.label} className="mb-5">
               <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
@@ -195,6 +220,13 @@ export function SeoShell({
             >
               <Menu className="h-5 w-5" />
             </button>
+            <Link
+              href="/"
+              className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-[#4f46e5] hover:text-[#4f46e5]"
+            >
+              <Home className="h-4 w-4" />
+              <span className="hidden sm:inline">Home</span>
+            </Link>
             <div className="relative hidden max-w-xl flex-1 md:block">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
@@ -212,15 +244,18 @@ export function SeoShell({
               <button type="button" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="Notifications">
                 <Bell className="h-5 w-5" />
               </button>
-              <div className="flex items-center gap-2 rounded-xl border border-slate-200 px-2 py-1">
+              <Link
+                href="/profile"
+                className="flex items-center gap-2 rounded-xl border border-slate-200 px-2 py-1 transition hover:border-[#4f46e5] hover:bg-slate-50"
+              >
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#4f46e5] text-xs font-bold text-white">
                   {(user?.name || "U").slice(0, 1).toUpperCase()}
                 </span>
                 <div className="hidden text-left text-xs sm:block">
-                  <p className="font-semibold text-slate-800">{user?.name || "User"}</p>
-                  <p className="text-slate-500">Admin</p>
+                  <p className="font-semibold text-slate-800">{user?.name || "Account"}</p>
+                  <p className="text-slate-500">Profile</p>
                 </div>
-              </div>
+              </Link>
             </div>
           </div>
         </header>

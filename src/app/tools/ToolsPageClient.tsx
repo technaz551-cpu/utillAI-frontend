@@ -436,6 +436,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 
+import { seoToolHref } from "@/features/tools/seo-catalog";
 import { categoryAccent } from "@/lib/utils";
 
 import {
@@ -1139,7 +1140,7 @@ export default function ToolsPageClient({
                         return (
                           <Link
                             key={tool.slug}
-                            href={`/tools/${tool.category_slug}/${tool.slug}`}
+                            href={seoToolHref(cat.slug, tool)}
                             className="group relative flex min-h-[150px] flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-100/50"
                           >
 
