@@ -32,7 +32,7 @@ export function SeoPlatformHome() {
   useEffect(() => {
     void ensureValidSession().then((ok) => {
       if (!ok) {
-        router.replace("/login?next=/tools/seo/platform");
+        router.replace("/login?next=/tools/seo/platform&reason=session");
         return;
       }
       load();

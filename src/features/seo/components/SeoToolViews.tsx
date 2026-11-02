@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ExternalLink, RefreshCw } from "lucide-react";
+import { Check, ExternalLink, RefreshCw } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import {
@@ -67,6 +67,119 @@ function statusPill(code: number | null | undefined) {
   return { text: String(code), cls: "bg-red-100 text-red-800" };
 }
 
+type IssueClearStatus = "resolved" | "ignored";
+
+function OpenIssueCard({
+  issue,
+  onResolveIssue,
+  onListSync,
+}: {
+  issue: SeoIssue;
+  onResolveIssue: (id: string, status: IssueClearStatus) => Promise<void>;
+  onListSync: () => void | Promise<void>;
+}) {
+  const [confirmFix, setConfirmFix] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [cleared, setCleared] = useState<IssueClearStatus | null>(null);
+
+  const run = (status: IssueClearStatus) => {
+    setError("");
+    setBusy(true);
+    void onResolveIssue(issue.id, status)
+      .then(() => {
+        setCleared(status);
+        window.setTimeout(() => {
+          void Promise.resolve(onListSync());
+        }, 1400);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "Could not update issue."))
+      .finally(() => {
+        setBusy(false);
+        setConfirmFix(false);
+      });
+  };
+
+  if (cleared) {
+    const fixed = cleared === "resolved";
+    return (
+      <div
+        className="flex gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm"
+        role="status"
+        aria-live="polite"
+      >
+        <Check className="h-6 w-6 shrink-0 text-emerald-800" strokeWidth={2.25} aria-hidden />
+        <div className="min-w-0">
+          <p className="font-semibold text-emerald-950">{fixed ? "Issue cleared" : "Issue ignored"}</p>
+          <p className="mt-1 text-xs leading-relaxed text-emerald-900/90">
+            {fixed
+              ? "Saved as fixed in UTILAI. Re-run Site Audit to confirm it is really gone on your site."
+              : "Removed from your open issues list."}
+          </p>
+          <p className="mt-1 truncate text-[11px] text-emerald-800/70">{issue.title}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <SeverityBadge severity={issue.severity} />
+        <span className="font-semibold">{issue.title}</span>
+      </div>
+      <p className="mt-1 break-all text-xs text-slate-500">{issue.url}</p>
+      <p className="mt-2 text-slate-600">{issue.recommendation}</p>
+      {error ? <p className="mt-2 text-xs text-red-600">{error}</p> : null}
+      {confirmFix ? (
+        <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50/90 p-3">
+          <p className="text-xs font-semibold text-amber-950">Did you fix this on your website?</p>
+          <p className="mt-1 text-[11px] text-amber-900/85">
+            We save your answer here. The next Site Audit shows if the problem is actually gone.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+              onClick={() => run("resolved")}
+            >
+              {busy ? "Saving…" : "Yes, mark fixed"}
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700"
+              onClick={() => setConfirmFix(false)}
+            >
+              Not yet
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            className="rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800 disabled:opacity-50"
+            onClick={() => setConfirmFix(true)}
+          >
+            Mark fixed
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            className="rounded-md bg-slate-100 px-2 py-1 text-xs disabled:opacity-50"
+            onClick={() => run("ignored")}
+          >
+            {busy ? "Saving…" : "Ignore"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SiteAuditView({
   projectId,
   project,
@@ -80,6 +193,7 @@ export function SiteAuditView({
   onRunAudit,
   onCancelAudit,
   onResolveIssue,
+  onIssuesListSync,
 }: {
   projectId: string;
   project: SeoProject | null;
@@ -92,7 +206,8 @@ export function SiteAuditView({
   busy: boolean;
   onRunAudit: () => void;
   onCancelAudit: (id: string) => void;
-  onResolveIssue: (id: string, status: string) => void;
+  onResolveIssue: (id: string, status: IssueClearStatus) => Promise<void>;
+  onIssuesListSync: () => void | Promise<void>;
 }) {
   const [tab, setTab] = useState("pages");
   const [pageFilter, setPageFilter] = useState("");
@@ -197,22 +312,12 @@ export function SiteAuditView({
             ))}
           </div>
           {issues.map((issue) => (
-            <div key={issue.id} className="rounded-xl border border-slate-200 bg-white p-4 text-sm">
-              <div className="flex flex-wrap items-center gap-2">
-                <SeverityBadge severity={issue.severity} />
-                <span className="font-semibold">{issue.title}</span>
-              </div>
-              <p className="mt-1 break-all text-xs text-slate-500">{issue.url}</p>
-              <p className="mt-2 text-slate-600">{issue.recommendation}</p>
-              <div className="mt-3 flex gap-2">
-                <button type="button" className="rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800" onClick={() => onResolveIssue(issue.id, "resolved")}>
-                  Mark fixed
-                </button>
-                <button type="button" className="rounded-md bg-slate-100 px-2 py-1 text-xs" onClick={() => onResolveIssue(issue.id, "ignored")}>
-                  Ignore
-                </button>
-              </div>
-            </div>
+            <OpenIssueCard
+              key={issue.id}
+              issue={issue}
+              onResolveIssue={onResolveIssue}
+              onListSync={onIssuesListSync}
+            />
           ))}
           {issues.length === 0 ? <p className="text-sm text-slate-500">No open issues. Run an audit first.</p> : null}
         </div>
@@ -556,6 +661,9 @@ export function KeywordResearchView({
   onAnalyzeKeyword,
   overview,
   overviewLoading,
+  overviewError = "",
+  enrichBusy = false,
+  onEnrichKeywords,
   bulkText,
   onBulkChange,
   onAnalyze,
@@ -571,6 +679,9 @@ export function KeywordResearchView({
   onAnalyzeKeyword: (phrase?: string) => void;
   overview: KeywordOverview | null;
   overviewLoading: boolean;
+  overviewError?: string;
+  enrichBusy?: boolean;
+  onEnrichKeywords?: () => void;
   bulkText: string;
   onBulkChange: (v: string) => void;
   onAnalyze: () => void;
@@ -619,6 +730,12 @@ export function KeywordResearchView({
         </button>
       </div>
 
+      {overviewError ? (
+        <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+          {overviewError}
+        </p>
+      ) : null}
+
       <ToolTabs
         active={tab}
         onChange={(id) => setTab(id as "overview" | "list" | "import")}
@@ -643,7 +760,21 @@ export function KeywordResearchView({
             >
               Export CSV
             </button>
+            {onEnrichKeywords ? (
+              <button
+                type="button"
+                disabled={enrichBusy || keywords.length === 0}
+                className="rounded-lg bg-[#4f46e5] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                onClick={onEnrichKeywords}
+              >
+                {enrichBusy ? "Fetching metrics…" : "Fetch volume & KD (Trackee)"}
+              </button>
+            ) : null}
           </div>
+          <p className="mb-3 text-xs text-slate-500">
+            Saving a word list only stores phrases. Use <strong>Fetch volume &amp; KD</strong> or re-save from Import to
+            load Trackee metrics (uses credits, min ~20 per batch).
+          </p>
           <div className="overflow-x-auto rounded-xl border border-slate-200">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
@@ -687,7 +818,8 @@ export function KeywordResearchView({
       {tab === "import" ? (
         <>
       <ProviderNotice>
-        Connect a keyword API in Settings for volume, KD%, intent, and trends (Semrush/Ahrefs/DataForSEO).
+        Trackee fills volume and KD after you save keywords — use <strong>Save keywords</strong> then check the list, or
+        click <strong>Fetch volume &amp; KD (Trackee)</strong>. Single-word <strong>Analyze</strong> shows full overview.
       </ProviderNotice>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <select className="rounded-lg border border-slate-200 px-3 py-2 text-sm" value={country} onChange={(e) => onCountryChange(e.target.value)}>
@@ -728,12 +860,12 @@ export function KeywordResearchView({
       ) : null}
       <textarea
         className="min-h-[120px] w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-        placeholder="Enter keywords (one per line), e.g.&#10;ims&#10;ims pro"
+        placeholder="Enter keywords (one per line, or comma-separated), e.g.&#10;utilai&#10;pdf merge online, compress pdf"
         value={bulkText}
         onChange={(e) => onBulkChange(e.target.value)}
       />
       <button type="button" className="mt-2 rounded-lg bg-[#4f46e5] px-4 py-2 text-sm font-semibold text-white" onClick={onAnalyze}>
-        Save keywords
+        Save keywords &amp; fetch metrics
       </button>
 
       <div className="mt-6 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
@@ -921,6 +1053,8 @@ export function CompetitorAnalysisView({
 export function BacklinkAnalysisView({
   backlinks,
   summary,
+  profile,
+  trackeeReady = false,
   blSource,
   blTarget,
   blAnchor,
@@ -929,10 +1063,13 @@ export function BacklinkAnalysisView({
   onTarget,
   onAnchor,
   onRel,
+  onSyncTrackee,
   onAdd,
 }: {
   backlinks: Record<string, unknown>[];
   summary: DashboardSummary | null;
+  profile: Record<string, unknown> | null;
+  trackeeReady?: boolean;
   blSource: string;
   blTarget: string;
   blAnchor: string;
@@ -941,20 +1078,78 @@ export function BacklinkAnalysisView({
   onTarget: (v: string) => void;
   onAnchor: (v: string) => void;
   onRel: (v: string) => void;
+  onSyncTrackee?: () => void | Promise<void>;
   onAdd: () => void;
 }) {
+  const [syncError, setSyncError] = useState("");
+  const [syncBusy, setSyncBusy] = useState(false);
+  const indexBacklinks = profile?.backlinks != null ? Number(profile.backlinks) : null;
+  const indexDomains = profile?.referring_domains != null ? Number(profile.referring_domains) : null;
+  const totalBacklinks = indexBacklinks ?? summary?.backlinks_count ?? 0;
+  const referringDomains = indexDomains ?? summary?.referring_domains ?? 0;
+
+  const runSync = () => {
+    if (!onSyncTrackee) return;
+    setSyncError("");
+    setSyncBusy(true);
+    void Promise.resolve(onSyncTrackee())
+      .catch((e) => setSyncError(e instanceof Error ? e.message : "Sync failed."))
+      .finally(() => setSyncBusy(false));
+  };
+
   return (
     <>
       <SectionIntro
         title="Backlink Analysis"
         description="Monitor backlinks, referring domains, anchor text, follow/nofollow, and new or lost links. Import via API/CSV or add manually."
       />
+      {trackeeReady ? (
+        <p className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+          Trackee backlink index is connected — sync profile totals for your project domain (uses Trackee credits).
+        </p>
+      ) : (
+        <ProviderNotice>Automated backlink index requires TRACKEE_API_KEY on the server.</ProviderNotice>
+      )}
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <StatPill label="Total backlinks" value={summary?.backlinks_count ?? 0} />
-        <StatPill label="Referring domains" value={summary?.referring_domains ?? 0} />
-        <StatPill label="New/lost tracking" value="Manual" />
+        <StatPill label="Total backlinks" value={totalBacklinks} />
+        <StatPill label="Referring domains" value={referringDomains} />
+        <StatPill label="Index source" value={profile ? "Trackee" : "Manual only"} />
       </div>
-      <ProviderNotice>Automated new/lost link detection requires a backlink index provider.</ProviderNotice>
+      {profile ? (
+        <div className="mb-4 grid gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <p className="text-xs uppercase text-slate-500">Domain rank</p>
+            <p className="font-semibold text-slate-900">{profile.rank != null ? String(profile.rank) : "—"}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase text-slate-500">Spam score</p>
+            <p className="font-semibold text-slate-900">{profile.spam_score != null ? String(profile.spam_score) : "—"}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase text-slate-500">Broken backlinks</p>
+            <p className="font-semibold text-slate-900">
+              {profile.broken_backlinks != null ? String(profile.broken_backlinks) : "—"}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs uppercase text-slate-500">Last synced</p>
+            <p className="font-semibold text-slate-900">{String(profile.synced_at || "").slice(0, 10) || "—"}</p>
+          </div>
+        </div>
+      ) : null}
+      {trackeeReady && onSyncTrackee ? (
+        <div className="mb-4">
+          <button
+            type="button"
+            disabled={syncBusy}
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            onClick={runSync}
+          >
+            {syncBusy ? "Syncing from Trackee…" : "Sync backlink profile (Trackee)"}
+          </button>
+          {syncError ? <p className="mt-2 text-sm text-red-600">{syncError}</p> : null}
+        </div>
+      ) : null}
       <div className="mb-4 grid gap-2 sm:grid-cols-2">
         <input className="rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="Source URL (referring page)" value={blSource} onChange={(e) => onSource(e.target.value)} />
         <input className="rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="Target URL (your page)" value={blTarget} onChange={(e) => onTarget(e.target.value)} />
@@ -1233,49 +1428,123 @@ export function AiSearchVisibilityView({
   project,
   checks,
   question,
+  trackeeReady = false,
   onQuestion,
+  onRunTrackee,
   onLog,
 }: {
   project: SeoProject | null;
   checks: Record<string, unknown>[];
   question: string;
+  trackeeReady?: boolean;
   onQuestion: (v: string) => void;
-  onLog: (payload: { brand_mentioned: boolean; website_linked: boolean }) => void;
+  onRunTrackee?: () => void | Promise<void>;
+  onLog: (payload: {
+    brand_mentioned: boolean;
+    website_linked: boolean;
+  }) => void | Promise<void>;
 }) {
   const brand = project?.brand_name || project?.domain || "your brand";
+  const [logError, setLogError] = useState("");
+  const [trackeeBusy, setTrackeeBusy] = useState(false);
+  const canLog = question.trim().length > 0;
+
+  const runLog = (payload: { brand_mentioned: boolean; website_linked: boolean }) => {
+    setLogError("");
+    if (!question.trim()) {
+      setLogError("Enter a question above, then choose how the AI answer performed.");
+      return;
+    }
+    void Promise.resolve(onLog(payload)).catch((e) =>
+      setLogError(e instanceof Error ? e.message : "Could not save check."),
+    );
+  };
+
+  const runTrackee = () => {
+    if (!onRunTrackee) return;
+    setLogError("");
+    if (!question.trim()) {
+      setLogError("Enter a question above before running Trackee.");
+      return;
+    }
+    setTrackeeBusy(true);
+    void Promise.resolve(onRunTrackee())
+      .catch((e) => setLogError(e instanceof Error ? e.message : "Trackee check failed."))
+      .finally(() => setTrackeeBusy(false));
+  };
   return (
     <>
       <SectionIntro
         title="AI Search Visibility"
-        description={`Log whether AI answers (e.g. ChatGPT) mention ${brand} or link to your site for important questions. Track competitors over time manually until an AI monitoring API is connected.`}
+        description={`Track whether AI answers mention ${brand} or link to your site. Use Trackee for automated checks across ChatGPT, Claude, Gemini, and Perplexity, or log results manually.`}
       />
-      <p className="mb-3 rounded-lg bg-indigo-50 px-3 py-2 text-sm text-indigo-900">
-        Example: “Best insurance management software?” — does the answer include <strong>{brand}</strong> or your URL?
-      </p>
+      {trackeeReady ? (
+        <p className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+          Trackee is connected — run an automated visibility check for your prompt below.
+        </p>
+      ) : (
+        <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          Trackee is not configured on the server. You can still log checks manually.
+        </p>
+      )}
       <textarea
         className="min-h-[80px] w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
         placeholder="Enter a question to track…"
         value={question}
-        onChange={(e) => onQuestion(e.target.value)}
+        onChange={(e) => {
+          onQuestion(e.target.value);
+          if (logError) setLogError("");
+        }}
       />
+      {logError ? <p className="mt-2 text-sm text-red-600">{logError}</p> : null}
       <div className="mt-2 flex flex-wrap gap-2">
-        <button type="button" className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white" onClick={() => onLog({ brand_mentioned: true, website_linked: true })}>
+        {trackeeReady && onRunTrackee ? (
+          <button
+            type="button"
+            disabled={!canLog || trackeeBusy}
+            className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={runTrackee}
+          >
+            {trackeeBusy ? "Running Trackee…" : "Run Trackee check"}
+          </button>
+        ) : null}
+        <button
+          type="button"
+          disabled={!canLog}
+          className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={() => runLog({ brand_mentioned: true, website_linked: true })}
+        >
           Brand + link seen
         </button>
-        <button type="button" className="rounded-lg bg-amber-500 px-3 py-2 text-xs font-semibold text-white" onClick={() => onLog({ brand_mentioned: true, website_linked: false })}>
+        <button
+          type="button"
+          disabled={!canLog}
+          className="rounded-lg bg-amber-500 px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={() => runLog({ brand_mentioned: true, website_linked: false })}
+        >
           Brand only
         </button>
-        <button type="button" className="rounded-lg bg-slate-700 px-3 py-2 text-xs font-semibold text-white" onClick={() => onLog({ brand_mentioned: false, website_linked: false })}>
+        <button
+          type="button"
+          disabled={!canLog}
+          className="rounded-lg bg-slate-700 px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={() => runLog({ brand_mentioned: false, website_linked: false })}
+        >
           Not mentioned
         </button>
       </div>
+      {!canLog ? (
+        <p className="mt-2 text-xs text-slate-500">Type a question first — then log what ChatGPT or similar answered.</p>
+      ) : null}
       <div className="mt-6 overflow-x-auto rounded-xl border border-slate-200">
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase text-slate-500">
             <tr>
               <th className="p-3">Question</th>
+              <th className="p-3">Source</th>
               <th className="p-3">Brand</th>
               <th className="p-3">Link</th>
+              <th className="p-3">Coverage</th>
               <th className="p-3">Checked</th>
             </tr>
           </thead>
@@ -1283,8 +1552,12 @@ export function AiSearchVisibilityView({
             {checks.map((c) => (
               <tr key={String(c.id)} className="border-t border-slate-100">
                 <td className="p-3">{String(c.question)}</td>
+                <td className="p-3 text-xs capitalize">{String(c.data_source || "manual")}</td>
                 <td className="p-3">{c.brand_mentioned ? "Yes" : "No"}</td>
                 <td className="p-3">{c.website_linked ? "Yes" : "No"}</td>
+                <td className="p-3 text-xs">
+                  {c.coverage_pct != null ? `${c.coverage_pct}%` : "—"}
+                </td>
                 <td className="p-3 text-xs">{String(c.checked_at).slice(0, 10)}</td>
               </tr>
             ))}
@@ -1326,11 +1599,20 @@ export function ContentSeoView({ pages, issues }: { pages: PageRow[]; issues: Se
   );
 }
 
-export function OnPageSeoView({ issues, pages, onSelectPage, pageDetail }: {
+export function OnPageSeoView({
+  issues,
+  pages,
+  onSelectPage,
+  pageDetail,
+  onResolveIssue,
+  onIssuesListSync,
+}: {
   issues: SeoIssue[];
   pages: PageRow[];
   onSelectPage: (id: string) => void;
   pageDetail: PageDetail | null;
+  onResolveIssue?: (id: string, status: IssueClearStatus) => Promise<void>;
+  onIssuesListSync?: () => void | Promise<void>;
 }) {
   const issuesByUrl = useMemo(() => {
     const m = new Map<string, number>();
@@ -1429,14 +1711,23 @@ export function OnPageSeoView({ issues, pages, onSelectPage, pageDetail }: {
         <>
           <h4 className="mt-8 text-sm font-bold text-slate-800">Open audit issues</h4>
           <div className="mt-3 grid gap-2 lg:grid-cols-2">
-            {issues.slice(0, 12).map((issue) => (
-              <div key={issue.id} className="rounded-lg border border-slate-200 p-3 text-sm">
-                <SeverityBadge severity={issue.severity} />{" "}
-                <span className="font-semibold">{issue.title}</span>
-                <p className="text-xs text-slate-500">{issue.url}</p>
-                <p className="mt-1 text-slate-600">{issue.recommendation}</p>
-              </div>
-            ))}
+            {issues.slice(0, 12).map((issue) =>
+              onResolveIssue && onIssuesListSync ? (
+                <OpenIssueCard
+                  key={issue.id}
+                  issue={issue}
+                  onResolveIssue={onResolveIssue}
+                  onListSync={onIssuesListSync}
+                />
+              ) : (
+                <div key={issue.id} className="rounded-lg border border-slate-200 p-3 text-sm">
+                  <SeverityBadge severity={issue.severity} />{" "}
+                  <span className="font-semibold">{issue.title}</span>
+                  <p className="text-xs text-slate-500">{issue.url}</p>
+                  <p className="mt-1 text-slate-600">{issue.recommendation}</p>
+                </div>
+              ),
+            )}
           </div>
         </>
       ) : null}

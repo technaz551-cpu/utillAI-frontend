@@ -96,7 +96,11 @@ async function submitAuth(
       ? detail.map((item) => item.msg).filter(Boolean).join(" ")
       : detail;
     throw new Error(
-      validationMessage || result?.message || "Authentication failed.",
+      validationMessage ||
+        result?.message ||
+        (response.status === 401
+          ? "Invalid email or password. If you recently restarted the backend, register again or use the same server where you signed up."
+          : "Authentication failed."),
     );
   }
 
@@ -269,6 +273,9 @@ export async function ensureValidSession(): Promise<boolean> {
           const refreshed = await refreshSession();
           if (refreshed) return true;
           clearStoredUser();
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("utilai_auth_notice", "session_expired");
+          }
           return false;
         }
 

@@ -30,7 +30,12 @@ function authHeaders(): HeadersInit {
 }
 
 function parseErrorDetail(body: ApiEnvelope<unknown> | null, status: number): string {
-  if (typeof body?.detail === "string") return body.detail;
+  const detail = body?.detail;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail) && detail.length > 0) {
+    const first = detail[0] as { msg?: string };
+    if (first?.msg) return first.msg;
+  }
   if (body?.message) return body.message;
   if (status === 401) {
     return "Session expired or invalid. Please log in again.";
@@ -259,6 +264,23 @@ export function bulkCreateKeywords(
   );
 }
 
+export function enrichKeywordsTrackee(
+  projectId: string,
+  opts?: { phrases?: string[]; country?: string; onlyMissing?: boolean },
+) {
+  return seoFetch<{ updated: number; requested: number; message: string }>(
+    `/projects/${projectId}/keywords/enrich-trackee`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        phrases: opts?.phrases,
+        country: opts?.country,
+        only_missing: opts?.onlyMissing ?? true,
+      }),
+    },
+  );
+}
+
 export function lookupPageByUrl(projectId: string, url: string) {
   return seoFetch<PageDetail | null>(
     `/projects/${projectId}/pages/lookup?url=${encodeURIComponent(url)}`,
@@ -311,6 +333,23 @@ export function listBacklinks(projectId: string) {
   return seoFetch<Record<string, unknown>[]>(`/projects/${projectId}/backlinks`);
 }
 
+export function getBacklinkProfile(projectId: string) {
+  return seoFetch<Record<string, unknown> | null>(`/projects/${projectId}/backlinks/profile`);
+}
+
+export function getBacklinkProvider(projectId: string) {
+  return seoFetch<{ configured: boolean; provider: string | null; message: string }>(
+    `/projects/${projectId}/backlinks/provider`,
+  );
+}
+
+export function syncTrackeeBacklinks(projectId: string, opts?: { target?: string }) {
+  return seoFetch<Record<string, unknown>>(`/projects/${projectId}/backlinks/sync-trackee`, {
+    method: "POST",
+    body: JSON.stringify(opts ?? {}),
+  });
+}
+
 export function addBacklink(
   projectId: string,
   source_url: string,
@@ -341,6 +380,25 @@ export function logAiVisibility(
   },
 ) {
   return seoFetch<Record<string, unknown>>(`/projects/${projectId}/ai-visibility`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getAiVisibilityProvider(projectId: string) {
+  return seoFetch<{
+    configured: boolean;
+    provider: string | null;
+    trackee_api_key_set: boolean;
+    message: string;
+  }>(`/projects/${projectId}/ai-visibility/provider`);
+}
+
+export function runTrackeeAiVisibility(
+  projectId: string,
+  payload: { question: string; engines?: string[] },
+) {
+  return seoFetch<Record<string, unknown>>(`/projects/${projectId}/ai-visibility/trackee`, {
     method: "POST",
     body: JSON.stringify(payload),
   });

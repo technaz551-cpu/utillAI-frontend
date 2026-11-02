@@ -108,6 +108,7 @@ export function KeywordOverviewPanel({
             <p className="mt-1 text-xs text-slate-500">
               {overview.in_project ? "Saved in this project" : "Not saved yet — use Save keywords to track"}
               {overview.latest_rank != null ? ` · Latest rank #${overview.latest_rank}` : ""}
+              {overview.data_source ? ` · Data: ${overview.data_source}` : ""}
             </p>
           </div>
           <IntentTag intent={overview.intent} />
@@ -138,6 +139,8 @@ export function KeywordOverviewPanel({
 
         {!overview.provider_connected ? (
           <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">{overview.provider_message}</p>
+        ) : overview.provider_message ? (
+          <p className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-900">{overview.provider_message}</p>
         ) : null}
       </div>
 

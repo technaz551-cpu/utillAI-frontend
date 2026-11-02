@@ -44,7 +44,7 @@ export function SeoProjectSection({
   useEffect(() => {
     void ensureValidSession().then((ok) => {
       if (!ok) {
-        router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+        router.replace(`/login?next=${encodeURIComponent(pathname)}&reason=session`);
       }
     });
   }, [pathname, router]);

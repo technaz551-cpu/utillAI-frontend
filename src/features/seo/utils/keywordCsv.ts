@@ -1,3 +1,20 @@
+/** One keyword per line; commas/semicolons on a line also split into separate phrases. */
+export function parseBulkKeywordText(text: string): string[] {
+  const seen = new Set<string>();
+  const phrases: string[] = [];
+  for (const line of text.split(/\r?\n/)) {
+    for (const part of line.split(/[,;]+/)) {
+      const raw = part.trim();
+      if (!raw) continue;
+      const key = raw.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      phrases.push(raw);
+    }
+  }
+  return phrases;
+}
+
 /** Parse keywords from CSV text. Uses column "keyword" or "phrase" if present, else first column. */
 export function parseKeywordsFromCsv(text: string): string[] {
   const lines = text.split(/\r?\n/).filter((l) => l.trim());

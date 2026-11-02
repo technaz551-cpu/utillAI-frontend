@@ -24,13 +24,28 @@ function LoginForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (getStoredUser()) {
-      void ensureValidSession().then((ok) => {
-        if (ok) {
-          router.replace(safeRedirectPath(searchParams.get("next")));
-        }
-      });
+    const notice = sessionStorage.getItem("utilai_auth_notice");
+    if (notice === "session_expired") {
+      sessionStorage.removeItem("utilai_auth_notice");
+      setError(
+        "Your session expired or this server no longer has your account (common after a backend restart). Sign in again — or register if needed.",
+      );
     }
+
+    const stored = getStoredUser();
+    if (!stored) return;
+
+    void ensureValidSession().then((ok) => {
+      if (ok) {
+        router.replace(safeRedirectPath(searchParams.get("next")));
+      } else {
+        setError(
+          (prev) =>
+            prev ||
+            "Your session expired or this server no longer has your account (common after a backend restart). Sign in again — or register if needed.",
+        );
+      }
+    });
   }, [router, searchParams]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {

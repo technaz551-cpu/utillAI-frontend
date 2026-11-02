@@ -7,11 +7,14 @@ import {
   addBacklink,
   addCompetitor,
   bulkCreateKeywords,
+  enrichKeywordsTrackee,
   getKeywordOverview,
   cancelAudit,
   createTask,
   downloadReport,
   getCompetitorGapSummary,
+  getBacklinkProfile,
+  getBacklinkProvider,
   getPageDetail,
   getPositionTrackingDashboard,
   getRankingSummary,
@@ -28,12 +31,15 @@ import {
   listPerformance,
   listRankings,
   listTasks,
+  getAiVisibilityProvider,
   logAiVisibility,
+  runTrackeeAiVisibility,
   lookupPageByUrl,
   recordRanking,
   removeCompetitor,
   runPageSpeed,
   startAudit,
+  syncTrackeeBacklinks,
   updateIssueStatus,
   updateProject,
   updateTask,
@@ -56,7 +62,7 @@ import {
 import { PositionTrackingView } from "@/features/seo/components/PositionTrackingView";
 import { SeoWritingAssistantView } from "@/features/seo/components/SeoWritingAssistantView";
 import type { SeoSectionSlug } from "@/features/seo/navigation";
-import { parseKeywordsFromCsv } from "@/features/seo/utils/keywordCsv";
+import { parseBulkKeywordText, parseKeywordsFromCsv } from "@/features/seo/utils/keywordCsv";
 import type { PositionTrackingDashboard } from "@/features/seo/types/positionTracking";
 import type {
   DashboardCharts,
@@ -124,15 +130,20 @@ export function SeoSectionPanels({
   const [kwSearch, setKwSearch] = useState("");
   const [kwOverview, setKwOverview] = useState<KeywordOverview | null>(null);
   const [kwOverviewLoading, setKwOverviewLoading] = useState(false);
+  const [kwOverviewError, setKwOverviewError] = useState("");
+  const [kwEnrichBusy, setKwEnrichBusy] = useState(false);
   const [inspectUrl, setInspectUrl] = useState("");
   const [gapMsg, setGapMsg] = useState<string | null>(null);
   const [aiChecks, setAiChecks] = useState<Record<string, unknown>[]>([]);
   const [aiQuestion, setAiQuestion] = useState("");
+  const [trackeeReady, setTrackeeReady] = useState(false);
   const [rankCountry, setRankCountry] = useState("worldwide");
   const [rankDevice, setRankDevice] = useState("desktop");
   const [positionDashboard, setPositionDashboard] = useState<PositionTrackingDashboard | null>(null);
   const [blAnchor, setBlAnchor] = useState("");
   const [blRel, setBlRel] = useState("follow");
+  const [backlinkProfile, setBacklinkProfile] = useState<Record<string, unknown> | null>(null);
+  const [backlinkIndexReady, setBacklinkIndexReady] = useState(false);
 
   useEffect(() => {
     if (!project) return;
@@ -158,13 +169,24 @@ export function SeoSectionPanels({
     if (section === "keyword-research") void listKeywords(projectId).then(setKeywords);
     if (section === "seo-tasks") void listTasks(projectId).then(setTasks);
     if (section === "alerts") void listAlerts(projectId).then(setAlerts);
-    if (section === "backlink-analysis") void listBacklinks(projectId).then(setBacklinks);
+    if (section === "backlink-analysis") {
+      void listBacklinks(projectId).then(setBacklinks);
+      void getBacklinkProfile(projectId).then(setBacklinkProfile).catch(() => setBacklinkProfile(null));
+      void getBacklinkProvider(projectId)
+        .then((d) => setBacklinkIndexReady(Boolean(d.configured && d.provider === "trackee")))
+        .catch(() => setBacklinkIndexReady(false));
+    }
     if (section === "website-performance") void listPerformance(projectId).then(setPerformance);
     if (section === "competitor-analysis") {
       void listCompetitors(projectId).then(setCompetitors);
       void getCompetitorGapSummary(projectId).then((d) => setGapMsg(String(d.message || "")));
     }
-    if (section === "ai-search-visibility") void listAiVisibility(projectId).then(setAiChecks);
+    if (section === "ai-search-visibility") {
+      void listAiVisibility(projectId).then(setAiChecks);
+      void getAiVisibilityProvider(projectId)
+        .then((d) => setTrackeeReady(Boolean(d.configured && d.provider === "trackee")))
+        .catch(() => setTrackeeReady(false));
+    }
     if (section === "rank-tracking") {
       void listRankings(projectId).then(setRankings);
       void getTrackedRankings(projectId).then(setTrackedRows).catch(() => setTrackedRows([]));
@@ -202,6 +224,22 @@ export function SeoSectionPanels({
     }
   };
 
+  const refreshOpenIssues = () =>
+    listIssues(projectId, { status: "open" })
+      .then((r) => setIssues(r.items))
+      .then(() => getSiteAuditSummary(projectId).then(setAuditSummary).catch(() => null))
+      .then(() => listAllPages(projectId).then(setPages))
+      .then(() => onRefresh());
+
+  const resolveIssue = (issueId: string, status: "resolved" | "ignored") =>
+    updateIssueStatus(issueId, status)
+      .then(() => onRefresh())
+      .catch((e) => {
+        const msg = e instanceof Error ? e.message : "Could not update issue.";
+        setError(msg);
+        throw e instanceof Error ? e : new Error(msg);
+      });
+
   if (section === "overview") {
     return (
       <SeoOverviewPanel
@@ -235,7 +273,8 @@ export function SeoSectionPanels({
         busy={busy}
         onRunAudit={() => void runAudit()}
         onCancelAudit={(id) => void cancelAudit(id).then(() => listAudits(projectId).then(setAudits))}
-        onResolveIssue={(id, status) => void updateIssueStatus(id, status).then(onRefresh)}
+        onResolveIssue={(id, status) => resolveIssue(id, status)}
+        onIssuesListSync={() => refreshOpenIssues()}
       />
     );
   }
@@ -247,6 +286,8 @@ export function SeoSectionPanels({
         pages={pages}
         pageDetail={pageDetail}
         onSelectPage={(id) => void getPageDetail(id).then(setPageDetail)}
+        onResolveIssue={(id, status) => resolveIssue(id, status)}
+        onIssuesListSync={() => refreshOpenIssues()}
       />
     );
   }
@@ -298,6 +339,13 @@ export function SeoSectionPanels({
 
   if (section === "keyword-research") {
     const countryArg = kwCountry === "worldwide" ? undefined : kwCountry;
+    const enrichSavedKeywords = (phrases?: string[]) =>
+      enrichKeywordsTrackee(projectId, {
+        phrases,
+        country: countryArg,
+        onlyMissing: !phrases?.length,
+      }).then((r) => r.message);
+
     const importPhrasesInBatches = async (phrases: string[]) => {
       const chunkSize = 100;
       let created = 0;
@@ -315,13 +363,17 @@ export function SeoSectionPanels({
       if (!p) return;
       if (phraseOverride) setKwSearch(phraseOverride);
       setKwOverviewLoading(true);
+      setKwOverviewError("");
       void getKeywordOverview(
         projectId,
         p,
         kwCountry === "worldwide" ? undefined : kwCountry,
       )
         .then(setKwOverview)
-        .catch(() => setKwOverview(null))
+        .catch((e) => {
+          setKwOverview(null);
+          setKwOverviewError(e instanceof Error ? e.message : "Keyword analyze failed.");
+        })
         .finally(() => setKwOverviewLoading(false));
     };
     return (
@@ -333,6 +385,19 @@ export function SeoSectionPanels({
         onAnalyzeKeyword={runKeywordOverview}
         overview={kwOverview}
         overviewLoading={kwOverviewLoading}
+        overviewError={kwOverviewError}
+        enrichBusy={kwEnrichBusy}
+        onEnrichKeywords={() => {
+          setKwEnrichBusy(true);
+          setKwImportMsg("");
+          return enrichSavedKeywords()
+            .then((msg) => setKwImportMsg(msg))
+            .catch((e) =>
+              setKwImportMsg(e instanceof Error ? e.message : "Could not fetch metrics."),
+            )
+            .then(() => listKeywords(projectId).then(setKeywords))
+            .finally(() => setKwEnrichBusy(false));
+        }}
         bulkText={bulkKw}
         importMessage={kwImportMsg}
         onBulkChange={setBulkKw}
@@ -340,12 +405,16 @@ export function SeoSectionPanels({
         onCountryChange={setKwCountry}
         onAnalyze={() => {
           setKwImportMsg("");
-          const lines = bulkKw.split("\n").map((s) => s.trim()).filter(Boolean);
+          const lines = parseBulkKeywordText(bulkKw);
           if (!lines.length) return;
           void importPhrasesInBatches(lines)
             .then((r) => {
-              setKwImportMsg(`Imported ${r.created} keyword(s), skipped ${r.skipped} duplicate(s).`);
+              setKwImportMsg(`Saved ${r.created} keyword(s), skipped ${r.skipped} duplicate(s). Fetching Trackee metrics…`);
               setBulkKw("");
+              return enrichSavedKeywords(lines);
+            })
+            .then((msg) => {
+              setKwImportMsg(typeof msg === "string" ? msg : "Keywords saved.");
             })
             .then(() => listKeywords(projectId).then(setKeywords))
             .catch((e) =>
@@ -362,11 +431,14 @@ export function SeoSectionPanels({
                 setKwImportMsg("No keywords found in CSV. Use a keyword or phrase column.");
                 return;
               }
-              return importPhrasesInBatches(phrases).then((r) => {
-                setKwImportMsg(
-                  `Imported ${r.created} keyword(s) from CSV, skipped ${r.skipped} duplicate(s).`,
-                );
-              });
+              return importPhrasesInBatches(phrases)
+                .then((r) => enrichSavedKeywords(phrases).then((msg) => ({ r, msg })));
+            })
+            .then((result) => {
+              if (!result) return;
+              setKwImportMsg(
+                `Imported ${result.r.created} keyword(s) from CSV, skipped ${result.r.skipped} duplicate(s). ${result.msg}`,
+              );
             })
             .then(() => listKeywords(projectId).then(setKeywords))
             .catch((e) =>
@@ -421,6 +493,8 @@ export function SeoSectionPanels({
       <BacklinkAnalysisView
         backlinks={backlinks}
         summary={summary}
+        profile={backlinkProfile}
+        trackeeReady={backlinkIndexReady}
         blSource={blSource}
         blTarget={blTarget}
         blAnchor={blAnchor}
@@ -429,6 +503,13 @@ export function SeoSectionPanels({
         onTarget={setBlTarget}
         onAnchor={setBlAnchor}
         onRel={setBlRel}
+        onSyncTrackee={() =>
+          syncTrackeeBacklinks(projectId)
+            .then((doc) => {
+              setBacklinkProfile(doc);
+              onRefresh();
+            })
+        }
         onAdd={() =>
           void addBacklink(projectId, blSource, blTarget, {
             anchor_text: blAnchor,
@@ -544,12 +625,26 @@ export function SeoSectionPanels({
         project={project}
         checks={aiChecks}
         question={aiQuestion}
+        trackeeReady={trackeeReady}
         onQuestion={setAiQuestion}
-        onLog={(payload) =>
-          void logAiVisibility(projectId, { question: aiQuestion.trim(), ...payload })
+        onRunTrackee={() => {
+          const q = aiQuestion.trim();
+          if (!q) {
+            return Promise.reject(new Error("Enter a question before running Trackee."));
+          }
+          return runTrackeeAiVisibility(projectId, { question: q })
             .then(() => listAiVisibility(projectId).then(setAiChecks))
-            .then(() => setAiQuestion(""))
-        }
+            .then(() => setAiQuestion(""));
+        }}
+        onLog={(payload) => {
+          const q = aiQuestion.trim();
+          if (!q) {
+            return Promise.reject(new Error("Enter a question before logging a check."));
+          }
+          return logAiVisibility(projectId, { question: q, ...payload })
+            .then(() => listAiVisibility(projectId).then(setAiChecks))
+            .then(() => setAiQuestion(""));
+        }}
       />
     );
   }
