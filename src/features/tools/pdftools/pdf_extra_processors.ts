@@ -507,13 +507,18 @@ const load = async (f: File, updateMetadata = true) =>
 /* Thumbnails (pdfjs-dist)                                             */
 /* ------------------------------------------------------------------ */
 
+export type PdfThumbResult = {
+  thumbs: string[];
+  totalPages: number;
+  previewsRendered: number;
+};
+
 export async function renderThumbs(
   file: File,
   width = 180,
-  limit = 300,
-): Promise<string[]> {
+  previewLimit = 120,
+): Promise<PdfThumbResult> {
   const pdfjs: any = await import("pdfjs-dist");
-  // pdf-processors.ts pehle se "/pdf.worker.min.mjs" set karta hai; yahan sirf fallback.
   if (!pdfjs.GlobalWorkerOptions.workerSrc) {
     pdfjs.GlobalWorkerOptions.workerSrc = new URL(
       "pdfjs-dist/build/pdf.worker.min.js",
@@ -521,23 +526,46 @@ export async function renderThumbs(
     ).toString();
   }
 
-  const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() })
-    .promise;
-  const out: string[] = [];
-  const total = Math.min(doc.numPages, limit);
+  const data = await file.arrayBuffer();
+  const doc = await pdfjs.getDocument({ data }).promise;
+  const totalPages = doc.numPages;
+  const previewsRendered = Math.min(totalPages, previewLimit);
+  const thumbs = new Array<string>(totalPages).fill("");
 
-  for (let i = 1; i <= total; i++) {
-    const page = await doc.getPage(i);
+  const renderOne = async (pageNumber: number) => {
+    const page = await doc.getPage(pageNumber);
     const base = page.getViewport({ scale: 1 });
-    const viewport = page.getViewport({ scale: width / base.width });
+    const viewport = page.getViewport({
+      scale: width / base.width,
+    });
     const canvas = document.createElement("canvas");
     canvas.width = viewport.width;
     canvas.height = viewport.height;
-    await page.render({ canvasContext: canvas.getContext("2d")!, viewport })
-      .promise;
-    out.push(canvas.toDataURL("image/jpeg", 0.6));
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("Could not render PDF preview.");
+    }
+    await page.render({ canvasContext: context, viewport }).promise;
+    page.cleanup();
+    thumbs[pageNumber - 1] = canvas.toDataURL(
+      "image/jpeg",
+      0.52,
+    );
+  };
+
+  const batchSize = 8;
+  for (let start = 1; start <= previewsRendered; start += batchSize) {
+    const end = Math.min(start + batchSize - 1, previewsRendered);
+    const jobs: Promise<void>[] = [];
+    for (let pageNumber = start; pageNumber <= end; pageNumber++) {
+      jobs.push(renderOne(pageNumber));
+    }
+    await Promise.all(jobs);
   }
-  return out;
+
+  await doc.destroy();
+
+  return { thumbs, totalPages, previewsRendered };
 }
 
 /* ------------------------------------------------------------------ */
@@ -583,7 +611,7 @@ export async function organizePdf(
       const n = numbering.start + i;
       const label =
         numbering.format === "n-of-total"
-          ? `${n} / ${numbering.start + total - 1}`
+          ? `${n} / ${total}`
           : numbering.format === "page-n"
             ? `Page ${n}`
             : `${n}`;

@@ -1000,6 +1000,11 @@ import {
 } from "react";
 
 import type { ToolMeta } from "@/features/tools/client-processors";
+import {
+  ImageCropOverlay,
+  type CropRect,
+} from "@/features/tools/ImageCropOverlay";
+import { loadOrientedBitmap } from "@/features/tools/image-orientation";
 import { API_BASE } from "@/lib/api";
 
 if (typeof window !== "undefined") {
@@ -1014,14 +1019,6 @@ type Props = {
 };
 
 type OutputFormat = "jpeg" | "png" | "webp" | "pdf";
-
-type CropRatio =
-  | "free"
-  | "1:1"
-  | "4:3"
-  | "3:4"
-  | "16:9"
-  | "9:16";
 
 type Status = "idle" | "processing" | "done" | "error";
 
@@ -1188,46 +1185,6 @@ function loadImage(
   });
 }
 
-function getCropRect(
-  width: number,
-  height: number,
-  ratio: CropRatio
-) {
-  if (ratio === "free") {
-    return {
-      x: 0,
-      y: 0,
-      width,
-      height,
-    };
-  }
-
-  const [rw, rh] = ratio.split(":").map(Number);
-
-  const targetRatio = rw / rh;
-  const sourceRatio = width / height;
-
-  if (sourceRatio > targetRatio) {
-    const cropWidth = height * targetRatio;
-
-    return {
-      x: (width - cropWidth) / 2,
-      y: 0,
-      width: cropWidth,
-      height,
-    };
-  }
-
-  const cropHeight = width / targetRatio;
-
-  return {
-    x: 0,
-    y: (height - cropHeight) / 2,
-    width,
-    height: cropHeight,
-  };
-}
-
 /*
 |--------------------------------------------------------------------------
 | Component
@@ -1285,8 +1242,8 @@ export function ImageTool({ tool }: Props) {
   const [height, setHeight] =
     useState("");
 
-  const [cropRatio, setCropRatio] =
-    useState<CropRatio>("free");
+  const [cropRect, setCropRect] =
+    useState<CropRect | null>(null);
 
   const [rotation, setRotation] =
     useState(0);
@@ -1397,6 +1354,20 @@ export function ImageTool({ tool }: Props) {
     !isBackgroundRemover &&
     mode === "flip";
 
+  const handleCropImageReady = useCallback(
+    (width: number, height: number) => {
+      setCropRect((prev) =>
+        prev ?? {
+          x: 0,
+          y: 0,
+          width,
+          height,
+        },
+      );
+    },
+    [],
+  );
+
   /*
   |--------------------------------------------------------------------------
   | File selection
@@ -1489,6 +1460,7 @@ export function ImageTool({ tool }: Props) {
 
       setWidth("");
       setHeight("");
+      setCropRect(null);
 
       setRotation(0);
 
@@ -1930,23 +1902,149 @@ export function ImageTool({ tool }: Props) {
         return;
       }
 
+      if (tool.slug === "crop-image") {
+        if (
+          !cropRect ||
+          cropRect.width < 1 ||
+          cropRect.height < 1
+        ) {
+          setError(
+            "Drag the handles on the image to choose what to keep.",
+          );
+          setStatus("error");
+          return;
+        }
+
+        try {
+          setStatus("processing");
+          setError("");
+
+          const bitmap = await loadOrientedBitmap(file);
+          const maxX = bitmap.width - 1;
+          const maxY = bitmap.height - 1;
+          const x = Math.max(
+            0,
+            Math.min(Math.round(cropRect.x), maxX),
+          );
+          const y = Math.max(
+            0,
+            Math.min(Math.round(cropRect.y), maxY),
+          );
+          const cropWidth = Math.max(
+            1,
+            Math.min(
+              Math.round(cropRect.width),
+              bitmap.width - x,
+            ),
+          );
+          const cropHeight = Math.max(
+            1,
+            Math.min(
+              Math.round(cropRect.height),
+              bitmap.height - y,
+            ),
+          );
+
+          const canvas = document.createElement("canvas");
+          canvas.width = cropWidth;
+          canvas.height = cropHeight;
+          const context = canvas.getContext("2d");
+          if (!context) {
+            bitmap.close();
+            throw new Error(
+              "Canvas is not supported by this browser.",
+            );
+          }
+          context.imageSmoothingEnabled = true;
+          context.imageSmoothingQuality = "high";
+          context.drawImage(
+            bitmap,
+            x,
+            y,
+            cropWidth,
+            cropHeight,
+            0,
+            0,
+            cropWidth,
+            cropHeight,
+          );
+          bitmap.close();
+
+          const blob = await new Promise<Blob | null>(
+            (resolve) => {
+              canvas.toBlob(
+                resolve,
+                mimeFor(format),
+                format === "png"
+                  ? undefined
+                  : quality / 100,
+              );
+            },
+          );
+
+          if (!blob) {
+            throw new Error(
+              "Could not generate the cropped image.",
+            );
+          }
+
+          if (resultUrlRef.current) {
+            URL.revokeObjectURL(resultUrlRef.current);
+          }
+
+          const url = URL.createObjectURL(blob);
+          resultUrlRef.current = url;
+          setResultUrl(url);
+          setResultSize(blob.size);
+          setResultWidth(canvas.width);
+          setResultHeight(canvas.height);
+          setResultName(
+            `${file.name.replace(/\.[^/.]+$/, "")}-cropped.${extFor(format)}`,
+          );
+          setStatus("done");
+        } catch (err) {
+          setStatus("error");
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Unable to crop the selected image.",
+          );
+        }
+        return;
+      }
+
       if (tool.processing_type === "server") {
+        if (
+          showCrop &&
+          (!cropRect ||
+            cropRect.width < 1 ||
+            cropRect.height < 1)
+        ) {
+          setError(
+            "Drag the handles on the image to choose what to keep.",
+          );
+          setStatus("error");
+          return;
+        }
+
         try {
           setStatus("processing");
           setError("");
           const form = new FormData();
           form.append("files", file, file.name);
-          const options = {
+          const options: Record<string, unknown> = {
             format: format === "jpeg" ? "jpg" : format,
             quality,
             width: width.trim() || undefined,
             height: height.trim() || undefined,
-            aspectRatio: cropRatio,
             angle: rotation,
             direction: flipV ? "vertical" : "horizontal",
             flipHorizontal: flipH,
             flipVertical: flipV,
           };
+          if (showCrop && cropRect) {
+            options.crop = cropRect;
+          }
           const submissionResponse = await fetch(
             `${API_BASE}/tools/image/${tool.slug}/process`,
             {
@@ -2054,20 +2152,33 @@ export function ImageTool({ tool }: Props) {
         const sourceHeight =
           image.naturalHeight;
 
-        const crop =
-          getCropRect(
-            sourceWidth,
-            sourceHeight,
-            showCrop
-              ? cropRatio
-              : "free"
+        const activeCrop: CropRect =
+          showCrop && cropRect
+            ? cropRect
+            : {
+                x: 0,
+                y: 0,
+                width: sourceWidth,
+                height: sourceHeight,
+              };
+
+        if (
+          showCrop &&
+          (activeCrop.width < 1 ||
+            activeCrop.height < 1)
+        ) {
+          setError(
+            "Drag the handles on the image to choose what to keep.",
           );
+          setStatus("error");
+          return;
+        }
 
         const cropWidth =
-          crop.width;
+          activeCrop.width;
 
         const cropHeight =
-          crop.height;
+          activeCrop.height;
 
         let targetWidth =
           cropWidth;
@@ -2190,8 +2301,8 @@ export function ImageTool({ tool }: Props) {
 
         context.drawImage(
           image,
-          crop.x,
-          crop.y,
+          activeCrop.x,
+          activeCrop.y,
           cropWidth,
           cropHeight,
           -targetWidth / 2,
@@ -2614,8 +2725,8 @@ export function ImageTool({ tool }: Props) {
                     </p>
 
                     <p className="text-xs text-slate-500">
-                      {isBackgroundRemover
-                        ? "Original image"
+                      {showCrop
+                        ? "Drag the box or corners to crop"
                         : "Original image"}
                     </p>
 
@@ -2634,13 +2745,21 @@ export function ImageTool({ tool }: Props) {
 
                 <div className="flex min-h-[320px] items-center justify-center bg-[linear-gradient(45deg,#f1f5f9_25%,transparent_25%),linear-gradient(-45deg,#f1f5f9_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#f1f5f9_75%),linear-gradient(-45deg,transparent_75%,#f1f5f9_75%)] bg-[length:24px_24px] bg-[position:0_0,0_12px,12px_-12px,-12px_0] p-5 sm:min-h-[390px]">
 
-                  {previewUrl && (
-                    <img
-                      src={previewUrl}
-                      alt="Uploaded image preview"
-                      className="max-h-[440px] max-w-full rounded-xl object-contain shadow-lg"
-                    />
-                  )}
+                  {previewUrl &&
+                    (showCrop ? (
+                      <ImageCropOverlay
+                        src={previewUrl}
+                        crop={cropRect}
+                        onCropChange={setCropRect}
+                        onImageReady={handleCropImageReady}
+                      />
+                    ) : (
+                      <img
+                        src={previewUrl}
+                        alt="Uploaded image preview"
+                        className="max-h-[440px] max-w-full rounded-xl object-contain shadow-lg"
+                      />
+                    ))}
 
                 </div>
 
@@ -3048,63 +3167,21 @@ export function ImageTool({ tool }: Props) {
                     {/* Crop */}
 
                     {showCrop && (
-                      <div className="mt-5">
-
-                        <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-500">
-                          Crop ratio
-                        </label>
-
-                        <div className="grid grid-cols-3 gap-2">
-
-                          {(
-                            [
-                              "free",
-                              "1:1",
-                              "4:3",
-                              "3:4",
-                              "16:9",
-                              "9:16",
-                            ] as CropRatio[]
-                          ).map(
-                            (ratio) => (
-                              <button
-                                key={
-                                  ratio
-                                }
-                                type="button"
-                                onClick={() => {
-                                  setCropRatio(
-                                    ratio
-                                  );
-
-                                  setResultUrl(
-                                    null
-                                  );
-
-                                  setStatus(
-                                    "idle"
-                                  );
-                                }}
-                                className={[
-                                  "rounded-xl border px-2 py-2 text-xs font-bold transition",
-                                  cropRatio ===
-                                    ratio
-                                    ? "border-blue-500 bg-blue-500 text-white"
-                                    : "border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600",
-                                ].join(
-                                  " "
-                                )}
-                              >
-                                {ratio ===
-                                  "free"
-                                  ? "Free"
-                                  : ratio}
-                              </button>
-                            )
-                          )}
-
-                        </div>
-
+                      <div className="mt-5 rounded-xl border border-blue-100 bg-blue-50/80 px-3 py-3 text-xs leading-5 text-slate-600">
+                        <p className="font-bold text-slate-700">
+                          Mouse crop
+                        </p>
+                        <p className="mt-1">
+                          Move the selection or pull the corner handles.
+                          Fixed aspect ratios are not used — crop freely.
+                        </p>
+                        {cropRect && (
+                          <p className="mt-2 font-semibold text-blue-700">
+                            Selection:{" "}
+                            {Math.round(cropRect.width)} ×{" "}
+                            {Math.round(cropRect.height)} px
+                          </p>
+                        )}
                       </div>
                     )}
 

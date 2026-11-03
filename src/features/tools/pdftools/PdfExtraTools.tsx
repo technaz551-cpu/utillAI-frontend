@@ -2008,9 +2008,11 @@ function ResultCard({
 }
 
 /** File load + thumbnails, reused by page-based tools */
-function usePdfFile(width = 180) {
+function usePdfFile(width = 180, previewLimit = 120) {
   const [file, setFile] = useState<File | null>(null);
   const [thumbs, setThumbs] = useState<string[]>([]);
+  const [totalPages, setTotalPages] = useState(0);
+  const [previewsRendered, setPreviewsRendered] = useState(0);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
@@ -2023,12 +2025,17 @@ function usePdfFile(width = 180) {
     setFile(f);
     setLoading(true);
     try {
-      setThumbs(await renderThumbs(f, width));
+      const result = await renderThumbs(f, width, previewLimit);
+      setThumbs(result.thumbs);
+      setTotalPages(result.totalPages);
+      setPreviewsRendered(result.previewsRendered);
     } catch {
       setErr(
         "Couldn't read the pages. The file may be damaged or password-protected.",
       );
       setFile(null);
+      setTotalPages(0);
+      setPreviewsRendered(0);
     } finally {
       setLoading(false);
     }
@@ -2036,9 +2043,20 @@ function usePdfFile(width = 180) {
   const clear = () => {
     setFile(null);
     setThumbs([]);
+    setTotalPages(0);
+    setPreviewsRendered(0);
     setErr("");
   };
-  return { file, thumbs, loading, err, pick, clear };
+  return {
+    file,
+    thumbs,
+    totalPages,
+    previewsRendered,
+    loading,
+    err,
+    pick,
+    clear,
+  };
 }
 
 const isPdf = (f: File) => /\.pdf$/i.test(f.name);
@@ -2049,10 +2067,20 @@ const NOT_PDF = "That isn't a PDF. Choose a file ending in .pdf.";
 /* ================================================================== */
 
 export function OrganizeTool({ tool }: { tool: ToolMeta }) {
-  const { file, thumbs, loading, err, pick, clear } = usePdfFile();
+  const {
+    file,
+    thumbs,
+    totalPages,
+    previewsRendered,
+    loading,
+    err,
+    pick,
+    clear,
+  } = usePdfFile(140, 48);
   const r = useRunner();
   const [items, setItems] = useState<PageItem[]>([]);
   const [drag, setDrag] = useState<number | null>(null);
+  const [keepFirstCount, setKeepFirstCount] = useState(10);
   const [num, setNum] = useState<NumberingOptions>({
     enabled: false,
     position: "bottom-center",
@@ -2062,8 +2090,28 @@ export function OrganizeTool({ tool }: { tool: ToolMeta }) {
   });
 
   useEffect(() => {
-    setItems(thumbs.map((_, i) => ({ index: i, rotation: 0 })));
-  }, [thumbs]);
+    const count = totalPages || thumbs.length;
+    setItems(Array.from({ length: count }, (_, i) => ({ index: i, rotation: 0 })));
+    setKeepFirstCount(Math.min(10, count || 10));
+  }, [thumbs, totalPages]);
+
+  const keepFirstPages = (count: number) => {
+    const pageCount = totalPages || thumbs.length;
+    if (!pageCount) return;
+    const n = Math.min(Math.max(1, count), pageCount);
+    setItems(
+      Array.from({ length: n }, (_, i) => ({
+        index: i,
+        rotation: 0,
+      })),
+    );
+    setNum((prev) => ({
+      ...prev,
+      enabled: true,
+      start: 1,
+      format: "n",
+    }));
+  };
 
   const move = (from: number, to: number) => {
     if (to < 0 || to >= items.length || from === to) return;
@@ -2123,13 +2171,22 @@ export function OrganizeTool({ tool }: { tool: ToolMeta }) {
                   {pos + 1}
                 </span>
                 <div className="flex h-36 items-center justify-center overflow-hidden rounded bg-slate-50">
-                  <img
-                    src={thumbs[it.index]}
-                    alt={`Original page ${it.index + 1}`}
-                    draggable={false}
-                    className="max-h-full max-w-full object-contain transition-transform"
-                    style={{ transform: `rotate(${it.rotation}deg)` }}
-                  />
+                  {thumbs[it.index] ? (
+                    <img
+                      src={thumbs[it.index]}
+                      alt={`Original page ${it.index + 1}`}
+                      draggable={false}
+                      className="max-h-full max-w-full object-contain transition-transform"
+                      style={{ transform: `rotate(${it.rotation}deg)` }}
+                    />
+                  ) : (
+                    <span className="text-center text-xs font-semibold text-slate-400">
+                      Page {it.index + 1}
+                      <span className="mt-1 block font-normal">
+                        Preview skipped
+                      </span>
+                    </span>
+                  )}
                 </div>
                 <div className="mt-1.5 flex items-center justify-between">
                   <button
@@ -2190,8 +2247,70 @@ export function OrganizeTool({ tool }: { tool: ToolMeta }) {
             <Group title="Document">
               <p className="truncate text-sm text-slate-700">{file.name}</p>
               <p className="text-xs text-slate-500">
-                Keeping {items.length} of {thumbs.length} pages
+                Keeping {items.length} of {totalPages || thumbs.length} pages
               </p>
+              {totalPages > previewsRendered && (
+                <p className="mt-1 text-[11px] text-amber-700">
+                  Showing previews for the first {previewsRendered} pages only
+                  (faster load). Reorder and &quot;Keep first N&quot; still use
+                  all {totalPages} pages.
+                </p>
+              )}
+            </Group>
+            <Group title="Keep page range">
+              <p className="text-xs leading-5 text-slate-500">
+                Drop every page after your chosen count, keep order from page 1,
+                and turn on numbering automatically.
+              </p>
+              <Field label="First N pages">
+                <input
+                  type="number"
+                  min={1}
+                  max={totalPages || thumbs.length || 1}
+                  className={field}
+                  value={keepFirstCount}
+                  onChange={(e) =>
+                    setKeepFirstCount(
+                      Math.min(
+                        totalPages || thumbs.length || 1,
+                        Math.max(1, Number(e.target.value) || 1),
+                      ),
+                    )
+                  }
+                />
+              </Field>
+              <button
+                type="button"
+                className="w-full rounded-lg bg-[#2547f0] px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1a38c9]"
+                onClick={() => keepFirstPages(keepFirstCount)}
+              >
+                Keep first{" "}
+                {Math.min(
+                  keepFirstCount,
+                  totalPages || thumbs.length || 0,
+                )}{" "}
+                pages
+              </button>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {[5, 10, 20].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    disabled={(totalPages || thumbs.length) < preset}
+                    className={`rounded-md border px-2.5 py-1.5 text-xs font-semibold transition ${
+                      (totalPages || thumbs.length) >= preset
+                        ? "border-slate-200 bg-white text-slate-700 hover:border-[#2547f0] hover:text-[#2547f0]"
+                        : "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300"
+                    }`}
+                    onClick={() => {
+                      setKeepFirstCount(preset);
+                      keepFirstPages(preset);
+                    }}
+                  >
+                    First {preset}
+                  </button>
+                ))}
+              </div>
             </Group>
             <Group title="Page numbers">
               <Switch
@@ -2272,7 +2391,9 @@ export function OrganizeTool({ tool }: { tool: ToolMeta }) {
               label="Save organized PDF"
               busy={r.status === "processing"}
               disabled={!items.length}
-              onRun={() => r.runServer("organize-pdf", file, { items, numbering: num })}
+              onRun={() =>
+                r.run(() => organizePdf(file, items, num))
+              }
               onClear={reset}
             />
           </>
