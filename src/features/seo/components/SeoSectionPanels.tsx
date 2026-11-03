@@ -218,7 +218,10 @@ export function SeoSectionPanels({
         .then((status) => {
           const serp = status.serp_rank_provider as Record<string, unknown> | undefined;
           setSerpReady(
-            Boolean(serp?.configured && serp?.provider === "serpapi"),
+            Boolean(
+              serp?.configured &&
+                (serp?.provider === "serpapi" || serp?.provider === "serpkite"),
+            ),
           );
         })
         .catch(() => setSerpReady(false));
@@ -641,8 +644,8 @@ export function SeoSectionPanels({
           if (
             !window.confirm(
               phrase
-                ? `Check rank for "${phrase}"? Uses 1 SerpApi credit (or free if cached).`
-                : `Check ranks for up to ${maxHint} saved keywords? Each keyword = 1 credit unless cached (48h). Put a keyword in the box to check only one.`,
+                ? `Check rank for "${phrase}"? Uses SerpKite credits (or free if cached).`
+                : `Check ranks for up to ${maxHint} saved keywords? Each keyword uses API credits unless cached (48h). Put a keyword in the box to check only one.`,
             )
           ) {
             return Promise.resolve();

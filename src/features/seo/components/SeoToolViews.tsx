@@ -830,7 +830,7 @@ export function KeywordResearchView({
         <>
       <ProviderNotice>
         Trackee credits exhausted? Pick <strong>Australia</strong> (or your market), click <strong>Analyze</strong> — live
-        Google top-10 loads via <strong>SerpApi</strong>. Volume/KD stay n/a until Trackee or Semrush v3 is available.
+        Google top-10 loads via <strong>SerpKite</strong> (or SerpApi if configured). Volume/KD stay n/a until Trackee or Semrush v3 is available.
       </ProviderNotice>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <select className="rounded-lg border border-slate-200 px-3 py-2 text-sm" value={country} onChange={(e) => onCountryChange(e.target.value)}>
