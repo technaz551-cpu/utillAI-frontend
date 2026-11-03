@@ -17,6 +17,7 @@ import {
   getBacklinkProvider,
   getPageDetail,
   getPositionTrackingDashboard,
+  getIntegrationStatus,
   getRankingSummary,
   getSiteAuditSummary,
   getTrackedRankings,
@@ -40,6 +41,7 @@ import {
   runPageSpeed,
   startAudit,
   syncTrackeeBacklinks,
+  syncSerpApiRankings,
   updateIssueStatus,
   updateProject,
   updateTask,
@@ -85,6 +87,7 @@ export function SeoSectionPanels({
   charts,
   integrations,
   onRefresh,
+  onIntegrationsRefresh,
 }: {
   projectId: string;
   section: SeoSectionSlug;
@@ -93,6 +96,7 @@ export function SeoSectionPanels({
   charts: DashboardCharts | null;
   integrations: Record<string, unknown> | null;
   onRefresh: () => void;
+  onIntegrationsRefresh: () => void;
 }) {
   const [audits, setAudits] = useState<SeoAuditRun[]>([]);
   const [issues, setIssues] = useState<SeoIssue[]>([]);
@@ -125,7 +129,7 @@ export function SeoSectionPanels({
   const [bizPhone, setBizPhone] = useState("");
   const [profileSaveMsg, setProfileSaveMsg] = useState("");
   const [bulkKw, setBulkKw] = useState("");
-  const [kwCountry, setKwCountry] = useState("worldwide");
+  const [kwCountry, setKwCountry] = useState("AU");
   const [kwImportMsg, setKwImportMsg] = useState("");
   const [kwSearch, setKwSearch] = useState("");
   const [kwOverview, setKwOverview] = useState<KeywordOverview | null>(null);
@@ -139,6 +143,9 @@ export function SeoSectionPanels({
   const [trackeeReady, setTrackeeReady] = useState(false);
   const [rankCountry, setRankCountry] = useState("worldwide");
   const [rankDevice, setRankDevice] = useState("desktop");
+  const [serpReady, setSerpReady] = useState(false);
+  const [serpBusy, setSerpBusy] = useState(false);
+  const [rankSyncMsg, setRankSyncMsg] = useState("");
   const [positionDashboard, setPositionDashboard] = useState<PositionTrackingDashboard | null>(null);
   const [blAnchor, setBlAnchor] = useState("");
   const [blRel, setBlRel] = useState("follow");
@@ -153,7 +160,17 @@ export function SeoSectionPanels({
     setBizName(project.business_name || "");
     setBizAddress(project.business_address || "");
     setBizPhone(project.business_phone || "");
+    const dc = (project.default_country || "AU").trim();
+    setRankCountry(dc.toLowerCase() === "worldwide" ? "AU" : dc || "AU");
   }, [project]);
+
+  useEffect(() => {
+    if (section !== "keyword-research" || !project) return;
+    const raw = (project.default_country || project.brand_location || "AU").toUpperCase();
+    const allowed = new Set(["US", "PK", "UK", "AU", "IN", "GB"]);
+    const code = raw === "WORLDWIDE" ? "AU" : allowed.has(raw) ? raw : "AU";
+    setKwCountry(code === "GB" ? "UK" : code);
+  }, [section, project?.id, project?.default_country, project?.brand_location]);
 
   useEffect(() => {
     if (section === "site-audit") {
@@ -166,8 +183,10 @@ export function SeoSectionPanels({
       void listIssues(projectId, { status: "open" }).then((r) => setIssues(r.items));
     if (section === "url-inspection" || section === "content-seo" || section === "on-page-seo")
       void listAllPages(projectId).then(setPages);
-    if (section === "keyword-research") void listKeywords(projectId).then(setKeywords);
-    if (section === "seo-tasks") void listTasks(projectId).then(setTasks);
+    if (section === "keyword-research") {
+      void listKeywords(projectId).then(setKeywords).catch(() => setKeywords([]));
+    }
+    if (section === "seo-tasks") void listTasks(projectId).then(setTasks).catch(() => {});
     if (section === "alerts") void listAlerts(projectId).then(setAlerts);
     if (section === "backlink-analysis") {
       void listBacklinks(projectId).then(setBacklinks);
@@ -195,6 +214,14 @@ export function SeoSectionPanels({
       void getPositionTrackingDashboard(projectId)
         .then(setPositionDashboard)
         .catch(() => setPositionDashboard(null));
+      void getIntegrationStatus(projectId)
+        .then((status) => {
+          const serp = status.serp_rank_provider as Record<string, unknown> | undefined;
+          setSerpReady(
+            Boolean(serp?.configured && serp?.provider === "serpapi"),
+          );
+        })
+        .catch(() => setSerpReady(false));
     }
   }, [projectId, section]);
 
@@ -367,7 +394,9 @@ export function SeoSectionPanels({
       void getKeywordOverview(
         projectId,
         p,
-        kwCountry === "worldwide" ? undefined : kwCountry,
+        kwCountry === "worldwide"
+          ? project?.default_country || project?.brand_location || "AU"
+          : kwCountry,
       )
         .then(setKwOverview)
         .catch((e) => {
@@ -582,7 +611,13 @@ export function SeoSectionPanels({
         .then(setPositionDashboard)
         .catch(() => setPositionDashboard(null));
     return (
-      <PositionTrackingView
+      <>
+        {rankSyncMsg ? (
+          <p className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+            {rankSyncMsg}
+          </p>
+        ) : null}
+        <PositionTrackingView
         projectId={projectId}
         project={project}
         dashboard={positionDashboard}
@@ -590,6 +625,8 @@ export function SeoSectionPanels({
         rankPos={rankPos}
         country={rankCountry}
         device={rankDevice}
+        serpReady={serpReady}
+        serpBusy={serpBusy}
         onPhrase={setRankPhrase}
         onPos={setRankPos}
         onCountry={setRankCountry}
@@ -597,6 +634,40 @@ export function SeoSectionPanels({
         onRefresh={() => {
           refreshPosition();
           void getRankingSummary(projectId).then(setRankSummary);
+        }}
+        onCheckSerp={() => {
+          const phrase = rankPhrase.trim();
+          const maxHint = phrase ? 1 : 5;
+          if (
+            !window.confirm(
+              phrase
+                ? `Check rank for "${phrase}"? Uses 1 SerpApi credit (or free if cached).`
+                : `Check ranks for up to ${maxHint} saved keywords? Each keyword = 1 credit unless cached (48h). Put a keyword in the box to check only one.`,
+            )
+          ) {
+            return Promise.resolve();
+          }
+          setSerpBusy(true);
+          setRankSyncMsg("");
+          setError("");
+          return syncSerpApiRankings(projectId, {
+            country: rankCountry,
+            device: rankDevice,
+            phrase: phrase || undefined,
+          })
+            .then((data) => {
+              setRankSyncMsg(data.message || `Logged ${data.logged} rank(s).`);
+              return listRankings(projectId)
+                .then(setRankings)
+                .then(() => getTrackedRankings(projectId).then(setTrackedRows))
+                .then(() => getRankingSummary(projectId).then(setRankSummary))
+                .then(refreshPosition)
+                .then(onRefresh);
+            })
+            .catch((e) => {
+              setError(e instanceof Error ? e.message : "Rank check failed.");
+            })
+            .finally(() => setSerpBusy(false));
         }}
         onLog={() =>
           void recordRanking(projectId, {
@@ -616,6 +687,7 @@ export function SeoSectionPanels({
             })
         }
       />
+      </>
     );
   }
 
@@ -691,7 +763,13 @@ export function SeoSectionPanels({
   }
 
   if (section === "search-console") {
-    return <SearchConsoleView integrations={integrations} />;
+    return (
+      <SearchConsoleView
+        projectId={projectId}
+        integrations={integrations}
+        onIntegrationsRefresh={onIntegrationsRefresh}
+      />
+    );
   }
 
   if (section === "analytics") {

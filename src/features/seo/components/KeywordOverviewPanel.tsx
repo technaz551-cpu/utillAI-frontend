@@ -97,6 +97,83 @@ export function KeywordOverviewPanel({
     label: c.country_name,
     volume: c.volume ?? 0,
   }));
+  const metricsMissing = overview.volume == null && overview.keyword_difficulty == null;
+  const noticeWarning =
+    metricsMissing ||
+    /unavailable|failed|insufficient|not available/i.test(overview.provider_message || "");
+  const staleOverview = /SERPAPI_KEYWORD_SERP_ENABLED|Live SERP on analyze is off/i.test(
+    overview.provider_message || "",
+  );
+  const liveSerpRows = overview.serp_results.filter((r) => r.url && !r.is_ai_overview);
+  const serpOnlyMode =
+    !overview.metrics_available &&
+    metricsMissing &&
+    (overview.serp_live || liveSerpRows.length > 0 || overview.provider_connected);
+
+  const serpTable = (
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 p-4">
+        <div>
+          <h3 className="text-sm font-bold text-slate-800">SERP analysis (live Google)</h3>
+          <p className="text-xs text-slate-500">
+            {liveSerpRows.length
+              ? `${liveSerpRows.length} organic results · ${overview.country || "market"}`
+              : "Run Analyze again with Australia selected if this table is empty."}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          onClick={() => exportSerpOverviewCsv(overview.serp_results)}
+        >
+          Export CSV
+        </button>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <tr>
+              <th className="p-3">URL / SERP</th>
+              <th className="p-3">Page AS</th>
+              <th className="p-3">Ref. domains</th>
+              <th className="p-3">Backlinks</th>
+              <th className="p-3">Traffic</th>
+              <th className="p-3">Keywords</th>
+            </tr>
+          </thead>
+          <tbody>
+            {overview.serp_results.map((row, i) => (
+              <tr key={`${row.url}-${i}`} className="border-t border-slate-100">
+                <td className="max-w-md p-3">
+                  {row.is_ai_overview ? (
+                    <span className="font-medium text-indigo-700">{row.title || "Provider notice"}</span>
+                  ) : (
+                    <a href={row.url} className="text-[#4f46e5] hover:underline" target="_blank" rel="noreferrer">
+                      {row.url}
+                    </a>
+                  )}
+                  {row.title && !row.is_ai_overview ? (
+                    <p className="mt-0.5 text-xs text-slate-500">{row.title}</p>
+                  ) : null}
+                </td>
+                <td className="p-3">{row.page_authority ?? "—"}</td>
+                <td className="p-3">{row.referring_domains ?? "—"}</td>
+                <td className="p-3">{row.backlinks ?? "—"}</td>
+                <td className="p-3">{row.search_traffic ?? "—"}</td>
+                <td className="p-3">{row.url_keywords ?? "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="border-t border-slate-100 p-3 text-xs text-slate-500">
+        <Link href={`/tools/seo/platform/${projectId}/ai-search-visibility`} className="font-semibold text-[#4f46e5]">
+          AI Search Visibility →
+        </Link>
+        {" "}Log whether AI answers mention your brand for this topic.
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -115,34 +192,89 @@ export function KeywordOverviewPanel({
         </div>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
-            <p className="text-xs text-slate-500">Volume</p>
-            <p className="text-2xl font-bold text-slate-900">{fmt(overview.volume)}</p>
-            <p className="text-[10px] text-slate-400">{overview.country || "Market"}</p>
-          </div>
-          <div className="rounded-xl border border-slate-100 p-4">
-            <ScoreGauge score={overview.keyword_difficulty} label="Keyword difficulty" />
-          </div>
-          <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
-            <p className="text-xs text-slate-500">Global volume</p>
-            <p className="text-2xl font-bold text-slate-900">{fmt(overview.global_volume)}</p>
-          </div>
-          <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
-            <p className="text-xs text-slate-500">CPC</p>
-            <p className="text-2xl font-bold text-slate-900">{overview.cpc != null ? `$${overview.cpc}` : "n/a"}</p>
-          </div>
-          <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
-            <p className="text-xs text-slate-500">Competitive density</p>
-            <p className="text-2xl font-bold text-slate-900">{overview.competitive_density ?? "n/a"}</p>
-          </div>
+          {serpOnlyMode ? (
+            <>
+              <div className="rounded-xl border border-indigo-100 bg-indigo-50/80 p-4 lg:col-span-2">
+                <p className="text-xs font-semibold text-indigo-900">SerpApi mode (live data)</p>
+                <p className="mt-2 text-sm text-indigo-950">
+                  Volume / KD graphs need <strong>Trackee credits</strong> or a{" "}
+                  <strong>Semrush v3 API key</strong>. Right now use the SERP table below +{" "}
+                  <Link href={`/tools/seo/platform/${projectId}/rank-tracking`} className="font-semibold underline">
+                    Rank Tracking
+                  </Link>{" "}
+                  for the trend chart.
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+                <p className="text-xs text-slate-500">Organic results</p>
+                <p className="text-2xl font-bold text-slate-900">{liveSerpRows.length || "—"}</p>
+                <p className="text-[10px] text-slate-400">{overview.country || "Market"}</p>
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+                <p className="text-xs text-slate-500">Latest rank</p>
+                <p className="text-2xl font-bold text-slate-900">
+                  {overview.latest_rank != null ? `#${overview.latest_rank}` : "—"}
+                </p>
+                <p className="text-[10px] text-slate-400">From rank logs</p>
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+                <p className="text-xs text-slate-500">Search volume</p>
+                <p className="text-2xl font-bold text-slate-400">n/a</p>
+                <p className="text-[10px] text-slate-400">Trackee / Semrush</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+                <p className="text-xs text-slate-500">Volume</p>
+                <p className="text-2xl font-bold text-slate-900">{fmt(overview.volume)}</p>
+                <p className="text-[10px] text-slate-400">{overview.country || "Market"}</p>
+              </div>
+              <div className="rounded-xl border border-slate-100 p-4">
+                <ScoreGauge score={overview.keyword_difficulty} label="Keyword difficulty" />
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+                <p className="text-xs text-slate-500">Global volume</p>
+                <p className="text-2xl font-bold text-slate-900">{fmt(overview.global_volume)}</p>
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+                <p className="text-xs text-slate-500">CPC</p>
+                <p className="text-2xl font-bold text-slate-900">{overview.cpc != null ? `$${overview.cpc}` : "n/a"}</p>
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+                <p className="text-xs text-slate-500">Competitive density</p>
+                <p className="text-2xl font-bold text-slate-900">{overview.competitive_density ?? "n/a"}</p>
+              </div>
+            </>
+          )}
         </div>
 
+        {staleOverview ? (
+          <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-900">
+            This overview is from an old backend config. Restart the API on port 8001, then click{" "}
+            <strong>Analyze</strong> again.
+          </p>
+        ) : null}
         {!overview.provider_connected ? (
           <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">{overview.provider_message}</p>
         ) : overview.provider_message ? (
-          <p className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-900">{overview.provider_message}</p>
+          <p
+            className={`mt-4 rounded-lg px-3 py-2 text-xs ${
+              noticeWarning ? "bg-amber-50 text-amber-900" : "bg-emerald-50 text-emerald-900"
+            }`}
+          >
+            {overview.provider_message}
+          </p>
+        ) : null}
+        {metricsMissing && overview.serp_live ? (
+          <p className="mt-2 text-xs text-slate-600">
+            Volume and KD are not from SerpApi — scroll down for <strong>live Google top results</strong> for{" "}
+            {overview.country || "your market"}.
+          </p>
         ) : null}
       </div>
+
+      {serpTable}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -171,18 +303,28 @@ export function KeywordOverviewPanel({
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h3 className="text-sm font-bold text-slate-800">Volume by country</h3>
-          <p className="text-xs text-slate-500">Full breakdown when keyword provider is connected</p>
-          <div className="mt-3 h-48">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={countryBars.length ? countryBars : [{ name: "—", label: "—", volume: 0 }]}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} />
-                <Tooltip formatter={(v, _n, p) => [v === 0 ? "n/a" : v, (p as { payload?: { label?: string } }).payload?.label]} />
-                <Bar dataKey="volume" fill="#6366f1" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          {serpOnlyMode ? (
+            <p className="mt-3 text-sm leading-relaxed text-slate-600">
+              Not available without Trackee or Semrush. Top up Trackee and set{" "}
+              <code className="rounded bg-slate-100 px-1 text-xs">SEO_KEYWORD_PROVIDER=trackee</code>, or add a
+              Semrush v3 API key.
+            </p>
+          ) : (
+            <>
+              <p className="text-xs text-slate-500">Full breakdown when keyword provider is connected</p>
+              <div className="mt-3 h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={countryBars.length ? countryBars : [{ name: "—", label: "—", volume: 0 }]}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                    <YAxis tick={{ fontSize: 10 }} />
+                    <Tooltip formatter={(v, _n, p) => [v === 0 ? "n/a" : v, (p as { payload?: { label?: string } }).payload?.label]} />
+                    <Bar dataKey="volume" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -218,63 +360,6 @@ export function KeywordOverviewPanel({
           </div>
         </div>
       ) : null}
-
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 p-4">
-          <div>
-            <h3 className="text-sm font-bold text-slate-800">SERP analysis</h3>
-            <p className="text-xs text-slate-500">Ranked URLs, authority, and traffic — live data with SERP provider</p>
-          </div>
-          <button
-            type="button"
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-            onClick={() => exportSerpOverviewCsv(overview.serp_results)}
-          >
-            Export CSV
-          </button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-              <tr>
-                <th className="p-3">URL / SERP</th>
-                <th className="p-3">Page AS</th>
-                <th className="p-3">Ref. domains</th>
-                <th className="p-3">Backlinks</th>
-                <th className="p-3">Traffic</th>
-                <th className="p-3">Keywords</th>
-              </tr>
-            </thead>
-            <tbody>
-              {overview.serp_results.map((row, i) => (
-                <tr key={`${row.url}-${i}`} className="border-t border-slate-100">
-                  <td className="max-w-md p-3">
-                    {row.is_ai_overview ? (
-                      <span className="font-medium text-indigo-700">AI / Provider notice</span>
-                    ) : (
-                      <a href={row.url} className="text-[#4f46e5] hover:underline" target="_blank" rel="noreferrer">
-                        {row.url}
-                      </a>
-                    )}
-                    {row.title ? <p className="mt-0.5 text-xs text-slate-500">{row.title}</p> : null}
-                  </td>
-                  <td className="p-3">{row.page_authority ?? "—"}</td>
-                  <td className="p-3">{row.referring_domains ?? "—"}</td>
-                  <td className="p-3">{row.backlinks ?? "—"}</td>
-                  <td className="p-3">{row.search_traffic ?? "—"}</td>
-                  <td className="p-3">{row.url_keywords ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="border-t border-slate-100 p-3 text-xs text-slate-500">
-          <Link href={`/tools/seo/platform/${projectId}/ai-search-visibility`} className="font-semibold text-[#4f46e5]">
-            AI Search Visibility →
-          </Link>
-          {" "}Log whether AI answers mention your brand for this topic.
-        </div>
-      </div>
     </div>
   );
 }

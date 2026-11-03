@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Download, Plus, RefreshCw, Settings2 } from "lucide-react";
+import { Download, Loader2, Plus, RefreshCw, Settings2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   Bar,
@@ -206,6 +206,9 @@ export function PositionTrackingView({
   onDevice,
   onLog,
   onRefresh,
+  onCheckSerp,
+  serpReady = false,
+  serpBusy = false,
 }: {
   projectId: string;
   project: SeoProject | null;
@@ -214,12 +217,15 @@ export function PositionTrackingView({
   rankPos: string;
   country: string;
   device: string;
+  serpReady?: boolean;
+  serpBusy?: boolean;
   onPhrase: (v: string) => void;
   onPos: (v: string) => void;
   onCountry: (v: string) => void;
   onDevice: (v: string) => void;
   onLog: () => void;
   onRefresh: () => void;
+  onCheckSerp?: () => void | Promise<void>;
 }) {
   const [tab, setTab] = useState("landscape");
   const [chartMetric, setChartMetric] = useState<ChartMetric>("visibility");
@@ -342,7 +348,7 @@ export function PositionTrackingView({
         </select>
         <input
           className="min-w-[120px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-          placeholder="Keyword"
+          placeholder="Saved keyword (optional)"
           value={rankPhrase}
           onChange={(e) => onPhrase(e.target.value)}
         />
@@ -359,7 +365,60 @@ export function PositionTrackingView({
         >
           Log position
         </button>
+        {serpReady ? (
+          <button
+            type="button"
+            disabled={serpBusy}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#4f46e5] px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            onClick={() => void onCheckSerp?.()}
+          >
+            {serpBusy ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Checking…
+              </>
+            ) : (
+              "Check ranks (SerpApi)"
+            )}
+          </button>
+        ) : null}
+        {serpReady ? (
+          <span className="text-[11px] leading-4 text-slate-500">
+            Matching domain:{" "}
+            <strong className="text-slate-700">
+              {String(dashboard?.domain || project?.domain || project?.website_url || "—")}
+            </strong>
+            . 1 credit/keyword · pick country · optional keyword box = one phrase
+          </span>
+        ) : null}
       </div>
+
+      {serpReady ? (
+        <div className="mb-4 rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3 text-xs leading-5 text-slate-700">
+          <p className="font-bold text-slate-900">How to use SerpApi rank check</p>
+          <ol className="mt-2 list-decimal space-y-1 pl-4">
+            <li>
+              Project domain must match Google results (e.g.{" "}
+              <span className="font-mono">utillai.technaz.com.au</span>).
+            </li>
+            <li>
+              Save keywords in <strong>Keyword Research</strong> first — checks only run on
+              saved phrases.
+            </li>
+            <li>
+              Choose <strong>Australia</strong> (not Worldwide) if you rank on google.com.au.
+            </li>
+            <li>
+              Type one exact keyword in the <strong>Keyword</strong> box →{" "}
+              <strong>Check ranks</strong> (1 credit).
+            </li>
+            <li>
+              Position <strong>—</strong> means not in top 100 for that country/device, not
+              always a bug.
+            </li>
+          </ol>
+        </div>
+      ) : null}
 
       {(tab === "landscape" || tab === "overview") && (
         <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

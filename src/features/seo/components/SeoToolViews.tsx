@@ -1,8 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Check, ExternalLink, RefreshCw } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import {
+  disconnectGsc,
+  getGscSummary,
+  startGscConnect,
+} from "@/features/seo/api/client";
 
 import {
   ProviderNotice,
@@ -13,6 +20,10 @@ import {
 } from "@/features/seo/components/seo-ui/ToolChrome";
 import { SeverityBadge } from "@/features/seo/components/SeverityBadge";
 import { KeywordOverviewPanel } from "@/features/seo/components/KeywordOverviewPanel";
+import {
+  PerformanceChartsPanel,
+  PerformanceFlowSteps,
+} from "@/features/seo/components/PerformanceChartsPanel";
 import type { KeywordOverview } from "@/features/seo/types/keywordOverview";
 import { downloadKeywordCsvTemplate, exportKeywordsToCsv } from "@/features/seo/utils/keywordCsv";
 import type {
@@ -818,8 +829,8 @@ export function KeywordResearchView({
       {tab === "import" ? (
         <>
       <ProviderNotice>
-        Trackee fills volume and KD after you save keywords — use <strong>Save keywords</strong> then check the list, or
-        click <strong>Fetch volume &amp; KD (Trackee)</strong>. Single-word <strong>Analyze</strong> shows full overview.
+        Trackee credits exhausted? Pick <strong>Australia</strong> (or your market), click <strong>Analyze</strong> — live
+        Google top-10 loads via <strong>SerpApi</strong>. Volume/KD stay n/a until Trackee or Semrush v3 is available.
       </ProviderNotice>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <select className="rounded-lg border border-slate-200 px-3 py-2 text-sm" value={country} onChange={(e) => onCountryChange(e.target.value)}>
@@ -1308,6 +1319,7 @@ export function PerformanceView({
         title="Website Performance"
         description="Measure with PageSpeed Insights, then apply sitewide fixes — scores below are for your homepage URL but the playbook below improves the whole site."
       />
+      <PerformanceFlowSteps />
       <div className="mb-4 flex flex-wrap gap-2">
         <button type="button" className="rounded-lg bg-[#4f46e5] px-4 py-2 text-sm font-semibold text-white" onClick={onRunMobile}>
           Analyze (mobile)
@@ -1351,6 +1363,7 @@ export function PerformanceView({
               );
             })}
           </div>
+          <PerformanceChartsPanel performance={performance} />
         </>
       ) : (
         <ProviderNotice>
@@ -1772,24 +1785,213 @@ export function IntegrationsPanel({ data }: { data: Record<string, unknown> | nu
   );
 }
 
-export function SearchConsoleView({ integrations }: { integrations: Record<string, unknown> | null }) {
+export function SearchConsoleView({
+  projectId,
+  integrations,
+  onIntegrationsRefresh,
+}: {
+  projectId: string;
+  integrations: Record<string, unknown> | null;
+  onIntegrationsRefresh: () => void;
+}) {
+  const searchParams = useSearchParams();
   const gsc = (integrations?.google_search_console as Record<string, unknown>) || {};
+  const connected = Boolean(gsc.connected);
+  const configured = Boolean(gsc.configured);
+  const siteUrl = typeof gsc.site_url === "string" ? gsc.site_url : "";
+  const apiMessage = typeof gsc.message === "string" ? gsc.message : "";
+
+  const [summary, setSummary] = useState<Awaited<ReturnType<typeof getGscSummary>> | null>(
+    null,
+  );
+  const [loading, setLoading] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const urlNotice = useMemo(() => {
+    const err = searchParams.get("gsc_error");
+    if (err) return decodeURIComponent(err);
+    if (searchParams.get("gsc") === "connected") {
+      return "Search Console connected successfully.";
+    }
+    return null;
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (searchParams.get("gsc") === "connected" || searchParams.get("gsc_error")) {
+      onIntegrationsRefresh();
+    }
+  }, [searchParams, onIntegrationsRefresh]);
+
+  const loadSummary = useCallback(async () => {
+    if (!connected) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getGscSummary(projectId);
+      setSummary(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not load Search Console data.");
+      setSummary(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [connected, projectId]);
+
+  useEffect(() => {
+    if (connected) void loadSummary();
+    else setSummary(null);
+  }, [connected, loadSummary]);
+
+  const notice =
+    urlNotice ||
+    error ||
+    apiMessage ||
+    (connected
+      ? "Search Console is connected for this project."
+      : configured
+        ? "Sign in with Google to import queries and clicks."
+        : "Set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET in backend .env (or GOOGLE_ADS_CLIENT_ID / GOOGLE_ADS_CLIENT_SECRET).");
+
+  const queriesCount = summary?.queries_count;
+  const clicks = summary?.clicks_28d;
+  const indexed = summary?.indexed_pages_estimate;
+
+  const handleConnect = async () => {
+    setConnecting(true);
+    setError(null);
+    try {
+      const { auth_url } = await startGscConnect(projectId);
+      window.location.href = auth_url;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not start Google sign-in.");
+      setConnecting(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!window.confirm("Disconnect Search Console for this project?")) return;
+    setLoading(true);
+    try {
+      await disconnectGsc(projectId);
+      setSummary(null);
+      onIntegrationsRefresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Disconnect failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <SectionIntro
         title="Search Console"
         description="Import queries, clicks, impressions, and indexing coverage from Google Search Console."
       />
-      <ProviderNotice>
-        {gsc.connected
-          ? "Search Console is connected for this project."
-          : "Set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET in backend .env, then complete OAuth connect (coming in next release)."}
-      </ProviderNotice>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <StatPill label="Queries" value={gsc.connected ? "—" : "Connect"} />
-        <StatPill label="Clicks (28d)" value={gsc.connected ? "—" : "Connect"} />
-        <StatPill label="Indexed pages" value={gsc.connected ? "—" : "Connect"} />
+      <ProviderNotice>{notice}</ProviderNotice>
+      {(configured || connected) && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {!connected ? (
+            <button
+              type="button"
+              disabled={connecting}
+              className="rounded-lg bg-[#1a1a1a] px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
+              onClick={() => void handleConnect()}
+            >
+              {connecting ? "Redirecting…" : "Connect Search Console"}
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                disabled={loading}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
+                onClick={() => void loadSummary()}
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+                Refresh data
+              </button>
+              <button
+                type="button"
+                disabled={loading}
+                className="rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700"
+                onClick={() => void handleDisconnect()}
+              >
+                Disconnect
+              </button>
+            </>
+          )}
+        </div>
+      )}
+      {connected && siteUrl ? (
+        <p className="mt-2 text-xs text-slate-500">
+          Property: <span className="font-medium text-slate-700">{siteUrl}</span>
+        </p>
+      ) : null}
+      {summary?.period ? (
+        <p className="mt-1 text-xs text-slate-400">
+          Period {summary.period.start} → {summary.period.end} (Search Console data lag ~3 days)
+        </p>
+      ) : null}
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <StatPill
+          label="Queries"
+          value={connected ? (queriesCount ?? (loading ? "…" : "—")) : configured ? "Connect" : "—"}
+        />
+        <StatPill
+          label="Clicks (28d)"
+          value={connected ? (clicks ?? (loading ? "…" : "—")) : configured ? "Connect" : "—"}
+        />
+        <StatPill
+          label="Indexed pages"
+          value={connected ? (indexed ?? (loading ? "…" : "—")) : configured ? "Connect" : "—"}
+        />
       </div>
+      {connected && summary?.top_queries?.length ? (
+        <div className="mt-6 overflow-hidden rounded-xl border border-slate-200">
+          <div className="border-b border-slate-100 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-700">
+            Top queries (28d)
+          </div>
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-slate-100 text-slate-500">
+                <th className="px-4 py-2 font-medium">Query</th>
+                <th className="px-4 py-2 font-medium">Clicks</th>
+                <th className="px-4 py-2 font-medium">Impressions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {summary.top_queries.map((row) => (
+                <tr key={row.query} className="border-b border-slate-50">
+                  <td className="px-4 py-2 text-slate-800">{row.query}</td>
+                  <td className="px-4 py-2">{row.clicks}</td>
+                  <td className="px-4 py-2">{row.impressions}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+      {configured && !connected ? (
+        <p className="mt-4 text-xs leading-5 text-slate-500">
+          Add redirect URI{" "}
+          <code className="rounded bg-slate-100 px-1 py-0.5 text-[11px]">
+            http://127.0.0.1:8001/api/v1/seo/integrations/google/callback
+          </code>{" "}
+          in Google Cloud Console (OAuth client). Project domain must match a Search Console property.
+          Or use{" "}
+          <a
+            href="https://search.google.com/search-console"
+            className="font-semibold text-[#4f46e5]"
+            target="_blank"
+            rel="noreferrer"
+          >
+            search.google.com/search-console
+          </a>{" "}
+          directly.
+        </p>
+      ) : null}
     </>
   );
 }

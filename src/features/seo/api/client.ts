@@ -20,13 +20,17 @@ type ApiEnvelope<T> = {
   detail?: string;
 };
 
-function authHeaders(): HeadersInit {
+function authHeaders(): HeadersInit | null {
   const user = getStoredUser();
-  if (!user?.token) throw new Error("Sign in to use the SEO platform.");
+  if (!user?.token) return null;
   return {
     "Content-Type": "application/json",
     Authorization: `Bearer ${user.token}`,
   };
+}
+
+function authRequiredError(): Error {
+  return new Error("Sign in to use the SEO platform.");
 }
 
 function parseErrorDetail(body: ApiEnvelope<unknown> | null, status: number): string {
@@ -48,9 +52,17 @@ async function seoFetch<T>(
   init?: RequestInit,
   retried = false,
 ): Promise<T> {
+  let headers = authHeaders();
+  if (!headers) {
+    if (!retried && (await refreshSession())) {
+      return seoFetch(path, init, true);
+    }
+    throw authRequiredError();
+  }
+
   const response = await fetch(`${API_BASE}/seo${path}`, {
     ...init,
-    headers: { ...(init?.headers || {}), ...authHeaders() },
+    headers: { ...(init?.headers || {}), ...headers },
   });
   const body = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
   if (response.status === 401) {
@@ -155,6 +167,21 @@ export function recordRanking(
 
 export function getRankingSummary(projectId: string) {
   return seoFetch<Record<string, unknown>>(`/projects/${projectId}/rankings/summary`);
+}
+
+export function syncSerpApiRankings(
+  projectId: string,
+  payload?: { country?: string; device?: string; keyword_ids?: string[]; phrase?: string },
+) {
+  return seoFetch<{
+    checked: number;
+    logged: number;
+    message: string;
+    results: Record<string, unknown>[];
+  }>(`/projects/${projectId}/rankings/sync-serpapi`, {
+    method: "POST",
+    body: JSON.stringify(payload ?? {}),
+  });
 }
 
 export function startAudit(projectId: string, opts?: { max_pages?: number }) {
@@ -322,6 +349,32 @@ export function updateTask(taskId: string, patch: Partial<SeoTask>) {
 export function getIntegrationStatus(projectId: string) {
   return seoFetch<Record<string, unknown>>(
     `/projects/${projectId}/integrations/status`,
+  );
+}
+
+export function startGscConnect(projectId: string) {
+  return seoFetch<{ auth_url: string; redirect_uri: string }>(
+    `/projects/${projectId}/integrations/google-search-console/connect`,
+    { method: "POST" },
+  );
+}
+
+export function getGscSummary(projectId: string) {
+  return seoFetch<{
+    site_url: string;
+    queries_count: number;
+    clicks_28d: number;
+    impressions_28d: number;
+    indexed_pages_estimate: number;
+    top_queries: { query: string; clicks: number; impressions: number }[];
+    period: { start: string; end: string };
+  }>(`/projects/${projectId}/integrations/google-search-console/summary`);
+}
+
+export function disconnectGsc(projectId: string) {
+  return seoFetch<{ disconnected: boolean }>(
+    `/projects/${projectId}/integrations/google-search-console/disconnect`,
+    { method: "POST" },
   );
 }
 

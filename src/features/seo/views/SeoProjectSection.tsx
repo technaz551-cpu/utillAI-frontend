@@ -40,27 +40,42 @@ export function SeoProjectSection({
   );
   const router = useRouter();
   const pathname = usePathname();
+  const [sessionReady, setSessionReady] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+    setSessionReady(false);
     void ensureValidSession().then((ok) => {
+      if (cancelled) return;
       if (!ok) {
         router.replace(`/login?next=${encodeURIComponent(pathname)}&reason=session`);
+        return;
       }
+      setSessionReady(true);
     });
+    return () => {
+      cancelled = true;
+    };
   }, [pathname, router]);
 
   const refresh = useCallback(() => {
+    if (!sessionReady) return;
     void getDashboardSummary(projectId).then(setSummary).catch(() => {});
     void getDashboardCharts(projectId).then(setCharts).catch(() => {});
     void getProject(projectId).then(setProject).catch(() => {});
+  }, [projectId, sessionReady]);
+
+  const refreshIntegrations = useCallback(() => {
+    void getIntegrationStatus(projectId).then(setIntegrations).catch(() => {});
   }, [projectId]);
 
   useEffect(() => {
+    if (!sessionReady) return;
     refresh();
     if (section === "settings" || section === "analytics" || section === "search-console") {
       void getIntegrationStatus(projectId).then(setIntegrations).catch(() => {});
     }
-  }, [projectId, section, refresh]);
+  }, [projectId, section, refresh, sessionReady]);
 
   useEffect(() => {
     const inProgress =
@@ -90,15 +105,20 @@ export function SeoProjectSection({
             : "rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm md:p-6"
         }
       >
-        <SeoSectionPanels
-          projectId={projectId}
-          section={section}
-          project={project}
-          summary={summary}
-          charts={charts}
-          integrations={integrations}
-          onRefresh={refresh}
-        />
+        {sessionReady ? (
+          <SeoSectionPanels
+            projectId={projectId}
+            section={section}
+            project={project}
+            summary={summary}
+            charts={charts}
+            integrations={integrations}
+            onRefresh={refresh}
+            onIntegrationsRefresh={refreshIntegrations}
+          />
+        ) : (
+          <p className="py-8 text-center text-sm text-slate-500">Checking your session…</p>
+        )}
       </div>
     </SeoShell>
   );

@@ -19,6 +19,8 @@ export type KeywordOverview = {
   provider_connected: boolean;
   provider_message: string;
   data_source: string | null;
+  serp_live?: boolean;
+  metrics_available?: boolean;
 };
 
 export type KeywordIdeaRow = {
